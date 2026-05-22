@@ -74,11 +74,42 @@
 [data-density="compact"] { --gap: 10px; --pad: 14px; }
 [data-density="comfy"]   { --gap: 22px; --pad: 28px; }
 
+/* ── Tailwind v4 semantic token mapping ───────────────────────── */
+/* These become bg-*, text-*, border-*, etc. Tailwind utilities    */
 @theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* backgrounds */
+  --color-bg:           var(--bg);
+  --color-surface:      var(--surface);
+  --color-subtle:       var(--subtle);
+  --color-hover:        var(--hover);
+
+  /* borders */
+  --color-border:       var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* text */
+  --color-text:         var(--text);
+  --color-text-dim:     var(--text-dim);
+  --color-text-muted:   var(--text-muted);
+
+  /* accent */
+  --color-accent:       var(--accent);
+  --color-accent-soft:  var(--accent-soft);
+  --color-accent-fg:    var(--accent-fg);
+
+  /* status */
+  --color-success:      var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger:       var(--danger);
+  --color-danger-soft:  var(--danger-soft);
+  --color-warning:      var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info:         var(--info);
+  --color-info-soft:    var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
 }
 
 * { box-sizing: border-box; }
@@ -91,10 +122,4 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "ss01", "cv11";
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
