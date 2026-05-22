@@ -1,22 +1,96 @@
 @import "tailwindcss";
 
+/* ── QA Hub design tokens ─────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* light */
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --subtle: #f3f3f5;
+  --hover: #ececef;
+  --border: #e6e6ea;
+  --border-strong: #d4d4d8;
+  --text: #15161a;
+  --text-dim: #5b5d65;
+  --text-muted: #94959c;
+
+  --accent: oklch(0.55 0.16 252);
+  --accent-soft: oklch(0.96 0.04 252);
+  --accent-fg: #ffffff;
+
+  --success: oklch(0.62 0.16 145);
+  --success-soft: oklch(0.95 0.05 145);
+  --danger: oklch(0.6 0.21 27);
+  --danger-soft: oklch(0.96 0.05 27);
+  --warning: oklch(0.74 0.15 75);
+  --warning-soft: oklch(0.96 0.05 75);
+  --info: oklch(0.62 0.13 230);
+  --info-soft: oklch(0.96 0.03 230);
+  --neutral-soft: oklch(0.95 0.005 250);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 0 rgba(15,17,22,.04), 0 1px 2px rgba(15,17,22,.04);
+  --shadow-md: 0 1px 0 rgba(15,17,22,.04), 0 4px 14px rgba(15,17,22,.06);
+  --shadow-lg: 0 12px 32px rgba(15,17,22,.12);
+
+  --sidebar-w: 244px;
+  --topbar-h: 56px;
+  --gap: 16px;
+  --pad: 20px;
 }
 
+[data-theme="dark"] {
+  --bg: #0c0d10;
+  --surface: #15171c;
+  --subtle: #1a1c22;
+  --hover: #20232a;
+  --border: #23262e;
+  --border-strong: #2e323b;
+  --text: #ececef;
+  --text-dim: #9ea0a8;
+  --text-muted: #6b6d75;
+
+  --accent: oklch(0.7 0.16 252);
+  --accent-soft: oklch(0.25 0.06 252);
+  --accent-fg: #0c0d10;
+
+  --success: oklch(0.72 0.16 145);
+  --success-soft: oklch(0.26 0.08 145);
+  --danger: oklch(0.7 0.2 27);
+  --danger-soft: oklch(0.26 0.08 27);
+  --warning: oklch(0.78 0.14 75);
+  --warning-soft: oklch(0.26 0.08 75);
+  --info: oklch(0.72 0.13 230);
+  --info-soft: oklch(0.26 0.06 230);
+  --neutral-soft: oklch(0.22 0.005 250);
+
+  --shadow-sm: 0 1px 0 rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.6);
+}
+
+[data-density="compact"] { --gap: 10px; --pad: 14px; }
+[data-density="comfy"]   { --gap: 22px; --pad: 28px; }
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
 }
 
 body {
