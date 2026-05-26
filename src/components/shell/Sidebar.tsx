@@ -3,14 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart2,
-  Bug,
   FileText,
-  Gauge,
   Home,
   LayoutGrid,
   Settings,
-  Tag,
+  Sparkles,
   TestTube2,
   type LucideIcon,
 } from "lucide-react";
@@ -20,23 +17,19 @@ const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: L
     label: "Workspace",
     items: [
       { href: "/", label: "Overview", icon: Home },
-      { href: "/dashboards", label: "Dashboards", icon: LayoutGrid },
+      { href: "/bdd", label: "BDD Generator", icon: Sparkles },
     ],
   },
   {
     label: "Test Results",
     items: [
       { href: "/e2e", label: "E2E", icon: TestTube2 },
-      { href: "/coverage", label: "Coverage", icon: BarChart2 },
-      { href: "/perf", label: "Performance", icon: Gauge },
     ],
   },
   {
     label: "Project Tracking",
     items: [
       { href: "/jira", label: "KPI Jira", icon: LayoutGrid },
-      { href: "/bugs", label: "Defect Tracker", icon: Bug },
-      { href: "/releases", label: "Releases", icon: Tag },
     ],
   },
   {
