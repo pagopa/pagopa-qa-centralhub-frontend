@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { useBddSettings, useUpdateBddSettings, useTestBddConnection } from "@/hooks/useBdd";
+import {
+  useBddSettings,
+  useOllamaStart,
+  useOllamaStatus,
+  useOllamaStop,
+  useTestBddConnection,
+  useUpdateBddSettings,
+} from "@/hooks/useBdd";
 
 export default function BddSettingsPage() {
   const { data: settings, isLoading } = useBddSettings();
@@ -21,6 +28,10 @@ export default function BddSettingsPage() {
     gherkin_language: "it",
     max_scenarios: 5,
   });
+
+  const { data: ollamaStatus } = useOllamaStatus(form.ai_provider === "ollama");
+  const ollamaStart = useOllamaStart();
+  const ollamaStop = useOllamaStop();
 
   useEffect(() => {
     if (settings) {
@@ -124,6 +135,39 @@ export default function BddSettingsPage() {
               onChange={(e) => setForm((f) => ({ ...f, ollama_model: e.target.value }))}
               className="rounded-[var(--radius-sm)] border border-border bg-bg px-3 py-1.5 text-[13px] text-text outline-none focus:border-[var(--accent)] w-full"
             />
+          </Row>
+          <Row label="Stato">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-[13px]">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: ollamaStatus?.running ? "var(--success)" : "var(--danger)" }}
+                />
+                <span style={{ color: ollamaStatus?.running ? "var(--success)" : "var(--text-muted)" }}>
+                  {ollamaStatus?.running ? "In esecuzione" : "Offline"}
+                </span>
+              </span>
+              {!ollamaStatus?.running && (
+                <button
+                  onClick={() => ollamaStart.mutate()}
+                  disabled={ollamaStart.isPending}
+                  className="flex items-center gap-1 px-3 py-1 text-[12px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover disabled:opacity-50 transition-colors"
+                >
+                  {ollamaStart.isPending && <Loader2 size={11} className="animate-spin" />}
+                  Avvia Ollama
+                </button>
+              )}
+              {ollamaStatus?.running && (
+                <button
+                  onClick={() => ollamaStop.mutate()}
+                  disabled={ollamaStop.isPending}
+                  className="flex items-center gap-1 px-3 py-1 text-[12px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover disabled:opacity-50 transition-colors"
+                >
+                  {ollamaStop.isPending && <Loader2 size={11} className="animate-spin" />}
+                  Ferma Ollama
+                </button>
+              )}
+            </div>
           </Row>
         </Section>
       )}
