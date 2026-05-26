@@ -191,3 +191,20 @@ export interface OllamaStatus {
   running: boolean;
   url: string;
 }
+
+export type DocType = "external" | "embedded";
+export type DocIcon = "confluence" | "page" | "template" | "web" | "video";
+
+export interface DocItem {
+  id: string;
+  title: string;
+  description: string | null;
+  url: string;
+  type: DocType;
+  category: string;
+  icon: DocIcon;
+  thumbnail_url: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
