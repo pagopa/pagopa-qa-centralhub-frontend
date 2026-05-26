@@ -1,3 +1,7 @@
+"use client";
+
+import Link from "next/link";
+import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { Chip } from "@/components/primitives/Chip";
 import { Kpi } from "@/components/primitives/Kpi";
 import { SegBar } from "@/components/primitives/SegBar";
@@ -19,9 +23,56 @@ const RECENT_RUNS = [
   { id: "run-1237", suite: "E2E · Checkout", env: "UAT",  branch: "main",    status: "passed"  as const, passed: 141, failed: 0,  flaky: 3, skipped: 3, duration: "4m 09s", ago: "3h ago"  },
 ];
 
+function E2eStatusCard() {
+  const { data, isLoading } = useE2eSuites();
+
+  if (isLoading) {
+    return <Kpi label="E2E Status" value="—" />;
+  }
+
+  const total = data?.length ?? 0;
+  const failing = data?.filter((s) => s.latest_run?.status === "failed").length ?? 0;
+  const passRate =
+    total > 0
+      ? Math.round(((total - failing) / total) * 100)
+      : null;
+
+  const status =
+    failing === 0 ? "success" : failing / total > 0.5 ? "danger" : "warning";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p
+        className="font-mono uppercase text-text-muted"
+        style={{ fontSize: 10, letterSpacing: ".06em" }}
+      >
+        E2E Tests
+      </p>
+      <div className="flex gap-3 flex-wrap">
+        <Link href="/e2e" className="no-underline">
+          <Kpi
+            label="Suite status"
+            value={passRate !== null ? `${passRate}%` : "—"}
+            status={status}
+          >
+            {failing > 0 && (
+              <span className="text-danger font-mono text-[11px]">
+                {failing}/{total} fallite
+              </span>
+            )}
+          </Kpi>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function OverviewPage() {
   return (
     <div className="flex flex-col gap-[var(--gap)]">
+
+      {/* E2E status card */}
+      <E2eStatusCard />
 
       {/* KPI row */}
       <div className="grid gap-[var(--gap)]" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
@@ -86,4 +137,3 @@ export default function OverviewPage() {
     </div>
   );
 }
-
