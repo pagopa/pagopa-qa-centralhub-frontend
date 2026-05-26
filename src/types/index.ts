@@ -77,6 +77,7 @@ export interface E2eSuite {
   suite_path: string;
   github_repo: string;
   enabled: boolean;
+  sync_lookback_days: number | null;
   last_synced_at: string | null;
 }
 
@@ -101,11 +102,87 @@ export interface E2eRunWithSuite extends E2eRun {
 export interface E2eSuiteWithLatestRun {
   suite: E2eSuite;
   latest_run: E2eRun | null;
+  trend: number[];
 }
+
+// Jira types
+export interface NameCount { name: string; count: number }
+export interface TypeCount { name: string; count: number; phase: string }
+export interface JiraAlert { key: string; summary: string; status: string; days: number }
+
+export interface JiraOverview {
+  total: number
+  by_status: NameCount[]
+  by_component: NameCount[]
+  by_type: TypeCount[]
+  by_assignee: NameCount[]
+  alerts_no_estimate: JiraAlert[]
+  alerts_backlog_old: JiraAlert[]
+  alerts_blocked_old: JiraAlert[]
+}
+
+export interface TrendWeek {
+  week: string
+  discovery: number
+  delivery: number
+  support: number
+  other: number
+  done: number
+}
+
+export interface JiraTrend { weeks: TrendWeek[] }
 
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   page: number;
   page_size: number;
+}
+
+// BDD Generator types
+export type BddStatus = "draft" | "reviewed" | "approved";
+export type BddSourceType = "text" | "url" | "confluence" | "pdf" | "docx";
+export type BddAiProvider = "claude" | "ollama";
+
+export interface BddProject {
+  id: string;
+  name: string;
+  description: string | null;
+  scenario_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BddScenario {
+  id: string;
+  project_id: string;
+  title: string;
+  requirement: string;
+  source_type: BddSourceType;
+  source_ref: string | null;
+  gherkin: string;
+  tags: string[];
+  status: BddStatus;
+  ai_provider: BddAiProvider;
+  ai_model: string;
+  generation_time_ms: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BddSettings {
+  ai_provider: BddAiProvider;
+  claude_api_key_set: boolean;
+  claude_model: string;
+  ollama_base_url: string;
+  ollama_model: string;
+  confluence_email: string | null;
+  confluence_token_set: boolean;
+  gherkin_language: string;
+  max_scenarios: number;
+}
+
+export interface BddGeneratedScenario {
+  title: string;
+  gherkin: string;
 }
