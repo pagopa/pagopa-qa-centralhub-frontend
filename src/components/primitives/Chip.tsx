@@ -1,4 +1,4 @@
-type RunStatus = "passed" | "failed" | "flaky" | "skipped" | "running" | "todo" | "inprogress" | "done" | "blocked";
+type RunStatus = "passed" | "failed" | "flaky" | "skipped" | "running" | "todo" | "inprogress" | "done" | "blocked" | "mixed";
 type Priority = "p1" | "p2" | "p3" | "p4";
 
 type ChipProps =
@@ -15,6 +15,7 @@ const STATUS_STYLE: Record<RunStatus, { color: string; bg: string; dot: string }
   inprogress: { color: "var(--info)",          bg: "var(--info-soft)",       dot: "var(--info)" },
   done:       { color: "var(--success)",       bg: "var(--success-soft)",    dot: "var(--success)" },
   blocked:    { color: "var(--danger)",        bg: "var(--danger-soft)",     dot: "var(--danger)" },
+  mixed:      { color: "var(--warning)",       bg: "var(--warning-soft)",    dot: "var(--warning)" },
 };
 
 const PRIORITY_STYLE: Record<Priority, { color: string; bg: string }> = {

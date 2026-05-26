@@ -66,3 +66,46 @@ export interface HealthResponse {
   status: "ok";
   version: string;
 }
+
+// E2E integration types
+export type E2eRunStatus = "passed" | "failed" | "mixed";
+
+export interface E2eSuite {
+  id: string;
+  name: string;
+  display_name: string;
+  suite_path: string;
+  github_repo: string;
+  enabled: boolean;
+  last_synced_at: string | null;
+}
+
+export interface E2eRun {
+  id: string;
+  suite_id: string;
+  run_at: string;
+  passed: number;
+  failed: number;
+  skipped: number;
+  duration_ms: number;
+  allure_url: string;
+  status: E2eRunStatus;
+  synced_at: string;
+}
+
+export interface E2eRunWithSuite extends E2eRun {
+  suite_name: string;
+  suite_display_name: string;
+}
+
+export interface E2eSuiteWithLatestRun {
+  suite: E2eSuite;
+  latest_run: E2eRun | null;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
