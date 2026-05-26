@@ -186,3 +186,8 @@ export interface BddGeneratedScenario {
   title: string;
   gherkin: string;
 }
+
+export interface OllamaStatus {
+  running: boolean;
+  url: string;
+}

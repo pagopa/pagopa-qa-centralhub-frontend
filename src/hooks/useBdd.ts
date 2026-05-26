@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import type { BddProject, BddScenario, BddSettings, PaginatedResponse } from "@/types/index";
+import type { BddProject, BddScenario, BddSettings, OllamaStatus, PaginatedResponse } from "@/types/index";
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 
@@ -114,5 +114,32 @@ export function useUpdateBddSettings() {
 export function useTestBddConnection() {
   return useMutation({
     mutationFn: () => apiClient<{ status: string; provider: string }>("/api/v1/bdd/settings/test", { method: "POST" }),
+  });
+}
+
+// ── Ollama Controls ───────────────────────────────────────────────────────────
+
+export function useOllamaStatus(enabled: boolean) {
+  return useQuery<OllamaStatus>({
+    queryKey: ["bdd", "ollama-status"],
+    queryFn: () => apiClient<OllamaStatus>("/api/v1/bdd/ollama/status"),
+    refetchInterval: enabled ? 5000 : false,
+    enabled,
+  });
+}
+
+export function useOllamaStart() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient<OllamaStatus>("/api/v1/bdd/ollama/start", { method: "POST" }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["bdd", "ollama-status"] }),
+  });
+}
+
+export function useOllamaStop() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiClient<OllamaStatus>("/api/v1/bdd/ollama/stop", { method: "POST" }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["bdd", "ollama-status"] }),
   });
 }
