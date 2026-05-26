@@ -135,7 +135,7 @@ export default function BddNewScenarioPage() {
               setStep(3);
             }
           } catch (parseErr) {
-            if (parseErr instanceof Error && parseErr.message.startsWith("data:")) continue;
+            if (parseErr instanceof SyntaxError) continue;
             throw parseErr;
           }
         }
