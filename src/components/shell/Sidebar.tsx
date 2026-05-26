@@ -17,7 +17,12 @@ const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: L
     label: "Workspace",
     items: [
       { href: "/", label: "Overview", icon: Home },
-      { href: "/bdd", label: "BDD Generator", icon: Sparkles },
+    ],
+  },
+  {
+    label: "BDD",
+    items: [
+      { href: "/bdd", label: "Gherkin Generator", icon: Sparkles },
     ],
   },
   {
@@ -38,7 +43,10 @@ const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: L
   },
   {
     label: "Amministrazione",
-    items: [{ href: "/settings/integrations", label: "Settings", icon: Settings }],
+    items: [
+      { href: "/settings/integrations", label: "Settings E2E", icon: Settings },
+      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles },
+    ],
   },
 ];
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ChevronLeft, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import {
   useBddSettings,
   useOllamaStart,
@@ -67,12 +66,7 @@ export default function BddSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
-      <div className="flex items-center gap-3">
-        <Link href="/bdd" className="text-text-muted hover:text-text transition-colors">
-          <ChevronLeft size={18} />
-        </Link>
-        <h1 className="text-xl font-semibold text-text">BDD Settings</h1>
-      </div>
+      <h1 className="text-xl font-semibold text-text">Gherkin Generator</h1>
 
       {/* Provider selector */}
       <Section title="Provider AI">

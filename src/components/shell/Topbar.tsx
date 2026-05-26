@@ -13,12 +13,11 @@ const PAGE_TITLES: Record<string, string> = {
   "/releases": "Releases",
   "/docs": "Docs & Decks",
   "/settings/integrations": "Settings · Integrations",
+  "/settings/bdd": "Settings · Gherkin Generator",
   "/settings/team": "Settings · Team",
   "/settings/notifications": "Settings · Notifications",
   "/settings/general": "Settings · General",
 };
-
-const ENVIRONMENTS = ["UAT", "PROD", "STAGING"];
 
 export function Topbar() {
   const pathname = usePathname();
@@ -38,27 +37,6 @@ export function Topbar() {
       }}
     >
       <span style={{ fontWeight: 600, fontSize: 14, flex: 1 }}>{title}</span>
-
-      {/* Environment selector — wired up in Sprint 1 */}
-      <select
-        style={{
-          background: "var(--subtle)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)",
-          padding: "4px 10px",
-          fontSize: 13,
-          color: "var(--text)",
-          fontFamily: "inherit",
-          cursor: "pointer",
-        }}
-        defaultValue="UAT"
-      >
-        {ENVIRONMENTS.map((env) => (
-          <option key={env} value={env}>
-            {env}
-          </option>
-        ))}
-      </select>
 
       {/* User avatar placeholder */}
       <div

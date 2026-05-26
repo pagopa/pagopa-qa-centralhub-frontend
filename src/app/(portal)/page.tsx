@@ -2,136 +2,172 @@
 
 import Link from "next/link";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
-import { Chip } from "@/components/primitives/Chip";
+import { useJiraOverview } from "@/hooks/useJira";
 import { Kpi } from "@/components/primitives/Kpi";
-import { SegBar } from "@/components/primitives/SegBar";
-import { Sparkline } from "@/components/primitives/Sparkline";
-
-// Placeholder data — will be replaced by API calls in Sprint 1
-const KPI_DATA = [
-  { label: "Pass Rate (7d)",   value: "94.2%",  delta: 1.4,  status: "success" as const, trend: [88,90,91,89,93,94,94] },
-  { label: "Flaky Tests",      value: "7",      delta: -2,   status: "warning" as const, trend: [12,10,11,9,8,9,7] },
-  { label: "Open P1 Bugs",     value: "3",      delta: 0,    status: "danger"  as const, trend: [5,4,4,3,3,3,3] },
-  { label: "Coverage",         value: "78.6%",  delta: 0.8,  status: "info"    as const, trend: [74,75,76,77,77,78,79] },
-];
-
-const RECENT_RUNS = [
-  { id: "run-1241", suite: "E2E · Checkout", env: "UAT",  branch: "main",    status: "passed"  as const, passed: 142, failed: 0,  flaky: 2, skipped: 3, duration: "4m 12s", ago: "8m ago"  },
-  { id: "run-1240", suite: "E2E · Auth",     env: "UAT",  branch: "main",    status: "flaky"   as const, passed: 55,  failed: 0,  flaky: 3, skipped: 1, duration: "1m 48s", ago: "22m ago" },
-  { id: "run-1239", suite: "E2E · API",      env: "PROD", branch: "release", status: "passed"  as const, passed: 88,  failed: 0,  flaky: 0, skipped: 5, duration: "2m 30s", ago: "1h ago"  },
-  { id: "run-1238", suite: "E2E · Payments", env: "UAT",  branch: "feat/3ds", status: "failed" as const, passed: 63,  failed: 7,  flaky: 1, skipped: 2, duration: "3m 05s", ago: "2h ago"  },
-  { id: "run-1237", suite: "E2E · Checkout", env: "UAT",  branch: "main",    status: "passed"  as const, passed: 141, failed: 0,  flaky: 3, skipped: 3, duration: "4m 09s", ago: "3h ago"  },
-];
+import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight } from "lucide-react";
 
 function E2eStatusCard() {
   const { data, isLoading } = useE2eSuites();
 
-  if (isLoading) {
-    return <Kpi label="E2E Status" value="—" />;
-  }
+  if (isLoading) return <Kpi label="E2E Status" value="—" />;
 
   const total = data?.length ?? 0;
   const failing = data?.filter((s) => s.latest_run?.status === "failed").length ?? 0;
-  const passRate =
-    total > 0
-      ? Math.round(((total - failing) / total) * 100)
-      : null;
-
-  const status =
-    failing === 0 ? "success" : failing / total > 0.5 ? "danger" : "warning";
+  const passRate = total > 0 ? Math.round(((total - failing) / total) * 100) : null;
+  const status = failing === 0 ? "success" : failing / total > 0.5 ? "danger" : "warning";
 
   return (
-    <div className="flex flex-col gap-2">
-      <p
-        className="font-mono uppercase text-text-muted"
-        style={{ fontSize: 10, letterSpacing: ".06em" }}
-      >
-        E2E Tests
-      </p>
-      <div className="flex gap-3 flex-wrap">
-        <Link href="/e2e" className="no-underline">
-          <Kpi
-            label="Suite status"
-            value={passRate !== null ? `${passRate}%` : "—"}
-            status={status}
-          >
-            {failing > 0 && (
-              <span className="text-danger font-mono text-[11px]">
-                {failing}/{total} fallite
-              </span>
-            )}
-          </Kpi>
-        </Link>
-      </div>
-    </div>
+    <Link href="/e2e" className="no-underline">
+      <Kpi label="Suite status" value={passRate !== null ? `${passRate}%` : "—"} status={status}>
+        {failing > 0 && (
+          <span className="text-danger font-mono text-[11px]">{failing}/{total} fallite</span>
+        )}
+      </Kpi>
+    </Link>
   );
 }
 
+function JiraStatusCard() {
+  const { data, isLoading } = useJiraOverview();
+
+  if (isLoading) return <Kpi label="Jira Issues" value="—" />;
+
+  const total = data?.total ?? 0;
+  const blocked = data?.by_status.find((s) => s.name === "BLOCKED")?.count ?? 0;
+  const status = blocked > 0 ? "warning" : total > 0 ? "success" : "info";
+
+  return (
+    <Link href="/jira" className="no-underline">
+      <Kpi label="Issue attive" value={total.toString()} status={status}>
+        {blocked > 0 && (
+          <span className="text-warning font-mono text-[11px]">{blocked} bloccate</span>
+        )}
+      </Kpi>
+    </Link>
+  );
+}
+
+const NAV_TILES = [
+  {
+    href: "/bdd",
+    icon: Sparkles,
+    label: "Gherkin Generator",
+    description: "Genera scenari BDD da requisiti Confluence, PDF o testo libero con AI (Ollama o Claude).",
+    color: "var(--warning)",
+    bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
+  },
+  {
+    href: "/e2e",
+    icon: TestTube2,
+    label: "E2E Test Results",
+    description: "Esplora run, suite e trend di stabilità dei test end-to-end.",
+    color: "var(--accent)",
+    bg: "var(--accent-soft)",
+  },
+  {
+    href: "/jira",
+    icon: LayoutGrid,
+    label: "KPI Jira",
+    description: "Monitora issue per status, componente e fase. Alert e trend settimanale.",
+    color: "var(--info)",
+    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
+  },
+  {
+    href: "/docs",
+    icon: FileText,
+    label: "Docs & Decks",
+    description: "Knowledge base del centro di competenza: guide, template e presentazioni.",
+    color: "var(--success)",
+    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
+  },
+  {
+    href: "/settings/integrations",
+    icon: Settings,
+    label: "Settings",
+    description: "Configura le integrazioni: suite E2E, GitHub repo e intervalli di sincronizzazione.",
+    color: "var(--text-muted)",
+    bg: "var(--subtle)",
+  },
+];
+
+
 export default function OverviewPage() {
   return (
-    <div className="flex flex-col gap-[var(--gap)]">
+    <div className="flex flex-col gap-8">
 
-      {/* E2E status card */}
-      <E2eStatusCard />
-
-      {/* KPI row */}
-      <div className="grid gap-[var(--gap)]" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-        {KPI_DATA.map((k) => (
-          <Kpi key={k.label} label={k.label} value={k.value} delta={k.delta} status={k.status}>
-            <Sparkline data={k.trend} color={
-              k.status === "success" ? "var(--success)" :
-              k.status === "danger"  ? "var(--danger)"  :
-              k.status === "warning" ? "var(--warning)" :
-              "var(--info)"
-            } />
-          </Kpi>
-        ))}
+      {/* Hero */}
+      <div className="rounded-[var(--radius)] border border-border bg-surface p-6 flex flex-col gap-3">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] uppercase text-text-muted" style={{ letterSpacing: ".08em" }}>
+                TS300 · Dipartimento Pagamenti
+              </span>
+            </div>
+            <h1 className="text-2xl font-semibold text-text" style={{ letterSpacing: "-0.02em" }}>
+              Centro di Competenza QA
+            </h1>
+            <p className="text-[13px] text-text-dim italic" style={{ color: "var(--accent)" }}>
+              "Build Quality Together!"
+            </p>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            <E2eStatusCard />
+            <JiraStatusCard />
+          </div>
+        </div>
+        <p className="text-[13px] text-text-dim max-w-2xl">
+          Il CC QA supporta i team del Dipartimento Pagamenti di pagoPA nel costruire software di qualità.
+          Due pilastri — <strong className="text-text">Testing</strong> e <strong className="text-text">Data Quality</strong> —
+          e un approccio trasversale che unisce engineering, processi e cultura.
+        </p>
       </div>
 
-      {/* Recent runs */}
-      <div
-        className="rounded-[var(--radius)] bg-surface border border-border overflow-hidden"
-        style={{ boxShadow: "var(--shadow-sm)" }}
-      >
-        <div className="flex items-center justify-between px-[var(--pad)] py-3 border-b border-border">
-          <span className="font-semibold text-[13px] text-text">Recent runs</span>
-          <span className="text-[12px] text-text-muted font-mono">placeholder data</span>
+      {/* Two pillars */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+        <div className="rounded-[var(--radius)] border border-border bg-surface p-5 flex flex-col gap-2">
+          <div className="text-2xl">🧪</div>
+          <p className="font-semibold text-[14px] text-text">Testing</p>
+          <p className="text-[12px] text-text-dim">
+            Test automation E2E, strategie di test, KPI di stabilità, allure reports, integrazione CI/CD.
+          </p>
         </div>
+        <div className="rounded-[var(--radius)] border border-border bg-surface p-5 flex flex-col gap-2">
+          <div className="text-2xl">🗃️</div>
+          <p className="font-semibold text-[14px] text-text">Data Quality</p>
+          <p className="text-[12px] text-text-dim">
+            Monitoraggio della qualità dei dati, regole di validazione, metriche e governance dei dataset.
+          </p>
+        </div>
+      </div>
 
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="bg-subtle border-b border-border">
-              <th className="text-left px-[var(--pad)] py-2 font-medium text-text-muted font-mono text-[11px] uppercase" style={{ letterSpacing: ".05em" }}>Run</th>
-              <th className="text-left px-3 py-2 font-medium text-text-muted font-mono text-[11px] uppercase" style={{ letterSpacing: ".05em" }}>Suite</th>
-              <th className="text-left px-3 py-2 font-medium text-text-muted font-mono text-[11px] uppercase" style={{ letterSpacing: ".05em" }}>Status</th>
-              <th className="text-left px-3 py-2 font-medium text-text-muted font-mono text-[11px] uppercase" style={{ letterSpacing: ".05em" }}>Distribution</th>
-              <th className="text-left px-3 py-2 font-medium text-text-muted font-mono text-[11px] uppercase" style={{ letterSpacing: ".05em" }}>Duration</th>
-              <th className="text-left px-3 py-2 font-medium text-text-muted font-mono text-[11px] uppercase" style={{ letterSpacing: ".05em" }}>When</th>
-            </tr>
-          </thead>
-          <tbody>
-            {RECENT_RUNS.map((run) => (
-              <tr key={run.id} className="border-b border-border last:border-0 hover:bg-subtle transition-colors">
-                <td className="px-[var(--pad)] py-3 font-mono text-text-muted text-[12px]">{run.id}</td>
-                <td className="px-3 py-3">
-                  <div className="font-medium text-text">{run.suite}</div>
-                  <div className="text-text-muted text-[12px] font-mono">{run.env} · {run.branch}</div>
-                </td>
-                <td className="px-3 py-3">
-                  <Chip variant="status" value={run.status} />
-                </td>
-                <td className="px-3 py-3 min-w-[120px]">
-                  <SegBar passed={run.passed} failed={run.failed} flaky={run.flaky} skipped={run.skipped} />
-                  <div className="text-text-muted text-[11px] font-mono mt-1">
-                    {run.passed}p · {run.failed}f · {run.flaky}k
+      {/* Nav tiles */}
+      <div>
+        <p className="text-[12px] font-mono uppercase text-text-muted mb-3" style={{ letterSpacing: ".08em" }}>Sezioni</p>
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          {NAV_TILES.map((tile) => {
+            const Icon = tile.icon;
+            return (
+              <Link key={tile.href} href={tile.href} className="no-underline group">
+                <div className="rounded-[var(--radius)] border border-border bg-surface p-4 flex flex-col gap-3 h-full transition-colors hover:bg-hover">
+                  <div
+                    className="w-8 h-8 rounded-[var(--radius-sm)] grid place-items-center shrink-0"
+                    style={{ background: tile.bg }}
+                  >
+                    <Icon size={16} style={{ color: tile.color }} strokeWidth={1.8} />
                   </div>
-                </td>
-                <td className="px-3 py-3 font-mono text-[12px] text-text-dim">{run.duration}</td>
-                <td className="px-3 py-3 font-mono text-[12px] text-text-muted">{run.ago}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <div className="flex flex-col gap-1 flex-1">
+                    <p className="font-semibold text-[13px] text-text">{tile.label}</p>
+                    <p className="text-[12px] text-text-dim">{tile.description}</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-[12px] font-medium" style={{ color: tile.color }}>
+                    Apri <ArrowRight size={12} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
     </div>

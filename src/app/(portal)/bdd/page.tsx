@@ -68,7 +68,7 @@ export default function BddProjectsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-text">BDD Generator</h1>
+          <h1 className="text-xl font-semibold text-text">Gherkin Generator</h1>
           <p className="text-[13px] text-text-dim mt-0.5">Genera scenari Gherkin dai tuoi requisiti con AI</p>
         </div>
         <div className="flex gap-2">
@@ -78,13 +78,7 @@ export default function BddProjectsPage() {
           >
             History
           </Link>
-          <Link
-            href="/bdd/settings"
-            className="px-3 py-1.5 text-[13px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover transition-colors no-underline"
-          >
-            Settings
-          </Link>
-          <button
+<button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] rounded-[var(--radius-sm)] font-medium transition-colors"
             style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
