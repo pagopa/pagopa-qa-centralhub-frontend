@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type { E2eRunWithSuite, PaginatedResponse } from "@/types/index";
 
@@ -20,5 +20,26 @@ export function useE2eRuns({ suiteId, page = 1, pageSize = 50 }: UseE2eRunsParam
     queryFn: () =>
       apiClient<PaginatedResponse<E2eRunWithSuite>>(`/api/v1/e2e/runs?${params}`),
     staleTime: 60_000,
+  });
+}
+
+export function useDeleteE2eRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient<void>(`/api/v1/e2e/runs/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["e2e"] }),
+  });
+}
+
+export function useDeleteE2eRunsBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      apiClient<{ deleted: number }>("/api/v1/e2e/runs", {
+        method: "DELETE",
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["e2e"] }),
   });
 }
