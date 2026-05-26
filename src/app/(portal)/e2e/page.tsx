@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useE2eRuns } from "@/hooks/useE2eRuns";
@@ -13,7 +14,9 @@ export default function E2EPage() {
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | undefined>();
   const [selectedRun, setSelectedRun] = useState<E2eRunWithSuite | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
+  const queryClient = useQueryClient();
   const { data: suitesData, isLoading: suitesLoading } = useE2eSuites();
   const { data: runsData, isLoading: runsLoading } = useE2eRuns({
     suiteId: selectedSuiteId,
@@ -33,10 +36,15 @@ export default function E2EPage() {
   }
 
   async function handleSync() {
+    if (syncing) return;
+    setSyncing(true);
     try {
       await apiClient("/api/v1/e2e/sync", { method: "POST" });
+      await queryClient.invalidateQueries({ queryKey: ["e2e"] });
     } catch {
-      // silently ignore 403 if user is not qa_lead
+      // ignore errors
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -56,11 +64,12 @@ export default function E2EPage() {
           <p className="text-text-muted text-[13px]">Caricamento…</p>
         ) : (
           <div className="flex gap-3 flex-wrap">
-            {suitesData?.map(({ suite, latest_run }) => (
+            {suitesData?.map(({ suite, latest_run, trend }) => (
               <SuiteCard
                 key={suite.id}
                 suite={suite}
                 latestRun={latest_run}
+                trend={trend}
                 onClick={() => handleSuiteCardClick(suite.id)}
               />
             ))}
@@ -85,6 +94,7 @@ export default function E2EPage() {
           onSuiteFilter={setSelectedSuiteId}
           onRowClick={handleRowClick}
           onSync={handleSync}
+          syncing={syncing}
         />
       )}
 

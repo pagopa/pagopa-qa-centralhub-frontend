@@ -17,7 +17,7 @@
   --text-dim: #5b5d65;
   --text-muted: #94959c;
 
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.55 0.18 252);
   --accent-soft: oklch(0.96 0.04 252);
   --accent-fg: #ffffff;
 
@@ -110,7 +110,7 @@
 /* ── Tailwind v4 semantic token mapping ───────────────────────── */
 /* These become bg-*, text-*, border-*, etc. Tailwind utilities    */
 @theme inline {
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
   /* backgrounds */

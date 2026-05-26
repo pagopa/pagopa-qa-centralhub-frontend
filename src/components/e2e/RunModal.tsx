@@ -24,8 +24,14 @@ export function RunModal({ run, open, onClose }: RunModalProps) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="max-w-5xl w-full"
-        style={{ height: "85vh", display: "flex", flexDirection: "column" }}
+        style={{
+          width: "90vw",
+          maxWidth: "90vw",
+          height: "88vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-base">

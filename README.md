@@ -32,20 +32,33 @@ src/
 │   ├── (portal)/           ← Authenticated portal shell + all pages
 │   │   ├── layout.tsx      ← Sidebar + Topbar grid
 │   │   ├── page.tsx        ← Overview
-│   │   ├── dashboards/
+│   │   ├── bdd/            ← Gherkin Generator (projects, scenarios, history)
+│   │   │   ├── page.tsx             Project list
+│   │   │   ├── history/             All-project history
+│   │   │   └── [id]/
+│   │   │       ├── page.tsx         Scenario list for a project
+│   │   │       └── new/page.tsx     Generate wizard (3-step SSE)
 │   │   ├── e2e/
-│   │   ├── coverage/
-│   │   ├── perf/
 │   │   ├── jira/
-│   │   ├── bugs/
-│   │   ├── releases/
 │   │   ├── docs/
+│   │   ├── coverage/
+│   │   ├── releases/
 │   │   └── settings/
+│   │       ├── integrations/        E2E suite config
+│   │       ├── bdd/                 Gherkin Generator config (AI provider, Confluence, Ollama)
+│   │       ├── general/
+│   │       ├── team/
+│   │       └── notifications/
 │   └── api/auth/           ← Auth.js route handler
 ├── components/
 │   ├── shell/              ← Sidebar, Topbar
 │   ├── primitives/         ← Kpi, Sparkline, Chip, SegBar, BrandMark
 │   └── ui/                 ← shadcn/ui components
+├── hooks/
+│   ├── useBdd.ts           ← BDD settings, projects, scenarios, generate, Ollama
+│   ├── useE2eSuites.ts
+│   ├── useJira.ts
+│   └── ...
 ├── lib/
 │   ├── api.ts              ← Typed fetch client
 │   ├── auth.ts             ← Auth.js config

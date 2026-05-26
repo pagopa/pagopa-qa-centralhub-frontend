@@ -38,6 +38,7 @@ export default function BddNewScenarioPage() {
 
   const [generating, setGenerating] = useState(false);
   const [streamText, setStreamText] = useState("");
+  const [genError, setGenError] = useState("");
   const [generatedScenarios, setGeneratedScenarios] = useState<BddGeneratedScenario[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [aiProvider, setAiProvider] = useState("");
@@ -95,6 +96,7 @@ export default function BddNewScenarioPage() {
   const handleGenerate = async () => {
     setGenerating(true);
     setStreamText("");
+    setGenError("");
     setGeneratedScenarios([]);
     setStep(2);
 
@@ -124,14 +126,15 @@ export default function BddNewScenarioPage() {
             if (event.error) throw new Error(event.error);
             if (event.chunk) setStreamText((prev) => prev + event.chunk);
             if (event.done) {
-              setGeneratedScenarios(event.scenarios ?? []);
+              const scenarios = event.scenarios ?? [];
+              setGeneratedScenarios(scenarios);
               setAiProvider(event.ai_provider ?? "");
               setAiModel(event.ai_model ?? "");
               setGenTimeMs(event.generation_time_ms ?? null);
-              if (event.scenarios?.length > 0) {
-                setGherkin(event.scenarios[0].gherkin);
-                setSelectedIdx(0);
-              }
+              const firstGherkin = scenarios[0]?.gherkin || event.raw || "";
+              setGherkin(firstGherkin);
+              if (scenarios[0]?.title) setTitle(scenarios[0].title);
+              setSelectedIdx(0);
               setStep(3);
             }
           } catch (parseErr) {
@@ -141,7 +144,7 @@ export default function BddNewScenarioPage() {
         }
       }
     } catch (e: unknown) {
-      console.error(e);
+      setGenError(e instanceof Error ? e.message : "Errore sconosciuto");
     } finally {
       setGenerating(false);
     }
@@ -318,10 +321,23 @@ export default function BddNewScenarioPage() {
       {/* Step 2 — Generating */}
       {step === 2 && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 text-[13px] text-text-dim">
-            <Loader2 size={16} className="animate-spin" style={{ color: "var(--accent)" }} />
-            Generazione in corso…
-          </div>
+          {!genError && (
+            <div className="flex items-center gap-2 text-[13px] text-text-dim">
+              <Loader2 size={16} className="animate-spin" style={{ color: "var(--accent)" }} />
+              Generazione in corso…
+            </div>
+          )}
+          {genError && (
+            <div className="rounded-[var(--radius-sm)] border border-danger bg-danger/10 px-3 py-2 text-[13px] text-danger flex items-start justify-between gap-3">
+              <span>{genError}</span>
+              <button
+                onClick={() => { setStep(1); setGenError(""); }}
+                className="shrink-0 underline text-[12px]"
+              >
+                Riprova
+              </button>
+            </div>
+          )}
           <div
             className="rounded-[var(--radius)] border border-border bg-subtle p-4 font-mono text-[12px] text-text overflow-auto"
             style={{ minHeight: 160, whiteSpace: "pre-wrap" }}

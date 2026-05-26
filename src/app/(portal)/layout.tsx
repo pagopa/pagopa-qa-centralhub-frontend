@@ -5,7 +5,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <div
       className="h-screen grid"
-      style={{ gridTemplateColumns: "var(--sidebar-w) 1fr" }}
+      style={{ gridTemplateColumns: "var(--sidebar-w) 1fr", minWidth: "calc(var(--sidebar-w) + 560px)" }}
     >
       <Sidebar />
       <div className="flex flex-col min-h-0">

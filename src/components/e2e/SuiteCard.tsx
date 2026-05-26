@@ -1,11 +1,13 @@
 "use client";
 
 import { Chip } from "@/components/primitives/Chip";
+import { Sparkline } from "@/components/primitives/Sparkline";
 import type { E2eRun, E2eSuite, E2eRunStatus } from "@/types/index";
 
 interface SuiteCardProps {
   suite: E2eSuite;
   latestRun: E2eRun | null;
+  trend: number[];
   onClick: () => void;
 }
 
@@ -21,10 +23,17 @@ function fmtDate(iso: string): string {
     : d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
 }
 
-export function SuiteCard({ suite, latestRun, onClick }: SuiteCardProps) {
+export function SuiteCard({ suite, latestRun, trend, onClick }: SuiteCardProps) {
   const total = latestRun
     ? latestRun.passed + latestRun.failed + latestRun.skipped
     : 0;
+
+  const lastRate = trend.length > 0 ? trend[trend.length - 1] : null;
+  const sparkColor =
+    lastRate === null ? "var(--accent)"
+    : lastRate >= 0.95 ? "var(--success)"
+    : lastRate >= 0.7 ? "var(--warning)"
+    : "var(--danger)";
 
   return (
     <button
@@ -47,6 +56,9 @@ export function SuiteCard({ suite, latestRun, onClick }: SuiteCardProps) {
             {latestRun.passed}/{total}
           </span>
           <span className="text-[11px] text-text-muted">{fmtDate(latestRun.run_at)}</span>
+          {trend.length >= 2 && (
+            <Sparkline data={trend} width={110} height={24} color={sparkColor} area />
+          )}
         </>
       ) : (
         <span className="text-[11px] text-text-muted">Nessun run</span>
