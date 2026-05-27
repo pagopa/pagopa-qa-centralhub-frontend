@@ -1,6 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Overview",
@@ -22,6 +24,7 @@ const PAGE_TITLES: Record<string, string> = {
 export function Topbar() {
   const pathname = usePathname();
   const title = PAGE_TITLES[pathname] ?? "QA Hub";
+  const { theme, toggle } = useTheme();
 
   return (
     <header
@@ -37,6 +40,34 @@ export function Topbar() {
       }}
     >
       <span style={{ fontWeight: 600, fontSize: 14, flex: 1 }}>{title}</span>
+
+      {/* Theme toggle */}
+      <button
+        onClick={toggle}
+        aria-label={theme === "dark" ? "Passa a light mode" : "Passa a dark mode"}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "var(--radius-sm)",
+          border: "none",
+          background: "transparent",
+          color: "var(--text-dim)",
+          display: "grid",
+          placeItems: "center",
+          cursor: "pointer",
+          transition: "background 0.15s, color 0.15s",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = "var(--hover)";
+          (e.currentTarget as HTMLButtonElement).style.color = "var(--text)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-dim)";
+        }}
+      >
+        {theme === "dark" ? <Sun size={16} strokeWidth={1.7} /> : <Moon size={16} strokeWidth={1.7} />}
+      </button>
 
       {/* User avatar placeholder */}
       <div
