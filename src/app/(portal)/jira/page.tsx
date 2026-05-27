@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useJiraOverview, useJiraTrend } from "@/hooks/useJira";
-import type { JiraAlert, TrendWeek } from "@/types/index";
+import {
+  useJiraOverview, useJiraTrend,
+  useJiraSanpOverview, useJiraSanpTrend,
+  useJiraDataOverview, useJiraDataTrend,
+} from "@/hooks/useJira";
+import type { JiraAlert, JiraOverview, JiraTrend, TrendWeek } from "@/types/index";
 
 const JIRA_BASE = "https://pagopa.atlassian.net/browse";
 const JIRA_SEARCH = "https://pagopa.atlassian.net/issues";
-const BASE_JQL = 'project = PQ AND labels = "testing"';
-
-function jiraUrl(extra: string) {
-  return `${JIRA_SEARCH}/?jql=${encodeURIComponent(`${BASE_JQL} AND ${extra}`)}`;
-}
 
 const STATUS_COLOR: Record<string, string> = {
   "Backlog": "var(--text-muted)",
@@ -82,90 +81,225 @@ function AlertTable({ alerts, title, color }: { alerts: JiraAlert[]; title: stri
   );
 }
 
-function TrendChart({ weeks }: { weeks: TrendWeek[] }) {
-  const phases: Array<{ key: keyof TrendWeek; label: string }> = [
-    { key: "discovery", label: "Discovery" },
-    { key: "delivery", label: "Delivery" },
-    { key: "support", label: "Support" },
-    { key: "done", label: "Done" },
-  ];
-  const max = Math.max(...weeks.map((w) => w.discovery + w.delivery + w.support + w.done), 1);
+function isoWeekRange(isoKey: string): { from: string; to: string } {
+  const [year, wnum] = isoKey.split("-W").map(Number);
+  const jan4 = new Date(year, 0, 4);
+  const week1Mon = new Date(jan4);
+  week1Mon.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+  const monday = new Date(week1Mon);
+  monday.setDate(week1Mon.getDate() + (wnum - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  return { from: fmt(monday), to: fmt(sunday) };
+}
+
+function TrendChart({ weeks, baseJql }: { weeks: TrendWeek[]; baseJql: string }) {
+  const max = Math.max(...weeks.map((w) => Math.max(w.created, w.closed)), 1);
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-4 flex-wrap">
-        {phases.map((p) => (
-          <div key={p.key} className="flex items-center gap-1 text-[12px] text-text-dim">
-            <div className="w-3 h-3 rounded-sm" style={{ background: PHASE_COLOR[p.key] }} />
-            {p.label}
-          </div>
-        ))}
+      {/* Legend */}
+      <div className="flex gap-4">
+        <div className="flex items-center gap-1.5 text-[12px] text-text-dim">
+          <div className="w-3 h-3 rounded-sm" style={{ background: "var(--text-muted)", opacity: 0.4 }} />
+          Create
+        </div>
+        <div className="flex items-center gap-1.5 text-[12px] text-text-dim">
+          <div className="w-3 h-3 rounded-sm" style={{ background: "var(--success)" }} />
+          Chiuse
+        </div>
       </div>
-      <div className="flex items-end gap-1 h-32">
+
+      {/* Bars */}
+      <div className="flex items-end gap-1.5 h-36">
         {weeks.map((w) => {
-          const total = w.discovery + w.delivery + w.support + w.done;
-          const heightPct = (total / max) * 100;
+          const { from, to } = isoWeekRange(w.week);
+          const createdUrl = `${JIRA_SEARCH}/?jql=${encodeURIComponent(`${baseJql} AND created >= "${from}" AND created <= "${to}"`)}`;
+          const closedUrl = `${JIRA_SEARCH}/?jql=${encodeURIComponent(`${baseJql} AND resolutiondate >= "${from}" AND resolutiondate <= "${to}"`)}`;
           return (
-            <div key={w.week} className="flex-1 flex flex-col justify-end gap-px" title={`${w.week}: ${total} issue`}>
-              <div className="flex flex-col-reverse rounded-sm overflow-hidden" style={{ height: `${heightPct}%`, minHeight: total > 0 ? 4 : 0 }}>
-                {phases.map((p) => {
-                  const val = w[p.key] as number;
-                  const pct = total > 0 ? (val / total) * 100 : 0;
-                  return pct > 0 ? (
-                    <div key={p.key} style={{ height: `${pct}%`, background: PHASE_COLOR[p.key], minHeight: 2 }} />
-                  ) : null;
-                })}
+            <div
+              key={w.week}
+              className="flex-1 flex flex-col justify-end gap-px group"
+              title={`${w.label}: ${w.created} create, ${w.closed} chiuse`}
+            >
+              <div className="flex items-end gap-px justify-center">
+                <a
+                  href={createdUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 rounded-t-sm hover:opacity-60 transition-opacity"
+                  style={{
+                    height: `${Math.max((w.created / max) * 136, w.created > 0 ? 3 : 0)}px`,
+                    background: "var(--text-dim)",
+                    opacity: 0.35,
+                    display: "block",
+                  }}
+                />
+                <a
+                  href={closedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 rounded-t-sm hover:opacity-60 transition-opacity"
+                  style={{
+                    height: `${Math.max((w.closed / max) * 136, w.closed > 0 ? 3 : 0)}px`,
+                    background: "var(--success)",
+                    opacity: 0.8,
+                    display: "block",
+                  }}
+                />
               </div>
-              <span className="text-[9px] text-text-muted text-center font-mono">{w.week.split("-W")[1]}</span>
+              <span className="text-[9px] text-text-muted text-center font-mono leading-tight mt-1 truncate">
+                {w.label}
+              </span>
             </div>
           );
         })}
       </div>
+
+      {/* Summary */}
+      {weeks.length > 0 && (() => {
+        const totalCreated = weeks.reduce((s, w) => s + w.created, 0);
+        const totalClosed = weeks.reduce((s, w) => s + w.closed, 0);
+        const delta = totalClosed - totalCreated;
+        return (
+          <p className="text-[12px] text-text-muted">
+            Ultimi 3 mesi: <span className="text-text font-medium">{totalCreated}</span> create,{" "}
+            <span className="text-text font-medium">{totalClosed}</span> chiuse{" "}
+            <span style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}>
+              ({delta >= 0 ? "−" : "+"}{Math.abs(delta)} backlog)
+            </span>
+          </p>
+        );
+      })()}
     </div>
   );
 }
 
-const TABS = ["Monitoraggio", "Insights"] as const;
-type Tab = (typeof TABS)[number];
+const SECTIONS = [
+  {
+    key: "testing",
+    label: "Testing",
+    boardUrl: "https://pagopa.atlassian.net/jira/software/c/projects/PQ/boards/597",
+    baseJql: 'project = PQ AND labels = "testing"',
+  },
+  {
+    key: "sanp",
+    label: "Supporto SANP / SACI",
+    boardUrl: "https://pagopa.atlassian.net/jira/servicedesk/projects/PIDM/queues/custom/1919",
+    baseJql: "project = PIDM AND queue = 1919",
+  },
+  {
+    key: "data",
+    label: "Supporto Data",
+    boardUrl: "https://pagopa.atlassian.net/jira/servicedesk/projects/PIDM/queues/custom/1416/board/6360",
+    baseJql: "project = PIDM AND queue = 1416",
+  },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]["key"];
 
 export default function JiraPage() {
-  const [tab, setTab] = useState<Tab>("Monitoraggio");
-  const { data: overview, isLoading: ovLoading } = useJiraOverview();
-  const { data: trend, isLoading: trendLoading } = useJiraTrend();
+  const [section, setSection] = useState<SectionKey>("testing");
 
-  const inProgress = overview?.by_status.find((s) => s.name === "In Progress")?.count ?? 0;
-  const done = overview?.by_status.find((s) => s.name === "Done")?.count ?? 0;
-  const blocked = overview?.by_status.find((s) => s.name === "BLOCKED")?.count ?? 0;
-  const maxStatus = Math.max(...(overview?.by_status.map((s) => s.count) ?? [1]));
-  const maxComp = Math.max(...(overview?.by_component.map((c) => c.count) ?? [1]));
-  const maxAssignee = Math.max(...(overview?.by_assignee.map((a) => a.count) ?? [1]));
-  const maxType = Math.max(...(overview?.by_type.map((t) => t.count) ?? [1]));
+  const current = SECTIONS.find((s) => s.key === section)!;
+
+  const testing = { overview: useJiraOverview(), trend: useJiraTrend() };
+  const sanp    = { overview: useJiraSanpOverview(), trend: useJiraSanpTrend() };
+  const data    = { overview: useJiraDataOverview(), trend: useJiraDataTrend() };
+
+  const { overview: ovQuery, trend: trendQuery } =
+    section === "testing" ? testing : section === "sanp" ? sanp : data;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-text">KPI Jira — Testing</h1>
-        <a href="https://pagopa.atlassian.net/jira/software/c/projects/PQ/boards/597"
-          target="_blank" rel="noopener noreferrer"
-          className="text-[12px] text-accent hover:underline">
+      <h1 className="text-xl font-semibold text-text">KPI Jira</h1>
+
+      {/* Section tabs */}
+      <div className="flex gap-1 border-b border-border">
+        {SECTIONS.map((s) => (
+          <button key={s.key} onClick={() => setSection(s.key)}
+            className="px-4 py-2 text-[13px] transition-colors border-b-2 -mb-px"
+            style={{
+              borderColor: section === s.key ? "var(--accent)" : "transparent",
+              color: section === s.key ? "var(--accent)" : "var(--text-dim)",
+              fontWeight: section === s.key ? 500 : 400,
+            }}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {ovQuery.isLoading
+        ? <p className="text-text-muted text-[13px]">Caricamento…</p>
+        : ovQuery.data
+          ? <SectionDashboard
+              overview={ovQuery.data}
+              trend={trendQuery.data ?? null}
+              trendLoading={trendQuery.isLoading}
+              baseJql={current.baseJql}
+              boardUrl={current.boardUrl}
+              sectionKey={section}
+            />
+          : null}
+    </div>
+  );
+}
+
+// ── Reusable dashboard ────────────────────────────────────────────────────────
+
+function SectionDashboard({
+  overview,
+  trend,
+  trendLoading,
+  baseJql,
+  boardUrl,
+  sectionKey,
+}: {
+  overview: JiraOverview;
+  trend: JiraTrend | null;
+  trendLoading: boolean;
+  baseJql: string;
+  boardUrl: string;
+  sectionKey: SectionKey;
+}) {
+  const [tab, setTab] = useState<"Monitoraggio" | "Insights">("Monitoraggio");
+
+  const jqlUrl = (extra: string) =>
+    `${JIRA_SEARCH}/?jql=${encodeURIComponent(`${baseJql} AND ${extra}`)}`;
+
+  const inProgress = overview.by_status.find((s) => s.name === "In Progress")?.count ?? 0;
+  const done       = overview.by_status.find((s) => s.name === "Done")?.count ?? 0;
+  const blocked    = overview.by_status.find((s) => s.name === "BLOCKED")?.count ?? 0;
+  const maxStatus  = Math.max(...overview.by_status.map((s) => s.count), 1);
+  const maxComp    = Math.max(...overview.by_component.map((c) => c.count), 1);
+  const maxAssignee = Math.max(...overview.by_assignee.map((a) => a.count), 1);
+  const maxType    = Math.max(...overview.by_type.map((t) => t.count), 1);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* KPI strip */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex gap-3 flex-wrap flex-1">
+          <KpiCard label="Totale" value={overview.total}
+            href={`${JIRA_SEARCH}/?jql=${encodeURIComponent(baseJql)}`} />
+          <KpiCard label="In Progress" value={inProgress} color="var(--accent)"
+            href={jqlUrl('status = "In Progress"')} />
+          <KpiCard label="Done" value={done} color="var(--success)"
+            href={jqlUrl('status = "Done"')} />
+          <KpiCard label="Blocked" value={blocked}
+            color={blocked > 0 ? "var(--danger)" : undefined}
+            href={jqlUrl('status = "BLOCKED"')} />
+        </div>
+        <a href={boardUrl} target="_blank" rel="noopener noreferrer"
+          className="text-[12px] text-accent hover:underline shrink-0">
           ↗ Apri board
         </a>
       </div>
 
-      {ovLoading ? (
-        <p className="text-text-muted text-[13px]">Caricamento…</p>
-      ) : overview && (
-        <div className="flex gap-3 flex-wrap">
-          <KpiCard label="Totale" value={overview.total} href={`${JIRA_SEARCH}/?jql=${encodeURIComponent(BASE_JQL)}`} />
-          <KpiCard label="In Progress" value={inProgress} color="var(--accent)" href={jiraUrl('status = "In Progress"')} />
-          <KpiCard label="Done" value={done} color="var(--success)" href={jiraUrl('status = "Done"')} />
-          <KpiCard label="Blocked" value={blocked} color={blocked > 0 ? "var(--danger)" : undefined} href={jiraUrl('status = "BLOCKED"')} />
-        </div>
-      )}
-
-      {/* Tabs */}
+      {/* Sub-tabs */}
       <div className="flex gap-1 border-b border-border">
-        {TABS.map((t) => (
+        {(["Monitoraggio", "Insights"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className="px-4 py-2 text-[13px] transition-colors border-b-2 -mb-px"
             style={{
@@ -178,7 +312,7 @@ export default function JiraPage() {
         ))}
       </div>
 
-      {tab === "Monitoraggio" && overview && (
+      {tab === "Monitoraggio" && (
         <div className="flex flex-col gap-6">
           <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             <Section title="Status">
@@ -186,7 +320,7 @@ export default function JiraPage() {
                 {overview.by_status.map((s) => (
                   <HBar key={s.name} label={s.name} count={s.count} max={maxStatus}
                     color={STATUS_COLOR[s.name] ?? "var(--accent)"}
-                    href={jiraUrl(`status = "${s.name}"`)} />
+                    href={jqlUrl(`status = "${s.name}"`)} />
                 ))}
               </div>
             </Section>
@@ -196,7 +330,7 @@ export default function JiraPage() {
                 {overview.by_component.length > 0
                   ? overview.by_component.map((c) => (
                     <HBar key={c.name} label={c.name} count={c.count} max={maxComp}
-                      href={jiraUrl(`component = "${c.name}"`)} />
+                      href={jqlUrl(`component = "${c.name}"`)} />
                   ))
                   : <Empty />}
               </div>
@@ -206,8 +340,9 @@ export default function JiraPage() {
               <div className="flex flex-col gap-2">
                 {overview.by_assignee.length > 0
                   ? overview.by_assignee.map((a) => (
-                    <HBar key={a.name} label={a.name} count={a.count} max={maxAssignee} color="var(--info)"
-                      href={jiraUrl(`assignee = "${a.name}"`)} />
+                    <HBar key={a.name} label={a.name} count={a.count} max={maxAssignee}
+                      color="var(--info)"
+                      href={jqlUrl(`assignee = "${a.name}" AND status != Done`)} />
                   ))
                   : <Empty />}
               </div>
@@ -216,36 +351,49 @@ export default function JiraPage() {
 
           <div className="flex flex-col gap-4">
             <h2 className="font-semibold text-[14px] text-text">Alert</h2>
-            <AlertTable alerts={overview.alerts_no_estimate} title="In Progress senza stima" color="var(--warning)" />
-            <AlertTable alerts={overview.alerts_backlog_old} title="In Backlog da &gt; 30 giorni" color="var(--danger)" />
-            <AlertTable alerts={overview.alerts_blocked_old} title="BLOCKED da &gt; 30 giorni" color="var(--danger)" />
-            {overview.alerts_no_estimate.length === 0 &&
-              overview.alerts_backlog_old.length === 0 &&
-              overview.alerts_blocked_old.length === 0 && (
-                <p className="text-[13px] text-success">Nessun alert attivo ✓</p>
-              )}
+            {sectionKey === "testing" ? (
+              <>
+                <AlertTable alerts={overview.alerts_no_estimate} title="In Progress senza stima" color="var(--warning)" />
+                <AlertTable alerts={overview.alerts_backlog_old} title="In Backlog da &gt; 30 giorni" color="var(--danger)" />
+                <AlertTable alerts={overview.alerts_blocked_old} title="BLOCKED da &gt; 30 giorni" color="var(--danger)" />
+                {overview.alerts_no_estimate.length === 0 &&
+                  overview.alerts_backlog_old.length === 0 &&
+                  overview.alerts_blocked_old.length === 0 && (
+                    <p className="text-[13px] text-success">Nessun alert attivo ✓</p>
+                  )}
+              </>
+            ) : (
+              <>
+                <AlertTable alerts={overview.alerts_open_old} title="Non presi in carico da &gt; 5 giorni" color="var(--warning)" />
+                <AlertTable alerts={overview.alerts_in_progress_old} title="In lavorazione senza aggiornamenti da &gt; 10 giorni" color="var(--danger)" />
+                <AlertTable alerts={overview.alerts_blocked_old} title="BLOCKED da &gt; 30 giorni" color="var(--danger)" />
+                {overview.alerts_open_old.length === 0 &&
+                  overview.alerts_in_progress_old.length === 0 &&
+                  overview.alerts_blocked_old.length === 0 && (
+                    <p className="text-[13px] text-success">Nessun alert attivo ✓</p>
+                  )}
+              </>
+            )}
           </div>
         </div>
       )}
 
       {tab === "Insights" && (
         <div className="flex flex-col gap-4">
-          {overview && (
-            <Section title="Distribuzione per tipo issue">
-              <div className="flex flex-col gap-2">
-                {overview.by_type.map((t) => (
-                  <HBar key={t.name} label={t.name} count={t.count} max={maxType}
-                    color={PHASE_COLOR[t.phase] ?? "var(--accent)"}
-                    href={jiraUrl(`issuetype = "${t.name}"`)} />
-                ))}
-              </div>
-            </Section>
-          )}
-          <Section title="Issue create per settimana (ultimi 3 mesi)">
+          <Section title="Distribuzione per tipo issue">
+            <div className="flex flex-col gap-2">
+              {overview.by_type.map((t) => (
+                <HBar key={t.name} label={t.name} count={t.count} max={maxType}
+                  color={PHASE_COLOR[t.phase] ?? "var(--accent)"}
+                  href={jqlUrl(`issuetype = "${t.name}"`)} />
+              ))}
+            </div>
+          </Section>
+          <Section title="Intake vs Chiuse per settimana (ultimi 3 mesi)">
             {trendLoading
               ? <p className="text-text-muted text-[13px]">Caricamento…</p>
               : trend
-                ? <TrendChart weeks={trend.weeks} />
+                ? <TrendChart weeks={trend.weeks} baseJql={baseJql} />
                 : null}
           </Section>
         </div>

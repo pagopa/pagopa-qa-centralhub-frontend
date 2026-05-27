@@ -119,15 +119,15 @@ export interface JiraOverview {
   alerts_no_estimate: JiraAlert[]
   alerts_backlog_old: JiraAlert[]
   alerts_blocked_old: JiraAlert[]
+  alerts_open_old: JiraAlert[]
+  alerts_in_progress_old: JiraAlert[]
 }
 
 export interface TrendWeek {
   week: string
-  discovery: number
-  delivery: number
-  support: number
-  other: number
-  done: number
+  label: string
+  created: number
+  closed: number
 }
 
 export interface JiraTrend { weeks: TrendWeek[] }
