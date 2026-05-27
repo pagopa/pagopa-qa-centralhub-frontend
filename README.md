@@ -38,9 +38,9 @@ src/
 │   │   │   └── [id]/
 │   │   │       ├── page.tsx         Scenario list for a project
 │   │   │       └── new/page.tsx     Generate wizard (3-step SSE)
-│   │   ├── e2e/
-│   │   ├── jira/
-│   │   ├── docs/
+│   │   ├── e2e/            ← Suite list, run table (bulk delete), Allure modal
+│   │   ├── jira/           ← 3 sezioni (Testing / SANP / Data), Monitoraggio + Insights
+│   │   ├── docs/           ← Knowledge base (tile CRUD, HTML proxy iframe)
 │   │   ├── coverage/
 │   │   ├── releases/
 │   │   └── settings/
@@ -56,8 +56,8 @@ src/
 │   └── ui/                 ← shadcn/ui components
 ├── hooks/
 │   ├── useBdd.ts           ← BDD settings, projects, scenarios, generate, Ollama
-│   ├── useE2eSuites.ts
-│   ├── useJira.ts
+│   ├── useE2eSuites.ts     ← suite list, run table, delete (single + bulk)
+│   ├── useJira.ts          ← useJiraOverview/Trend, useJiraSanpOverview/Trend, useJiraDataOverview/Trend
 │   └── ...
 ├── lib/
 │   ├── api.ts              ← Typed fetch client
