@@ -178,6 +178,30 @@ export default function BddNewScenarioPage() {
     }
   };
 
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      for (const scenario of generatedScenarios) {
+        await createScenario.mutateAsync({
+          project_id: projectId,
+          title: scenario.title || title,
+          requirement: requirementText,
+          source_type: sourceType,
+          source_ref: url || null,
+          gherkin: scenario.gherkin,
+          tags,
+          status,
+          ai_provider: aiProvider as "claude" | "ollama",
+          ai_model: aiModel,
+          generation_time_ms: genTimeMs,
+        });
+      }
+      router.push(`/bdd/${projectId}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
       <div className="flex items-center gap-3">
@@ -404,18 +428,34 @@ export default function BddNewScenarioPage() {
           <div className="flex justify-between">
             <button
               onClick={() => setStep(1)}
-              className="px-4 py-2 text-[13px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover transition-colors"
+              disabled={saving}
+              className="px-4 py-2 text-[13px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover transition-colors disabled:opacity-50"
             >
               Ricomincia
             </button>
-            <button
-              onClick={handleSave}
-              disabled={!gherkin.trim() || saving}
-              className="px-4 py-2 text-[13px] rounded-[var(--radius-sm)] font-medium disabled:opacity-50 transition-colors"
-              style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
-            >
-              {saving ? "Salvataggio…" : "Salva scenario"}
-            </button>
+            <div className="flex gap-2">
+              {generatedScenarios.length > 1 && (
+                <button
+                  onClick={handleSave}
+                  disabled={!gherkin.trim() || saving}
+                  className="px-4 py-2 text-[13px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover transition-colors disabled:opacity-50"
+                >
+                  Salva solo questo
+                </button>
+              )}
+              <button
+                onClick={generatedScenarios.length > 1 ? handleSaveAll : handleSave}
+                disabled={!gherkin.trim() || saving}
+                className="px-4 py-2 text-[13px] rounded-[var(--radius-sm)] font-medium disabled:opacity-50 transition-colors"
+                style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+              >
+                {saving
+                  ? "Salvataggio…"
+                  : generatedScenarios.length > 1
+                    ? `Salva tutti (${generatedScenarios.length})`
+                    : "Salva scenario"}
+              </button>
+            </div>
           </div>
         </div>
       )}
