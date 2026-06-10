@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CreditCard,
   FileText,
   Home,
   LayoutGrid,
@@ -35,6 +36,12 @@ const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: L
     label: "Project Tracking",
     items: [
       { href: "/jira", label: "KPI Jira", icon: LayoutGrid },
+    ],
+  },
+  {
+    label: "Data Hub",
+    items: [
+      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard },
     ],
   },
   {
