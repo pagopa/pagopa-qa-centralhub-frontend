@@ -208,3 +208,47 @@ export interface DocItem {
   created_at: string;
   updated_at: string;
 }
+
+// PSP Fee catalog types (Data Hub)
+export interface PspFeeService {
+  id: string;
+  psp_id: string;
+  psp_rag_soc: string;
+  codice_abi: string;
+  nome_servizio: string;
+  descrizione_canale_mod_pag: string;
+  inf_desc_serv: string;
+  inf_url_canale: string | null;
+  url_informazioni_psp: string | null;
+  tipo_vers_cod: string;
+  canale_mod_pag: string;
+  canale_mod_pag_code: number;
+  importo_minimo: number | null;
+  importo_massimo: number | null;
+  costo_fisso: number | null;
+  on_us: boolean;
+  carte: boolean;
+  conto: boolean;
+  altri_wisp: boolean;
+  altri_io: boolean;
+  conto_app: boolean;
+  carte_app: boolean;
+  is_duplicated: boolean;
+}
+
+export interface PspFeeSyncStatus {
+  last_run: string;
+  notebook_version: string;
+  item_count: number;
+  synced_at: string;
+}
+
+export interface PspFeeListResponse {
+  items: PspFeeService[];
+  sync_status: PspFeeSyncStatus | null;
+}
+
+export interface PspFeeSyncResponse {
+  status: string;
+  item_count: number;
+}
