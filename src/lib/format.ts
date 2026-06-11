@@ -25,3 +25,7 @@ export function fmtPercent(value: number, decimals = 1): string {
 export function fmtNumber(value: number): string {
   return new Intl.NumberFormat("en").format(value);
 }
+
+export function fmtNumberIt(value: number): string {
+  return new Intl.NumberFormat("it-IT").format(value);
+}

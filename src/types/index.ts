@@ -252,3 +252,31 @@ export interface PspFeeSyncResponse {
   status: string;
   item_count: number;
 }
+
+// GPD Position snapshots (Data Hub)
+export interface GpdPositionSnapshot {
+  report_date: string;
+  total: number;
+  gpd: number;
+  gpd_payable: number;
+  gpd4aca: number;
+  gpd4aca_payable: number;
+  wisp: number;
+  pa_create_position: number;
+  pa_create_position_payable: number;
+}
+
+export interface GpdPositionSyncStatus {
+  item_count: number;
+  synced_at: string;
+}
+
+export interface GpdPositionsResponse {
+  items: GpdPositionSnapshot[];
+  sync_status: GpdPositionSyncStatus | null;
+}
+
+export interface GpdPositionSyncResponse {
+  status: string;
+  item_count: number;
+}
