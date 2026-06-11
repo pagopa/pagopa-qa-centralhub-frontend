@@ -2,7 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "@/lib/theme";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Overview",
@@ -19,12 +21,23 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings/team": "Settings · Team",
   "/settings/notifications": "Settings · Notifications",
   "/settings/general": "Settings · General",
+  "/settings/users": "Settings · Utenti",
 };
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const initials = parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "");
+  return initials.join("") || "?";
+}
 
 export function Topbar() {
   const pathname = usePathname();
   const title = PAGE_TITLES[pathname] ?? "QA Hub";
   const { theme, toggle } = useTheme();
+  const { data: session } = useSession();
+  const { roleLabel } = usePermissions();
+
+  const userName = session?.user?.name ?? "";
 
   return (
     <header
@@ -69,7 +82,31 @@ export function Topbar() {
         {theme === "dark" ? <Sun size={16} strokeWidth={1.7} /> : <Moon size={16} strokeWidth={1.7} />}
       </button>
 
-      {/* User avatar placeholder */}
+      {/* Role badge */}
+      {roleLabel && (
+        <span
+          className="font-mono"
+          style={{
+            fontSize: 11,
+            padding: "4px 8px",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--accent-soft)",
+            color: "var(--accent)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {roleLabel}
+        </span>
+      )}
+
+      {/* User name */}
+      {userName && (
+        <span className="text-[13px] text-text" style={{ whiteSpace: "nowrap" }}>
+          {userName}
+        </span>
+      )}
+
+      {/* User avatar */}
       <div
         style={{
           width: 28,
@@ -82,11 +119,18 @@ export function Topbar() {
           fontWeight: 600,
           fontSize: 11,
           fontFamily: "var(--font-geist-mono)",
-          cursor: "pointer",
         }}
       >
-        QA
+        {getInitials(userName || "QA")}
       </div>
+
+      {/* Logout */}
+      <button
+        onClick={() => signOut({ callbackUrl: "/login" })}
+        className="rounded-[var(--radius-sm)] border border-border text-[12px] px-2 py-1 hover:bg-hover transition-colors"
+      >
+        Esci
+      </button>
     </header>
   );
 }
