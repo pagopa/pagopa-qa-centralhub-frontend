@@ -7,6 +7,7 @@ import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
 import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet } from "lucide-react";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -145,6 +146,7 @@ const NAV_TILES = [
 
 export default function OverviewPage() {
   return (
+    <RouteGuard action="view:overview">
     <div className="flex flex-col gap-8">
 
       {/* Hero */}
@@ -242,5 +244,6 @@ export default function OverviewPage() {
       </div>
 
     </div>
+    </RouteGuard>
   );
 }

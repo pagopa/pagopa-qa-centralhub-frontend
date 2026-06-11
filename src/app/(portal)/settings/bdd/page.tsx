@@ -10,6 +10,7 @@ import {
   useTestBddConnection,
   useUpdateBddSettings,
 } from "@/hooks/useBdd";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function BddSettingsPage() {
   const { data: settings, isLoading } = useBddSettings();
@@ -62,9 +63,16 @@ export default function BddSettingsPage() {
     await updateSettings.mutateAsync(payload);
   };
 
-  if (isLoading) return <p className="text-text-muted text-[13px]">Caricamento…</p>;
+  if (isLoading) {
+    return (
+      <RouteGuard action="manage:bdd">
+        <p className="text-text-muted text-[13px]">Caricamento…</p>
+      </RouteGuard>
+    );
+  }
 
   return (
+    <RouteGuard action="manage:bdd">
     <div className="flex flex-col gap-6 max-w-lg">
       <h1 className="text-xl font-semibold text-text">Gherkin Generator</h1>
 
@@ -244,6 +252,7 @@ export default function BddSettingsPage() {
         )}
       </div>
     </div>
+    </RouteGuard>
   );
 }
 

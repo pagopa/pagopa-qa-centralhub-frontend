@@ -5,13 +5,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import type { E2eSuite } from "@/types/index";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function IntegrationsPage() {
   return (
-    <div className="flex flex-col gap-8 max-w-4xl">
-      <h1 className="text-xl font-semibold text-text">Integrations</h1>
-      <E2eSection />
-    </div>
+    <RouteGuard action="manage:integrations">
+      <div className="flex flex-col gap-8 max-w-4xl">
+        <h1 className="text-xl font-semibold text-text">Integrations</h1>
+        <E2eSection />
+      </div>
+    </RouteGuard>
   );
 }
 

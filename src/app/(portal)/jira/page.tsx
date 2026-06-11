@@ -7,6 +7,7 @@ import {
   useJiraDataOverview, useJiraDataTrend,
 } from "@/hooks/useJira";
 import type { JiraAlert, JiraOverview, JiraTrend, TrendWeek } from "@/types/index";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const JIRA_BASE = "https://pagopa.atlassian.net/browse";
 const JIRA_SEARCH = "https://pagopa.atlassian.net/issues";
@@ -212,6 +213,7 @@ export default function JiraPage() {
     section === "testing" ? testing : section === "sanp" ? sanp : data;
 
   return (
+    <RouteGuard action="view:jira">
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-text">KPI Jira</h1>
 
@@ -243,6 +245,7 @@ export default function JiraPage() {
             />
           : null}
     </div>
+    </RouteGuard>
   );
 }
 

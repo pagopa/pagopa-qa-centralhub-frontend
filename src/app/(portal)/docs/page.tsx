@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useDocItems, useCreateDocItem, useUpdateDocItem, useDeleteDocItem } from "@/hooks/useDocs";
 import type { DocItem, DocIcon, DocType } from "@/types/index";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const ICONS: Record<DocIcon, React.ElementType> = {
   confluence: BookOpen,
@@ -82,6 +83,7 @@ export default function DocsPage() {
   if (isLoading) return <p className="text-text-muted text-[13px]">Caricamento…</p>;
 
   return (
+    <RouteGuard action="view:docs">
     <>
       <div className="flex flex-col gap-8">
         {/* Header */}
@@ -154,6 +156,7 @@ export default function DocsPage() {
         />
       )}
     </>
+    </RouteGuard>
   );
 }
 
