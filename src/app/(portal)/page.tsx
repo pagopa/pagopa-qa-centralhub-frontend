@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useJiraOverview } from "@/hooks/useJira";
 import { Kpi } from "@/components/primitives/Kpi";
-import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight } from "lucide-react";
+import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen } from "lucide-react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function E2eStatusCard() {
   const { data, isLoading } = useE2eSuites();
@@ -73,6 +75,14 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--info) 10%, transparent)",
   },
   {
+    href: "/data-hub/psp-fees",
+    icon: CreditCard,
+    label: "PSP Commissioni",
+    description: "Catalogo PSP/servizi pagoPA AFM: commissioni, soglie e canali, sincronizzato giornalmente.",
+    color: "var(--danger)",
+    bg: "color-mix(in oklch, var(--danger) 10%, transparent)",
+  },
+  {
     href: "/docs",
     icon: FileText,
     label: "Docs & Decks",
@@ -87,6 +97,15 @@ const NAV_TILES = [
     description: "Configura le integrazioni: suite E2E, GitHub repo e intervalli di sincronizzazione.",
     color: "var(--text-muted)",
     bg: "var(--subtle)",
+  },
+  {
+    href: `${API_BASE_URL}/docs`,
+    icon: BookOpen,
+    label: "API Docs",
+    description: "Documentazione interattiva (Swagger UI) delle API del backend QA Hub.",
+    color: "var(--info)",
+    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
+    external: true,
   },
 ];
 
@@ -147,23 +166,41 @@ export default function OverviewPage() {
         <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           {NAV_TILES.map((tile) => {
             const Icon = tile.icon;
+            const content = (
+              <div className="rounded-[var(--radius)] border border-border bg-surface p-4 flex flex-col gap-3 h-full transition-colors hover:bg-hover">
+                <div
+                  className="w-8 h-8 rounded-[var(--radius-sm)] grid place-items-center shrink-0"
+                  style={{ background: tile.bg }}
+                >
+                  <Icon size={16} style={{ color: tile.color }} strokeWidth={1.8} />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <p className="font-semibold text-[13px] text-text">{tile.label}</p>
+                  <p className="text-[12px] text-text-dim">{tile.description}</p>
+                </div>
+                <div className="flex items-center gap-1 text-[12px] font-medium" style={{ color: tile.color }}>
+                  Apri <ArrowRight size={12} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </div>
+            );
+
+            if (tile.external) {
+              return (
+                <a
+                  key={tile.href}
+                  href={tile.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="no-underline group"
+                >
+                  {content}
+                </a>
+              );
+            }
+
             return (
               <Link key={tile.href} href={tile.href} className="no-underline group">
-                <div className="rounded-[var(--radius)] border border-border bg-surface p-4 flex flex-col gap-3 h-full transition-colors hover:bg-hover">
-                  <div
-                    className="w-8 h-8 rounded-[var(--radius-sm)] grid place-items-center shrink-0"
-                    style={{ background: tile.bg }}
-                  >
-                    <Icon size={16} style={{ color: tile.color }} strokeWidth={1.8} />
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1">
-                    <p className="font-semibold text-[13px] text-text">{tile.label}</p>
-                    <p className="text-[12px] text-text-dim">{tile.description}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-[12px] font-medium" style={{ color: tile.color }}>
-                    Apri <ArrowRight size={12} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                </div>
+                {content}
               </Link>
             );
           })}
