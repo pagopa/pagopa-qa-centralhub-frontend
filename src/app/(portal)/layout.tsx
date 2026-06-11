@@ -1,7 +1,14 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  if (!session) {
+    redirect("/login");
+  }
+
   return (
     <div
       className="h-screen grid"
