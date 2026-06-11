@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useJiraOverview } from "@/hooks/useJira";
 import { Kpi } from "@/components/primitives/Kpi";
-import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen } from "lucide-react";
+import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -81,6 +81,14 @@ const NAV_TILES = [
     description: "Catalogo PSP/servizi pagoPA AFM: commissioni, soglie e canali, sincronizzato giornalmente.",
     color: "var(--danger)",
     bg: "color-mix(in oklch, var(--danger) 10%, transparent)",
+  },
+  {
+    href: "/data-hub/gpd-positions",
+    icon: Wallet,
+    label: "Posizioni Debitorie GPD",
+    description: "Andamento delle Posizioni Debitorie GPD, GPD4ACA, WISP e paCreatePosition, sincronizzato giornalmente.",
+    color: "var(--success)",
+    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
   },
   {
     href: "/docs",
