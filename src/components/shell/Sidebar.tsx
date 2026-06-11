@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   CreditCard,
   FileText,
   Home,
@@ -13,7 +14,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: LucideIcon }[] }[] = [
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+const NAV_GROUPS: {
+  label: string;
+  items: { href: string; label: string; icon: LucideIcon; external?: boolean }[];
+}[] = [
   {
     label: "Workspace",
     items: [
@@ -53,6 +59,7 @@ const NAV_GROUPS: { label: string; items: { href: string; label: string; icon: L
     items: [
       { href: "/settings/integrations", label: "Settings E2E", icon: Settings },
       { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles },
+      { href: `${API_BASE_URL}/docs`, label: "API Docs", icon: BookOpen, external: true },
     ],
   },
 ];
@@ -109,18 +116,39 @@ export function Sidebar() {
             </div>
             {group.items.map((item) => {
               const isActive =
-                item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                !item.external &&
+                (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
               const Icon = item.icon;
+              const linkStyle = {
+                color: isActive ? "var(--accent)" : "var(--text-dim)",
+                background: isActive ? "var(--accent-soft)" : "transparent",
+                fontWeight: isActive ? 500 : 450,
+              };
+              const linkClassName =
+                "flex items-center gap-[10px] px-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px]";
+
+              if (item.external) {
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkClassName}
+                    style={linkStyle}
+                  >
+                    <Icon size={15} strokeWidth={1.6} />
+                    {item.label}
+                  </a>
+                );
+              }
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-[10px] px-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px]"
-                  style={{
-                    color: isActive ? "var(--accent)" : "var(--text-dim)",
-                    background: isActive ? "var(--accent-soft)" : "transparent",
-                    fontWeight: isActive ? 500 : 450,
-                  }}
+                  className={linkClassName}
+                  style={linkStyle}
                 >
                   <Icon size={15} strokeWidth={1.6} />
                   {item.label}
