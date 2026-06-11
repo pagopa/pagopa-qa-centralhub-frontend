@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useJiraOverview } from "@/hooks/useJira";
+import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { Kpi } from "@/components/primitives/Kpi";
+import { fmtNumberIt } from "@/lib/format";
 import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -25,6 +27,29 @@ function E2eStatusCard() {
           <span className="text-danger font-mono text-[11px]">{failing}/{total} fallite</span>
         )}
       </Kpi>
+    </Link>
+  );
+}
+
+function GpdPositionsStatusCard() {
+  const { data, isLoading } = useGpdPositionSnapshots();
+
+  if (isLoading) return <Kpi label="Posizioni GPD" value="—" />;
+
+  const items = data?.items ?? [];
+  const latest = items.length > 0 ? items[items.length - 1] : null;
+  const previous = items.length > 1 ? items[items.length - 2] : null;
+
+  if (!latest) return <Kpi label="Posizioni GPD" value="—" />;
+
+  const delta =
+    previous && previous.total !== 0
+      ? Math.round(((latest.total - previous.total) / previous.total) * 1000) / 10
+      : undefined;
+
+  return (
+    <Link href="/data-hub/gpd-positions" className="no-underline">
+      <Kpi label="Posizioni GPD" value={fmtNumberIt(latest.total)} delta={delta} />
     </Link>
   );
 }
@@ -141,6 +166,7 @@ export default function OverviewPage() {
           <div className="flex gap-3 flex-wrap">
             <E2eStatusCard />
             <JiraStatusCard />
+            <GpdPositionsStatusCard />
           </div>
         </div>
         <p className="text-[13px] text-text-dim max-w-2xl">

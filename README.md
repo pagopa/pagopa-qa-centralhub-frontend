@@ -40,6 +40,9 @@ src/
 │   │   │       └── new/page.tsx     Generate wizard (3-step SSE)
 │   │   ├── e2e/            ← Suite list, run table (bulk delete), Allure modal
 │   │   ├── jira/           ← 3 sezioni (Testing / SANP / Data), Monitoraggio + Insights
+│   │   ├── data-hub/
+│   │   │   ├── psp-fees/            Catalogo PSP/servizi pagoPA AFM
+│   │   │   └── gpd-positions/       Posizioni Debitorie GPD: KPI, trend, confronto periodi
 │   │   ├── docs/           ← Knowledge base (tile CRUD, HTML proxy iframe)
 │   │   ├── coverage/
 │   │   ├── releases/
@@ -58,6 +61,7 @@ src/
 │   ├── useBdd.ts           ← BDD settings, projects, scenarios, generate, Ollama
 │   ├── useE2eSuites.ts     ← suite list, run table, delete (single + bulk)
 │   ├── useJira.ts          ← useJiraOverview/Trend, useJiraSanpOverview/Trend, useJiraDataOverview/Trend
+│   ├── useGpdPositions.ts  ← useGpdPositionSnapshots, useSyncGpdPositions
 │   └── ...
 ├── lib/
 │   ├── api.ts              ← Typed fetch client
