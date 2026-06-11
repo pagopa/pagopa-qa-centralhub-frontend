@@ -5,6 +5,7 @@ import { useGpdPositionSnapshots, useSyncGpdPositions } from "@/hooks/useGpdPosi
 import { fmtNumberIt } from "@/lib/format";
 import type { GpdPositionSnapshot } from "@/types/index";
 import { LineChart } from "./LineChart";
+import { Gate } from "@/lib/permissions";
 
 function fmtDateTime(iso: string): string {
   return new Date(iso).toLocaleString("it-IT", {
@@ -120,13 +121,15 @@ export default function GpdPositionsPage() {
               Ultimo sync: {fmtDateTime(syncStatus.synced_at)}
             </span>
           )}
-          <button
-            onClick={() => sync.mutate()}
-            disabled={sync.isPending}
-            className="rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-3 py-1 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {sync.isPending ? "⏳ Sync in corso…" : "↻ Sync"}
-          </button>
+          <Gate action="sync:trigger">
+            <button
+              onClick={() => sync.mutate()}
+              disabled={sync.isPending}
+              className="rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-3 py-1 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sync.isPending ? "⏳ Sync in corso…" : "↻ Sync"}
+            </button>
+          </Gate>
         </div>
       </div>
 

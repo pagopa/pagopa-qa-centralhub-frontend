@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { Chip } from "@/components/primitives/Chip";
 import { useDeleteE2eRun, useDeleteE2eRunsBulk } from "@/hooks/useE2eRuns";
+import { Gate } from "@/lib/permissions";
 import type { E2eRunWithSuite, E2eRunStatus, E2eSuite } from "@/types/index";
 
 interface RunTableProps {
@@ -108,13 +109,15 @@ export function RunTable({
             </button>
           )}
 
-          <button
-            onClick={onSync}
-            disabled={syncing}
-            className="ml-auto rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-3 py-1 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {syncing ? "⏳ Sync in corso…" : "↻ Sync"}
-          </button>
+          <Gate action="sync:trigger">
+            <button
+              onClick={onSync}
+              disabled={syncing}
+              className="ml-auto rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-3 py-1 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {syncing ? "⏳ Sync in corso…" : "↻ Sync"}
+            </button>
+          </Gate>
         </div>
 
         {/* Table */}
