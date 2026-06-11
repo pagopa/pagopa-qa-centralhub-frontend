@@ -11,63 +11,72 @@ import {
   Settings,
   Sparkles,
   TestTube2,
+  Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const NAV_GROUPS: {
+interface NavItem {
+  href: string;
   label: string;
-  items: { href: string; label: string; icon: LucideIcon; external?: boolean }[];
-}[] = [
+  icon: LucideIcon;
+  external?: boolean;
+  action?: string;
+  requiresSuperadmin?: boolean;
+}
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Workspace",
-    items: [
-      { href: "/", label: "Overview", icon: Home },
-    ],
+    items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview" }],
   },
   {
     label: "BDD",
-    items: [
-      { href: "/bdd", label: "Gherkin Generator", icon: Sparkles },
-    ],
+    items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd" }],
   },
   {
     label: "Test Results",
-    items: [
-      { href: "/e2e", label: "E2E", icon: TestTube2 },
-    ],
+    items: [{ href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" }],
   },
   {
     label: "Project Tracking",
-    items: [
-      { href: "/jira", label: "KPI Jira", icon: LayoutGrid },
-    ],
+    items: [{ href: "/jira", label: "KPI Jira", icon: LayoutGrid, action: "view:jira" }],
   },
   {
     label: "Data Hub",
     items: [
-      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard },
-      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet },
+      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub" },
+      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub" },
     ],
   },
   {
     label: "Knowledge Base",
-    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText }],
+    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs" }],
   },
   {
     label: "Amministrazione",
     items: [
-      { href: "/settings/integrations", label: "Settings E2E", icon: Settings },
-      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles },
-      { href: `${API_BASE_URL}/docs`, label: "API Docs", icon: BookOpen, external: true },
+      { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations" },
+      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd" },
+      { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
+      { href: `${API_BASE_URL}/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs" },
     ],
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { can, role, isLoading } = usePermissions();
+
+  function isVisible(item: NavItem): boolean {
+    if (isLoading) return false;
+    if (item.requiresSuperadmin) return role === "superadmin";
+    if (item.action) return can(item.action);
+    return true;
+  }
 
   return (
     <aside className="flex flex-col h-screen border-r border-border bg-surface">
@@ -108,57 +117,62 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2 min-h-0">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="px-2 py-1">
-            <div
-              className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
-              style={{ fontSize: 10, letterSpacing: ".08em" }}
-            >
-              {group.label}
-            </div>
-            {group.items.map((item) => {
-              const isActive =
-                !item.external &&
-                (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
-              const Icon = item.icon;
-              const linkStyle = {
-                color: isActive ? "var(--accent)" : "var(--text-dim)",
-                background: isActive ? "var(--accent-soft)" : "transparent",
-                fontWeight: isActive ? 500 : 450,
-              };
-              const linkClassName =
-                "flex items-center gap-[10px] px-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px]";
+        {NAV_GROUPS.map((group) => {
+          const items = group.items.filter(isVisible);
+          if (items.length === 0) return null;
 
-              if (item.external) {
+          return (
+            <div key={group.label} className="px-2 py-1">
+              <div
+                className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
+                style={{ fontSize: 10, letterSpacing: ".08em" }}
+              >
+                {group.label}
+              </div>
+              {items.map((item) => {
+                const isActive =
+                  !item.external &&
+                  (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
+                const Icon = item.icon;
+                const linkStyle = {
+                  color: isActive ? "var(--accent)" : "var(--text-dim)",
+                  background: isActive ? "var(--accent-soft)" : "transparent",
+                  fontWeight: isActive ? 500 : 450,
+                };
+                const linkClassName =
+                  "flex items-center gap-[10px] px-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px]";
+
+                if (item.external) {
+                  return (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={linkClassName}
+                      style={linkStyle}
+                    >
+                      <Icon size={15} strokeWidth={1.6} />
+                      {item.label}
+                    </a>
+                  );
+                }
+
                 return (
-                  <a
+                  <Link
                     key={item.href}
                     href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className={linkClassName}
                     style={linkStyle}
                   >
                     <Icon size={15} strokeWidth={1.6} />
                     {item.label}
-                  </a>
+                  </Link>
                 );
-              }
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={linkClassName}
-                  style={linkStyle}
-                >
-                  <Icon size={15} strokeWidth={1.6} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+              })}
+            </div>
+          );
+        })}
       </nav>
 
     </aside>
