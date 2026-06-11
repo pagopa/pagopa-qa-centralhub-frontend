@@ -11,6 +11,7 @@ import {
   Settings,
   Sparkles,
   TestTube2,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ const NAV_GROUPS: {
     label: "Data Hub",
     items: [
       { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard },
+      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet },
     ],
   },
   {
