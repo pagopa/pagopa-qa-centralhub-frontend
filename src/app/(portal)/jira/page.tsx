@@ -187,13 +187,13 @@ const SECTIONS = [
     key: "sanp",
     label: "Supporto SANP / SACI",
     boardUrl: "https://pagopa.atlassian.net/jira/servicedesk/projects/PIDM/queues/custom/1919",
-    baseJql: "project = PIDM AND queue = 1919",
+    baseJql: 'project = PIDM AND "request type" = "SANP/SACI Support (PIDM)"',
   },
   {
     key: "data",
     label: "Supporto Data",
     boardUrl: "https://pagopa.atlassian.net/jira/servicedesk/projects/PIDM/queues/custom/1416/board/6360",
-    baseJql: "project = PIDM AND queue = 1416",
+    baseJql: 'project = PIDM AND "request type" = "Data Quality Support (PIDM)"',
   },
 ] as const;
 
@@ -271,6 +271,9 @@ function SectionDashboard({
   const inProgress = overview.by_status.find((s) => s.name === "In Progress")?.count ?? 0;
   const done       = overview.by_status.find((s) => s.name === "Done")?.count ?? 0;
   const blocked    = overview.by_status.find((s) => s.name === "BLOCKED")?.count ?? 0;
+  const waitingForSupport = overview.by_status
+    .filter((s) => s.name.toLowerCase() === "waiting for support")
+    .reduce((sum, s) => sum + s.count, 0);
   const maxStatus  = Math.max(...overview.by_status.map((s) => s.count), 1);
   const maxComp    = Math.max(...overview.by_component.map((c) => c.count), 1);
   const maxAssignee = Math.max(...overview.by_assignee.map((a) => a.count), 1);
@@ -290,6 +293,11 @@ function SectionDashboard({
           <KpiCard label="Blocked" value={blocked}
             color={blocked > 0 ? "var(--danger)" : undefined}
             href={jqlUrl('status = "BLOCKED"')} />
+          {sectionKey !== "testing" && (
+            <KpiCard label="Waiting for support" value={waitingForSupport}
+              color={waitingForSupport > 0 ? "var(--danger)" : undefined}
+              href={jqlUrl('status = "Waiting for support"')} />
+          )}
         </div>
         <a href={boardUrl} target="_blank" rel="noopener noreferrer"
           className="text-[12px] text-accent hover:underline shrink-0">
