@@ -37,8 +37,7 @@ export default function PspFeesPage() {
           <button
             onClick={() => sync.mutate()}
             disabled={sync.isPending}
-            className="rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[13px] px-3 py-1.5 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+            className="rounded-[var(--radius-sm)] border border-[var(--accent)] bg-surface text-[var(--accent)] text-[13px] px-3 py-1.5 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sync.isPending ? "⏳ Sync in corso…" : "↻ Sync"}
           </button>
