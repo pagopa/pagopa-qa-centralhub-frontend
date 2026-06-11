@@ -280,3 +280,46 @@ export interface GpdPositionSyncResponse {
   status: string;
   item_count: number;
 }
+
+// Users & roles (Auth/RBAC)
+export interface UserRecord {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserListResponse {
+  items: UserRecord[];
+}
+
+export interface UserUpdate {
+  role?: string;
+  is_active?: boolean;
+}
+
+export interface ActionCatalogEntry {
+  key: string;
+  label: string;
+  category: string;
+}
+
+export interface RoleOut {
+  key: string;
+  label: string;
+  is_system: boolean;
+}
+
+export interface RoleMatrixResponse {
+  roles: RoleOut[];
+  catalog: ActionCatalogEntry[];
+  matrix: Record<string, Record<string, boolean>>;
+}
+
+export interface SyncLoginResponse {
+  role: string;
+  is_active: boolean;
+}
