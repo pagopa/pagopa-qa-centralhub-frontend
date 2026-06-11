@@ -94,7 +94,7 @@ export function Sidebar() {
           viewBox="0 0 35 23"
           fill="currentColor"
           className="text-text-dim shrink-0"
-          style={{ height: 13, width: "auto" }}
+          style={{ height: 25, width: "auto" }}
           aria-label="pagoPA"
         >
           <path d="M24.4,6.9v2.9h-2.1V0h2.1h0.2h1.5C27.4,0,28,0.3,28,1v4.8c0,0.7-0.6,1-1.8,1L24.4,6.9L24.4,6.9L24.4,6.9zM26,1.1h-1.6v4.5H26V1.1z"/>
