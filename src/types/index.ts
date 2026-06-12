@@ -378,6 +378,16 @@ export interface DqDomain {
   updated_at: string;
 }
 
+export interface DqDomainCreate {
+  name: string;
+  sort_order: number;
+}
+
+export interface DqDomainUpdate {
+  name?: string;
+  sort_order?: number;
+}
+
 export interface DqControlInstance {
   id: string;
   domain_id: string;

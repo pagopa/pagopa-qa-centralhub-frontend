@@ -12,6 +12,8 @@ import type {
   DqDimensionCreate,
   DqDimensionUpdate,
   DqDomain,
+  DqDomainCreate,
+  DqDomainUpdate,
 } from "@/types/index";
 
 // ── Dimensions ────────────────────────────────────────────────────────────────
@@ -55,6 +57,32 @@ export function useDqDomains() {
   return useQuery<DqDomain[]>({
     queryKey: ["dq", "domains"],
     queryFn: () => apiClient<DqDomain[]>("/api/v1/dq/domains"),
+  });
+}
+
+export function useCreateDqDomain() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: DqDomainCreate) =>
+      apiClient<DqDomain>("/api/v1/dq/domains", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "domains"] }),
+  });
+}
+
+export function useUpdateDqDomain() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & DqDomainUpdate) =>
+      apiClient<DqDomain>(`/api/v1/dq/domains/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "domains"] }),
+  });
+}
+
+export function useDeleteDqDomain() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiClient<void>(`/api/v1/dq/domains/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "domains"] }),
   });
 }
 
