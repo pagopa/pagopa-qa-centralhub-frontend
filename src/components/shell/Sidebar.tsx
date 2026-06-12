@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   CreditCard,
+  Database,
   FileText,
   Home,
   LayoutGrid,
   Settings,
+  ShieldCheck,
   Sparkles,
   TestTube2,
   Users,
@@ -50,6 +52,13 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub" },
       { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub" },
+    ],
+  },
+  {
+    label: "Data Quality",
+    items: [
+      { href: "/data-quality/catalog", label: "Catalogo Controlli", icon: ShieldCheck, action: "view:data_quality" },
+      { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality" },
     ],
   },
   {
