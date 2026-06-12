@@ -24,8 +24,10 @@ export function DqInfoPanel() {
             mappano ciascun controllo del catalogo a tabelle e campi fisici del Data Lake per ciascun data
             product (GEC, GPD, BIZ, FDR, Wallet).
           </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/dq-architecture.svg" alt="Architettura Data Quality Framework" className="w-full max-w-2xl" />
+          <div className="w-full overflow-x-auto">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/dq-architecture.svg" alt="Architettura Data Quality Framework" className="min-w-[1200px]" />
+          </div>
         </div>
       )}
     </div>

@@ -6,7 +6,7 @@ import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
-import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet } from "lucide-react";
+import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -115,6 +115,14 @@ const NAV_TILES = [
     description: "Andamento delle Posizioni Debitorie GPD, GPD4ACA, WISP e paCreatePosition, sincronizzato giornalmente.",
     color: "var(--success)",
     bg: "color-mix(in oklch, var(--success) 10%, transparent)",
+  },
+  {
+    href: "/data-quality/catalog",
+    icon: ShieldCheck,
+    label: "Data Quality",
+    description: "Catalogo controlli e istanze per dominio: dimensioni, rischio, impatto e stato di implementazione.",
+    color: "var(--info)",
+    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
   },
   {
     href: "/docs",

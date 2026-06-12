@@ -93,7 +93,9 @@ export function CatalogControlDialog({
             Dimensione DQ
             <Select value={dimensionId} onValueChange={(value) => setDimensionId(value ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleziona dimensione" />
+                <SelectValue placeholder="Seleziona dimensione">
+                  {(value: string | null) => dimensions?.find((d) => d.id === value)?.name ?? "Seleziona dimensione"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {dimensions?.map((dim) => (

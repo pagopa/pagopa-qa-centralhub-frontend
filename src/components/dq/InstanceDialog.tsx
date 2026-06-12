@@ -118,7 +118,9 @@ export function InstanceDialog({
               disabled={!!instance}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleziona controllo" />
+                <SelectValue placeholder="Seleziona controllo">
+                  {(value: string | null) => catalogControls?.find((c) => c.id === value)?.name ?? "Seleziona controllo"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {catalogControls?.map((c) => (
@@ -195,7 +197,9 @@ export function InstanceDialog({
               Stato
               <Select value={status} onValueChange={(v) => v && setStatus(v as DqControlStatus)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value: string | null) => STATUSES.find((s) => s.value === value)?.label ?? ""}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {STATUSES.map((s) => (
