@@ -6,6 +6,6 @@ tags = {
   CreatedBy   = "Terraform"
   Environment = "Uat"
   Owner       = "pagoPA"
-  Source      = "https://github.com/pagopa/pagopa-observability-bdi"
-  CostCenter  = "TS310 - PAGAMENTI & SERVIZI"
+  Source      = "https://github.com/pagopa/pagopa-qa-centralhub-frontend"
+  CostCenter  = "TS300 - PAGAMENTI & SERVIZI"
 }
