@@ -1,7 +1,7 @@
 locals {
   github = {
     org        = "pagopa"
-    repository = "pagopa-observability-bdi"
+    repository = "pagopa-qa-centralhub-frontend"
   }
 
   prefix         = "pagopa"
@@ -51,6 +51,6 @@ variable "github_repository_environment" {
   default = {
     protected_branches     = false
     custom_branch_policies = true
-    reviewers_teams        = ["pagopa-team-core"]
+    reviewers_teams        = ["pagopa-team-qa"]
   }
 }
