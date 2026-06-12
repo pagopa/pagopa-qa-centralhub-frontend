@@ -1,0 +1,11 @@
+.git
+.gitignore
+.idea
+.env*
+!.env.example
+node_modules
+.next
+out
+README.md
+AGENTS.md
+CLAUDE.md
