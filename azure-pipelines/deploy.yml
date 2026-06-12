@@ -1,0 +1,235 @@
+parameters:
+  - name: ENV
+    displayName: Target Environment
+    type: string
+    default: uat
+    values:
+      - dev
+      - uat
+      - prod
+  - name: SEMVER
+    displayName: "Version bump to apply. Use skip for deployments without a new release."
+    type: string
+    values:
+      - major
+      - minor
+      - patch
+      - skip
+    default: skip
+
+variables:
+  ${{ if eq(parameters['ENV'], 'dev') }}:
+    AZURE_SUBSCRIPTION: $(DEV_AZURE_SUBSCRIPTION)
+    RESOURCE_GROUP: $(DEV_WEB_APP_RESOURCE_GROUP_NAME)
+    APP_NAME: $(DEV_WEB_APP_NAME)
+    STAGE: "d"
+    dockerRegistryServiceConnection: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
+    dockerNamespace: $(DEV_CONTAINER_NAMESPACE)
+    poolImage: 'pagopa-dev-linux'
+    NEXT_PUBLIC_API_URL: $(DEV_NEXT_PUBLIC_API_URL)
+  ${{ if eq(parameters['ENV'], 'uat') }}:
+    AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)
+    RESOURCE_GROUP: $(UAT_WEB_APP_RESOURCE_GROUP_NAME)
+    APP_NAME: $(UAT_WEB_APP_NAME)
+    STAGE: "u"
+    dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
+    dockerNamespace: $(UAT_CONTAINER_NAMESPACE)
+    poolImage: 'pagopa-uat-linux'
+    NEXT_PUBLIC_API_URL: $(UAT_NEXT_PUBLIC_API_URL)
+  ${{ if eq(parameters['ENV'], 'prod') }}:
+    AZURE_SUBSCRIPTION: $(PROD_AZURE_SUBSCRIPTION)
+    RESOURCE_GROUP: $(PROD_WEB_APP_RESOURCE_GROUP_NAME)
+    APP_NAME: $(PROD_WEB_APP_NAME)
+    STAGE: "p"
+    dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
+    dockerNamespace: $(PROD_CONTAINER_NAMESPACE)
+    poolImage: 'pagopa-prod-linux'
+    NEXT_PUBLIC_API_URL: $(PROD_NEXT_PUBLIC_API_URL)
+  ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
+    SOURCE_BRANCH: "main"
+  ${{ if ne(variables['Build.SourceBranchName'], 'merge') }}:
+    SOURCE_BRANCH: ${{ variables['Build.SourceBranchName'] }}
+
+  IMAGE_REPOSITORY: 'pagopa-qa-centralhub-fe'
+  title: ""
+  sha: ""
+  tag: ""
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'ubuntu-22.04'
+
+stages:
+
+  # ── Release: bump version in package.json and create GitHub release ────────
+  - stage: release_service
+    condition: ne('${{ parameters.SEMVER }}', 'skip')
+    jobs:
+      - job: releaseService
+        steps:
+          - checkout: self
+            clean: true
+            persistCredentials: true
+
+          - script: git checkout $(SOURCE_BRANCH)
+            displayName: Checkout source branch
+
+          - script: |
+              git config --global user.name "$(GIT_USERNAME)"
+              git config --global user.email "$(GIT_EMAIL)"
+            displayName: Set Git global config
+
+          - task: Bash@3
+            displayName: Bump version in package.json
+            name: appversion
+            inputs:
+              targetType: inline
+              script: |
+                CURRENT=$(node -p "require('./package.json').version")
+                IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+                case "${{ parameters.SEMVER }}" in
+                  major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+                  minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+                  patch) PATCH=$((PATCH+1)) ;;
+                esac
+                NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+                # update package.json without running npm scripts
+                node -e "
+                  const fs = require('fs');
+                  const pkg = JSON.parse(fs.readFileSync('package.json'));
+                  pkg.version = '${NEW_VERSION}';
+                  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+                "
+                echo "##vso[task.setvariable variable=next;isOutput=true]${NEW_VERSION}"
+                echo "New version: ${NEW_VERSION}"
+              failOnStderr: true
+
+          - script: |
+              git add package.json
+              git commit -m "Bump version [skip ci]"
+              git push origin $(SOURCE_BRANCH)
+            displayName: Commit and push bumped version
+
+          - script: |
+              HEAD_SHA=$(git rev-parse HEAD)
+              TAG="$(appversion.next)"
+              TITLE="Release $(appversion.next)"
+              echo "##vso[task.setvariable variable=title]$TITLE"
+              echo "##vso[task.setvariable variable=sha]$HEAD_SHA"
+              echo "##vso[task.setvariable variable=tag]$TAG"
+            displayName: Set release vars
+
+          - task: GitHubRelease@0
+            displayName: Create GitHub Release
+            inputs:
+              gitHubConnection: $(GITHUB_CONNECTION)
+              repositoryName: $(Build.Repository.Name)
+              action: create
+              target: $(sha)
+              tagSource: manual
+              tag: $(tag)
+              title: $(title)
+              addChangelog: true
+
+  # ── Build Docker image and deploy to App Service ───────────────────────────
+  - stage: build_and_deploy
+    condition: not(failed('release_service'))
+    jobs:
+      - job: buildAndPush
+        steps:
+          - checkout: self
+            clean: true
+            persistCredentials: true
+            submodules: true
+
+          - script: git checkout $(SOURCE_BRANCH)
+            displayName: Checkout source branch
+
+          - task: Bash@3
+            displayName: Read current version
+            name: appversion
+            inputs:
+              targetType: inline
+              script: |
+                VERSION=$(node -p "require('./package.json').version")
+                echo "##vso[task.setvariable variable=next;isOutput=true]${VERSION}"
+                echo "Version: ${VERSION}"
+              failOnStderr: true
+
+          - task: Docker@2
+            displayName: Build and push image to container registry
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: '$(IMAGE_REPOSITORY)'
+              command: 'buildAndPush'
+              arguments: '--build-arg NEXT_PUBLIC_API_URL=$(NEXT_PUBLIC_API_URL) --platform linux/amd64'
+              tags: |
+                $(Build.BuildId)
+                latest
+                $(appversion.next)
+
+      - job: deploy
+        dependsOn: buildAndPush
+        pool: $(poolImage)
+        variables:
+          appversion: $[ dependencies.buildAndPush.outputs['appversion.next'] ]
+        steps:
+          # Dev: deploy directly to production slot
+          - task: AzureRMWebAppDeployment@4
+            displayName: Azure App Service Deploy [DEV]
+            condition: eq('${{ parameters.ENV }}', 'dev')
+            inputs:
+              appType: webAppContainer
+              ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
+              WebAppName: '$(APP_NAME)'
+              DockerNamespace: '$(dockerNamespace)'
+              DockerRepository: '$(IMAGE_REPOSITORY)'
+              DockerImageTag: '$(Build.BuildId)'
+
+          # UAT/Prod: deploy to staging slot, swap happens after approval
+          - task: AzureRMWebAppDeployment@4
+            displayName: Azure App Service Deploy staging [${{ parameters.ENV }}]
+            condition: in('${{ parameters.ENV }}', 'uat', 'prod')
+            inputs:
+              appType: webAppContainer
+              ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
+              WebAppName: '$(APP_NAME)'
+              DockerNamespace: '$(dockerNamespace)'
+              DockerRepository: '$(IMAGE_REPOSITORY)'
+              DockerImageTag: '$(Build.BuildId)'
+              deployToSlotOrASE: true
+              slotName: staging
+              resourceGroupName: $(RESOURCE_GROUP)
+
+  # ── Manual approval + slot swap for UAT and Prod ──────────────────────────
+  - stage: deployApproval_UAT_PROD
+    condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
+    dependsOn: build_and_deploy
+    pool: $(poolImage)
+    jobs:
+      - job: waitForApproval
+        displayName: Waiting for approval
+        pool: server
+        timeoutInMinutes: 4320 # 3 days
+        steps:
+          - task: ManualValidation@0
+            displayName: Manual Approval
+            inputs:
+              onTimeout: reject
+
+      - job: swapSlot
+        displayName: Swap staging → production [${{ parameters.ENV }}]
+        condition: succeeded('waitForApproval')
+        dependsOn: waitForApproval
+        steps:
+          - task: AzureAppServiceManage@0
+            displayName: Swap App Service slot
+            inputs:
+              ConnectedServiceName: $(AZURE_SUBSCRIPTION)
+              WebAppName: '$(APP_NAME)'
+              ResourceGroupName: $(RESOURCE_GROUP)
+              SourceSlot: staging
+              SwapWithProduction: true
+              Slot: production

@@ -1,0 +1,46 @@
+name: Auto Deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: ${{ github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch' }}
+    name: Call Azure Build Pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set default semver (skip)
+        run: echo "SEMVER=skip" >> $GITHUB_ENV
+
+      - name: Set major
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'breaking-change') }}
+        run: echo "SEMVER=major" >> $GITHUB_ENV
+
+      - name: Set minor
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'enhancement') }}
+        run: echo "SEMVER=minor" >> $GITHUB_ENV
+
+      - name: Set patch
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'bug') }}
+        run: echo "SEMVER=patch" >> $GITHUB_ENV
+
+      - name: Set skip
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'ignore-for-release') }}
+        run: echo "SEMVER=skip" >> $GITHUB_ENV
+
+      - name: Azure Pipelines Action
+        uses: jacopocarlini/azure-pipelines@b9721743a54e862597395b4a70727cfdc03028fb # v1.3
+        with:
+          azure-devops-project-url: https://dev.azure.com/pagopaspa/pagoPA-projects
+          azure-pipeline-name: 'pagopa-qa-centralhub-fe.deploy' # TODO: set the name in ADO
+          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+          azure-template-parameters: '{"ENV": "uat", "SEMVER": "${{ env.SEMVER }}"}'
+          azure-pipeline-variables: '{"system.debug": "true"}'
+
+
