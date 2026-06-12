@@ -323,3 +323,95 @@ export interface SyncLoginResponse {
   role: string;
   is_active: boolean;
 }
+
+// Data Quality
+export type DqCategory = "puntuale" | "intra_entita" | "cross_entita";
+export type DqRiskLevel = "ALTO" | "MEDIO" | "BASSO";
+export type DqControlStatus = "da_implementare" | "in_sviluppo" | "attivo" | "non_attivo";
+
+export interface DqDimension {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface DqDimensionCreate {
+  name: string;
+  sort_order: number;
+}
+
+export interface DqDimensionUpdate {
+  name?: string;
+  sort_order?: number;
+}
+
+export interface DqCatalogControl {
+  id: string;
+  category: DqCategory;
+  name: string;
+  description: string;
+  dimension_id: string;
+  dimension: DqDimension;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DqCatalogControlCreate {
+  category: DqCategory;
+  name: string;
+  description: string;
+  dimension_id: string;
+}
+
+export interface DqCatalogControlUpdate {
+  category?: DqCategory;
+  name?: string;
+  description?: string;
+  dimension_id?: string;
+}
+
+export interface DqDomain {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DqControlInstance {
+  id: string;
+  domain_id: string;
+  catalog_control_id: string;
+  catalog_control: DqCatalogControl;
+  table_ref: string;
+  field_ref: string;
+  owner: string | null;
+  risk: DqRiskLevel;
+  impact: DqRiskLevel;
+  status: DqControlStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DqControlInstanceCreate {
+  domain_id: string;
+  catalog_control_id: string;
+  table_ref: string;
+  field_ref: string;
+  owner?: string | null;
+  risk: DqRiskLevel;
+  impact: DqRiskLevel;
+  status: DqControlStatus;
+  notes?: string | null;
+}
+
+export interface DqControlInstanceUpdate {
+  table_ref?: string;
+  field_ref?: string;
+  owner?: string | null;
+  risk?: DqRiskLevel;
+  impact?: DqRiskLevel;
+  status?: DqControlStatus;
+  notes?: string | null;
+}
