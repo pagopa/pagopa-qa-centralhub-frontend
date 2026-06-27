@@ -22,6 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings/notifications": "Settings · Notifications",
   "/settings/general": "Settings · General",
   "/settings/users": "Settings · Utenti",
+  "/settings/tm-resources": "Settings · Risorse T&M",
 };
 
 function getInitials(name: string): string {

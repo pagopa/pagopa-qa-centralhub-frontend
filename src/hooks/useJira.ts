@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import type { JiraOverview, JiraTrend } from "@/types/index";
+import type { JiraOverview, JiraTrend, JiraEstimateDrift } from "@/types/index";
 
 export function useJiraOverview() {
   return useQuery<JiraOverview>({
@@ -46,6 +46,30 @@ export function useJiraDataTrend() {
   return useQuery<JiraTrend>({
     queryKey: ["jira", "data", "trend"],
     queryFn: () => apiClient("/api/v1/jira/data/trend"),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useJiraEstimateDrift() {
+  return useQuery<JiraEstimateDrift>({
+    queryKey: ["jira", "testing", "estimate-drift"],
+    queryFn: () => apiClient("/api/v1/jira/estimate-drift"),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useJiraSanpEstimateDrift() {
+  return useQuery<JiraEstimateDrift>({
+    queryKey: ["jira", "sanp", "estimate-drift"],
+    queryFn: () => apiClient("/api/v1/jira/sanp/estimate-drift"),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useJiraDataEstimateDrift() {
+  return useQuery<JiraEstimateDrift>({
+    queryKey: ["jira", "data", "estimate-drift"],
+    queryFn: () => apiClient("/api/v1/jira/data/estimate-drift"),
     staleTime: 5 * 60 * 1000,
   });
 }

@@ -5,8 +5,9 @@ import {
   useJiraOverview, useJiraTrend,
   useJiraSanpOverview, useJiraSanpTrend,
   useJiraDataOverview, useJiraDataTrend,
+  useJiraEstimateDrift, useJiraSanpEstimateDrift, useJiraDataEstimateDrift,
 } from "@/hooks/useJira";
-import type { JiraAlert, JiraOverview, JiraTrend, TrendWeek } from "@/types/index";
+import type { JiraAlert, JiraOverview, JiraTrend, TrendWeek, JiraEstimateDrift, EstimateDriftGroup, EstimateDriftItem } from "@/types/index";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const JIRA_BASE = "https://pagopa.atlassian.net/browse";
@@ -205,11 +206,11 @@ export default function JiraPage() {
 
   const current = SECTIONS.find((s) => s.key === section)!;
 
-  const testing = { overview: useJiraOverview(), trend: useJiraTrend() };
-  const sanp    = { overview: useJiraSanpOverview(), trend: useJiraSanpTrend() };
-  const data    = { overview: useJiraDataOverview(), trend: useJiraDataTrend() };
+  const testing = { overview: useJiraOverview(), trend: useJiraTrend(), drift: useJiraEstimateDrift() };
+  const sanp    = { overview: useJiraSanpOverview(), trend: useJiraSanpTrend(), drift: useJiraSanpEstimateDrift() };
+  const data    = { overview: useJiraDataOverview(), trend: useJiraDataTrend(), drift: useJiraDataEstimateDrift() };
 
-  const { overview: ovQuery, trend: trendQuery } =
+  const { overview: ovQuery, trend: trendQuery, drift: driftQuery } =
     section === "testing" ? testing : section === "sanp" ? sanp : data;
 
   return (
@@ -239,6 +240,8 @@ export default function JiraPage() {
               overview={ovQuery.data}
               trend={trendQuery.data ?? null}
               trendLoading={trendQuery.isLoading}
+              drift={driftQuery.data ?? null}
+              driftLoading={driftQuery.isLoading}
               baseJql={current.baseJql}
               boardUrl={current.boardUrl}
               sectionKey={section}
@@ -255,6 +258,8 @@ function SectionDashboard({
   overview,
   trend,
   trendLoading,
+  drift,
+  driftLoading,
   baseJql,
   boardUrl,
   sectionKey,
@@ -262,6 +267,8 @@ function SectionDashboard({
   overview: JiraOverview;
   trend: JiraTrend | null;
   trendLoading: boolean;
+  drift: JiraEstimateDrift | null;
+  driftLoading: boolean;
   baseJql: string;
   boardUrl: string;
   sectionKey: SectionKey;
@@ -407,14 +414,248 @@ function SectionDashboard({
                 ? <TrendChart weeks={trend.weeks} baseJql={baseJql} />
                 : null}
           </Section>
+          <Section title="Drift Stime">
+            {driftLoading
+              ? <p className="text-text-muted text-[13px]">Caricamento…</p>
+              : drift
+                ? <EstimateDriftPanel drift={drift} />
+                : <Empty />}
+          </Section>
         </div>
       )}
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// ── Estimate Drift Panel ──────────────────────────────────────────────────────
+
+function fmtHours(sec: number): string {
+  const h = Math.round(sec / 3600);
+  return `${h}h`;
+}
+
+function DriftBar({ original, spent }: { original: number; spent: number }) {
+  if (original === 0) return null;
+  const pct = Math.min((spent / original) * 100, 200); // cap at 200% visually
+  const over = spent > original;
+  const overPct = over ? Math.min(((spent - original) / original) * 100, 100) : 0;
   return (
+    <div className="flex flex-col gap-1">
+      <div className="relative h-3 rounded-full bg-subtle overflow-hidden">
+        {/* stima originale = 100% */}
+        <div
+          className="absolute left-0 top-0 h-full rounded-full transition-all"
+          style={{
+            width: `${Math.min((spent / original) * 100, 100)}%`,
+            background: over ? "var(--danger)" : "var(--success)",
+          }}
+        />
+        {/* overflow oltre il 100% */}
+        {over && (
+          <div
+            className="absolute top-0 h-full rounded-r-full"
+            style={{
+              left: "100%",
+              width: `${overPct}%`,
+              background: "var(--danger)",
+              opacity: 0.5,
+              maxWidth: "100%",
+            }}
+          />
+        )}
+        {/* marker al 100% */}
+        <div className="absolute top-0 bottom-0 w-px bg-border" style={{ left: "calc(100% - 1px)" }} />
+      </div>
+      <div className="flex justify-between text-[11px] text-text-muted font-mono">
+        <span>0</span>
+        <span>stima {fmtHours(original)}</span>
+      </div>
+    </div>
+  );
+}
+
+function DriftGroupBar({ group, maxOriginal }: { group: EstimateDriftGroup; maxOriginal: number }) {
+  const drift = group.time_spent_sec - group.original_estimate_sec;
+  const over = drift > 0;
+  const driftColor = over ? "var(--danger)" : "var(--success)";
+  const pctEst = maxOriginal > 0 ? (group.original_estimate_sec / maxOriginal) * 100 : 0;
+  const pctSpent = maxOriginal > 0 ? (group.time_spent_sec / maxOriginal) * 100 : 0;
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between text-[12px]">
+        <span className="text-text-dim truncate max-w-[180px]">{group.name}</span>
+        <span className="font-mono" style={{ color: driftColor }}>
+          {over ? "+" : ""}{fmtHours(drift)}
+        </span>
+      </div>
+      <div className="relative h-2 rounded-full bg-subtle overflow-hidden">
+        {/* stima */}
+        <div className="absolute left-0 top-0 h-full rounded-full opacity-30"
+          style={{ width: `${pctEst}%`, background: "var(--text-dim)" }} />
+        {/* spent */}
+        <div className="absolute left-0 top-0 h-full rounded-full"
+          style={{ width: `${Math.min(pctSpent, 100)}%`, background: over ? "var(--danger)" : "var(--success)", opacity: 0.8 }} />
+      </div>
+    </div>
+  );
+}
+
+function EstimateDriftPanel({ drift }: { drift: JiraEstimateDrift }) {
+  const [sortBy, setSortBy] = useState<"drift_sec" | "original_estimate_sec" | "time_spent_sec">("drift_sec");
+  const [showAll, setShowAll] = useState(false);
+
+  if (drift.issues_with_estimate === 0) {
+    return <p className="text-[13px] text-text-muted">Nessuna issue con stima originaria valorizzata.</p>;
+  }
+
+  const totalDrift = drift.drift_sec;
+  const over = totalDrift > 0;
+  const driftColor = over ? "var(--danger)" : "var(--success)";
+
+  const maxGroup = Math.max(
+    ...drift.by_assignee.map((g) => Math.max(g.original_estimate_sec, g.time_spent_sec)),
+    1,
+  );
+
+  const sorted = [...drift.items].sort((a, b) => {
+    if (sortBy === "drift_sec") return b.drift_sec - a.drift_sec;
+    if (sortBy === "original_estimate_sec") return b.original_estimate_sec - a.original_estimate_sec;
+    return b.time_spent_sec - a.time_spent_sec;
+  });
+  const displayed = showAll ? sorted : sorted.slice(0, 10);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* KPI strip */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-surface p-4" style={{ minWidth: 120 }}>
+          <span className="text-[11px] text-text-muted font-mono uppercase" style={{ letterSpacing: ".06em" }}>Issue con stima</span>
+          <span className="text-2xl font-semibold text-text">{drift.issues_with_estimate}</span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-surface p-4" style={{ minWidth: 120 }}>
+          <span className="text-[11px] text-text-muted font-mono uppercase" style={{ letterSpacing: ".06em" }}>Stima totale</span>
+          <span className="text-2xl font-semibold text-text">{fmtHours(drift.total_original_sec)}</span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-surface p-4" style={{ minWidth: 120 }}>
+          <span className="text-[11px] text-text-muted font-mono uppercase" style={{ letterSpacing: ".06em" }}>Consuntivato</span>
+          <span className="text-2xl font-semibold text-text">{fmtHours(drift.total_spent_sec)}</span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-[var(--radius)] border border-border bg-surface p-4" style={{ minWidth: 120 }}>
+          <span className="text-[11px] text-text-muted font-mono uppercase" style={{ letterSpacing: ".06em" }}>Drift totale</span>
+          <span className="text-2xl font-semibold" style={{ color: driftColor }}>
+            {over ? "+" : ""}{fmtHours(totalDrift)}
+          </span>
+        </div>
+      </div>
+
+      {/* Barra visiva stima vs consuntivato */}
+      <DriftBar original={drift.total_original_sec} spent={drift.total_spent_sec} />
+
+      {/* Breakdown per assignee e per tipo */}
+      {(drift.by_assignee.length > 0 || drift.by_type.length > 0) && (
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+          {drift.by_assignee.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="text-[12px] font-medium text-text-dim">Per assignee</p>
+              <div className="flex flex-col gap-3">
+                {drift.by_assignee.map((g) => (
+                  <DriftGroupBar key={g.name} group={g} maxOriginal={maxGroup} />
+                ))}
+              </div>
+              <div className="flex gap-3 text-[11px] text-text-muted">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm opacity-30" style={{ background: "var(--text-dim)" }} /> Stima</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm" style={{ background: "var(--success)", opacity: 0.8 }} /> Spent</span>
+              </div>
+            </div>
+          )}
+          {drift.by_type.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <p className="text-[12px] font-medium text-text-dim">Per tipo issue</p>
+              <div className="flex flex-col gap-3">
+                {drift.by_type.map((g) => (
+                  <DriftGroupBar key={g.name} group={g} maxOriginal={maxGroup} />
+                ))}
+              </div>
+              <div className="flex gap-3 text-[11px] text-text-muted">
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm opacity-30" style={{ background: "var(--text-dim)" }} /> Stima</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm" style={{ background: "var(--success)", opacity: 0.8 }} /> Spent</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tabella drill-down */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[12px] font-medium text-text-dim">Dettaglio issue</p>
+          <div className="flex gap-1">
+            {(["drift_sec", "original_estimate_sec", "time_spent_sec"] as const).map((col) => (
+              <button key={col} onClick={() => setSortBy(col)}
+                className="px-2 py-1 text-[11px] rounded border transition-colors"
+                style={{
+                  borderColor: sortBy === col ? "var(--accent)" : "var(--border)",
+                  color: sortBy === col ? "var(--accent)" : "var(--text-muted)",
+                  background: sortBy === col ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
+                }}>
+                {col === "drift_sec" ? "Drift" : col === "original_estimate_sec" ? "Stima" : "Spent"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-[var(--radius)] border border-border overflow-hidden">
+          <table className="w-full text-[12px] border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-subtle">
+                <th className="px-3 py-2 text-left font-mono text-text-muted font-normal">Issue</th>
+                <th className="px-3 py-2 text-left text-text-muted font-normal">Summary</th>
+                <th className="px-3 py-2 text-left text-text-muted font-normal hidden sm:table-cell">Tipo</th>
+                <th className="px-3 py-2 text-left text-text-muted font-normal hidden md:table-cell">Assignee</th>
+                <th className="px-3 py-2 text-right text-text-muted font-normal font-mono">Stima</th>
+                <th className="px-3 py-2 text-right text-text-muted font-normal font-mono">Spent</th>
+                <th className="px-3 py-2 text-right text-text-muted font-normal font-mono">Drift</th>
+                <th className="px-3 py-2 text-right text-text-muted font-normal font-mono">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((item) => {
+                const itemOver = item.drift_sec > 0;
+                const driftCol = itemOver ? "var(--danger)" : item.drift_sec < 0 ? "var(--success)" : "var(--text-muted)";
+                return (
+                  <tr key={item.key} className="border-b border-border last:border-0 hover:bg-hover">
+                    <td className="px-3 py-2 font-mono whitespace-nowrap">
+                      <a href={`${JIRA_BASE}/${item.key}`} target="_blank" rel="noopener noreferrer"
+                        className="text-accent hover:underline">{item.key}</a>
+                    </td>
+                    <td className="px-3 py-2 text-text-dim max-w-[220px] truncate">{item.summary}</td>
+                    <td className="px-3 py-2 text-text-muted hidden sm:table-cell">{item.issue_type}</td>
+                    <td className="px-3 py-2 text-text-muted hidden md:table-cell">{item.assignee}</td>
+                    <td className="px-3 py-2 text-right font-mono text-text-dim">{fmtHours(item.original_estimate_sec)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-text-dim">{fmtHours(item.time_spent_sec)}</td>
+                    <td className="px-3 py-2 text-right font-mono" style={{ color: driftCol }}>
+                      {itemOver ? "+" : ""}{fmtHours(item.drift_sec)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono" style={{ color: driftCol }}>
+                      {itemOver ? "+" : ""}{item.drift_pct.toFixed(0)}%
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {sorted.length > 10 && (
+          <button onClick={() => setShowAll((v) => !v)}
+            className="text-[12px] text-accent hover:underline self-start">
+            {showAll ? "Mostra meno" : `Mostra tutte le ${sorted.length} issue`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {  return (
     <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
       <p className="font-semibold text-[13px] text-text">{title}</p>
       {children}

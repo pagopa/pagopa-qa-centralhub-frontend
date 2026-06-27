@@ -132,8 +132,35 @@ export interface TrendWeek {
 
 export interface JiraTrend { weeks: TrendWeek[] }
 
+export interface EstimateDriftGroup {
+  name: string
+  original_estimate_sec: number
+  time_spent_sec: number
+}
+
+export interface EstimateDriftItem {
+  key: string
+  summary: string
+  issue_type: string
+  assignee: string
+  original_estimate_sec: number
+  time_spent_sec: number
+  drift_sec: number
+  drift_pct: number
+}
+
+export interface JiraEstimateDrift {
+  issues_with_estimate: number
+  total_original_sec: number
+  total_spent_sec: number
+  drift_sec: number
+  by_assignee: EstimateDriftGroup[]
+  by_type: EstimateDriftGroup[]
+  items: EstimateDriftItem[]
+}
+
 export interface PaginatedResponse<T> {
-  items: T[];
+  items: T[]
   total: number;
   page: number;
   page_size: number;
@@ -424,4 +451,102 @@ export interface DqControlInstanceUpdate {
   impact?: DqRiskLevel;
   status?: DqControlStatus;
   notes?: string | null;
+}
+
+// ── T&M Resource Management ──────────────────────────────────────────────────
+
+export interface ExternalResource {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  company: string
+  role: string
+  daily_rate: number
+  contract_start: string
+  contract_end: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ExternalResourceCreate {
+  first_name: string
+  last_name: string
+  email: string
+  company: string
+  role: string
+  daily_rate: number
+  contract_start: string
+  contract_end?: string | null
+  notes?: string | null
+}
+
+export interface ExternalResourceUpdate {
+  first_name?: string
+  last_name?: string
+  email?: string
+  company?: string
+  role?: string
+  daily_rate?: number
+  contract_start?: string
+  contract_end?: string | null
+  notes?: string | null
+  is_active?: boolean
+}
+
+export interface ResourceAbsence {
+  id: string
+  resource_id: string
+  absence_date: string
+  absence_type: string
+  source: string
+  confluence_event_id: string | null
+  note: string | null
+  created_at: string
+}
+
+export interface ResourceAbsenceCreate {
+  resource_id: string
+  absence_date: string
+  absence_type: string
+  note?: string | null
+}
+
+export interface ResourceCostRow {
+  resource_id: string
+  full_name: string
+  company: string
+  role: string
+  working_days: number
+  absence_days: number
+  billable_days: number
+  daily_rate: number
+  total_cost: number
+}
+
+export interface CostReport {
+  year: number
+  month: number
+  rows: ResourceCostRow[]
+  grand_total: number
+}
+
+export interface TmSyncResult {
+  synced: number
+  errors: string[]
+}
+
+export interface ResourceAbsenceCsvRow {
+  email: string
+  absence_date: string
+  absence_type?: string
+  note?: string | null
+}
+
+export interface CsvAbsenceImportResult {
+  imported: number
+  skipped: number
+  errors: string[]
 }
