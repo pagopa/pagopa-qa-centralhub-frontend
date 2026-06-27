@@ -40,11 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#Intellij
-.idea/
-
-# Terraform
-**/.terraform/
-*.tfstate
-*.tfstate.backup
-*.tfvars
+.DS_Store
