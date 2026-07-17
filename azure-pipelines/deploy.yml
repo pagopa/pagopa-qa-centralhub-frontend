@@ -18,42 +18,29 @@ parameters:
     default: skip
 
 variables:
-  ${{ if eq(parameters['ENV'], 'dev') }}:
-    AZURE_SUBSCRIPTION: $(DEV_AZURE_SUBSCRIPTION)
-    RESOURCE_GROUP: $(DEV_WEB_APP_RESOURCE_GROUP_NAME)
-    APP_NAME: $(DEV_WEB_APP_NAME)
-    STAGE: "d"
-    dockerRegistryServiceConnection: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
-    dockerNamespace: $(DEV_CONTAINER_NAMESPACE)
-    poolImage: 'pagopa-dev-linux'
-    NEXT_PUBLIC_API_URL: $(DEV_NEXT_PUBLIC_API_URL)
-  ${{ if eq(parameters['ENV'], 'uat') }}:
-    AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)
-    RESOURCE_GROUP: $(UAT_WEB_APP_RESOURCE_GROUP_NAME)
-    APP_NAME: $(UAT_WEB_APP_NAME)
-    STAGE: "u"
-    dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
-    dockerNamespace: $(UAT_CONTAINER_NAMESPACE)
-    poolImage: 'pagopa-uat-linux'
-    NEXT_PUBLIC_API_URL: $(UAT_NEXT_PUBLIC_API_URL)
-  ${{ if eq(parameters['ENV'], 'prod') }}:
-    AZURE_SUBSCRIPTION: $(PROD_AZURE_SUBSCRIPTION)
-    RESOURCE_GROUP: $(PROD_WEB_APP_RESOURCE_GROUP_NAME)
-    APP_NAME: $(PROD_WEB_APP_NAME)
-    STAGE: "p"
-    dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
-    dockerNamespace: $(PROD_CONTAINER_NAMESPACE)
-    poolImage: 'pagopa-prod-linux'
-    NEXT_PUBLIC_API_URL: $(PROD_NEXT_PUBLIC_API_URL)
-  ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
-    SOURCE_BRANCH: "main"
-  ${{ if ne(variables['Build.SourceBranchName'], 'merge') }}:
-    SOURCE_BRANCH: ${{ variables['Build.SourceBranchName'] }}
-
-  IMAGE_REPOSITORY: 'pagopa-qa-centralhub-fe'
-  title: ""
-  sha: ""
-  tag: ""
+  # ── Load the Variable Group matching the target environment ────────────────
+  - ${{ if eq(parameters['ENV'], 'dev') }}:
+    - group: qa-hub-dev
+  - ${{ if eq(parameters['ENV'], 'uat') }}:
+    - group: qa-hub-uat
+  - ${{ if eq(parameters['ENV'], 'prod') }}:
+    - group: qa-hub-prod
+  # ── Shared variables (Git / GitHub connection) ─────────────────────────────
+  - group: qa-hub-global
+  # ── Pipeline-level constants ───────────────────────────────────────────────
+  - name: IMAGE_REPOSITORY
+    value: 'pagopa-qa-centralhub-fe'
+  - name: SOURCE_BRANCH
+    ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
+      value: "main"
+    ${{ if ne(variables['Build.SourceBranchName'], 'merge') }}:
+      value: ${{ variables['Build.SourceBranchName'] }}
+  - name: title
+    value: ""
+  - name: sha
+    value: ""
+  - name: tag
+    value: ""
 
 trigger: none
 pr: none
@@ -172,7 +159,8 @@ stages:
 
       - job: deploy
         dependsOn: buildAndPush
-        pool: $(poolImage)
+        pool:
+          vmImage: 'ubuntu-22.04'
         variables:
           appversion: $[ dependencies.buildAndPush.outputs['appversion.next'] ]
         steps:
@@ -187,6 +175,21 @@ stages:
               DockerNamespace: '$(dockerNamespace)'
               DockerRepository: '$(IMAGE_REPOSITORY)'
               DockerImageTag: '$(Build.BuildId)'
+
+          - task: AzureAppServiceSettings@1
+            displayName: Set App Settings [DEV]
+            condition: eq('${{ parameters.ENV }}', 'dev')
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              appName: '$(APP_NAME)'
+              resourceGroupName: '$(RESOURCE_GROUP)'
+              appSettings: |
+                [
+                  { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
+                  { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
+                  { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
+                  { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
+                ]
 
           # UAT/Prod: deploy to staging slot, swap happens after approval
           - task: AzureRMWebAppDeployment@4
@@ -203,11 +206,26 @@ stages:
               slotName: staging
               resourceGroupName: $(RESOURCE_GROUP)
 
+          - task: AzureAppServiceSettings@1
+            displayName: Set App Settings on staging slot [UAT/PROD]
+            condition: in('${{ parameters.ENV }}', 'uat', 'prod')
+            inputs:
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
+              appName: '$(APP_NAME)'
+              resourceGroupName: '$(RESOURCE_GROUP)'
+              slotName: staging
+              appSettings: |
+                [
+                  { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
+                  { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
+                  { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
+                  { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
+                ]
+
   # ── Manual approval + slot swap for UAT and Prod ──────────────────────────
   - stage: deployApproval_UAT_PROD
     condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
     dependsOn: build_and_deploy
-    pool: $(poolImage)
     jobs:
       - job: waitForApproval
         displayName: Waiting for approval

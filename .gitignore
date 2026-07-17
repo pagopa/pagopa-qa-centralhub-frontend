@@ -41,3 +41,15 @@ yarn-error.log*
 next-env.d.ts
 
 .DS_Store
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars.env.local
+
+#Intellij
+.idea/
+
+# VS Code
+.vscode/
