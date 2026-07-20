@@ -37,7 +37,7 @@ variables:
       value: 'sc-acr-prod'
   - name: ARM_SERVICE_CONN
     ${{ if eq(parameters.ENV, 'dev') }}:
-      value: 'DEV-pagoPA'
+      value: 'sc-arm-dev'    # TODO: infra deve creare questa service connection ARM
     ${{ if eq(parameters.ENV, 'uat') }}:
       value: 'sc-arm-uat'
     ${{ if eq(parameters.ENV, 'prod') }}:
@@ -174,100 +174,99 @@ stages:
                 latest
                 $(appversion.next)
 
-      - job: deploy
-        condition: false  # TODO: riabilitare dopo creazione ARM service connection
-        dependsOn: buildAndPush
-        pool:
-          vmImage: 'ubuntu-22.04'
-        variables:
-          appversion: $[ dependencies.buildAndPush.outputs['appversion.next'] ]
-        steps:
-          # Dev: deploy directly to production slot
-          - task: AzureRMWebAppDeployment@4
-            displayName: Azure App Service Deploy [DEV]
-            condition: eq('${{ parameters.ENV }}', 'dev')
-            inputs:
-              appType: webAppContainer
-              ConnectedServiceName: '$(ARM_SERVICE_CONN)'
-              WebAppName: '$(APP_NAME)'
-              DockerNamespace: '$(CONTAINER_NAMESPACE)'
-              DockerRepository: '$(IMAGE_REPOSITORY)'
-              DockerImageTag: '$(Build.BuildId)'
-
-          - task: AzureAppServiceSettings@1
-            displayName: Set App Settings [DEV]
-            condition: eq('${{ parameters.ENV }}', 'dev')
-            inputs:
-              azureSubscription: '$(ARM_SERVICE_CONN)'
-              appName: '$(APP_NAME)'
-              resourceGroupName: '$(RESOURCE_GROUP)'
-              appSettings: |
-                [
-                  { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
-                  { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
-                ]
-
-          # UAT/Prod: deploy to staging slot, swap happens after approval
-          - task: AzureRMWebAppDeployment@4
-            displayName: Azure App Service Deploy staging [${{ parameters.ENV }}]
-            condition: in('${{ parameters.ENV }}', 'uat', 'prod')
-            inputs:
-              appType: webAppContainer
-              ConnectedServiceName: '$(ARM_SERVICE_CONN)'
-              WebAppName: '$(APP_NAME)'
-              DockerNamespace: '$(CONTAINER_NAMESPACE)'
-              DockerRepository: '$(IMAGE_REPOSITORY)'
-              DockerImageTag: '$(Build.BuildId)'
-              deployToSlotOrASE: true
-              slotName: staging
-              resourceGroupName: $(RESOURCE_GROUP)
-
-          - task: AzureAppServiceSettings@1
-            displayName: Set App Settings on staging slot [UAT/PROD]
-            condition: in('${{ parameters.ENV }}', 'uat', 'prod')
-            inputs:
-              azureSubscription: '$(ARM_SERVICE_CONN)'
-              appName: '$(APP_NAME)'
-              resourceGroupName: '$(RESOURCE_GROUP)'
-              slotName: staging
-              appSettings: |
-                [
-                  { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
-                  { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
-                ]
+      # ── TODO: riabilitare dopo creazione ARM service connection ──────────────
+      # - job: deploy
+      #   dependsOn: buildAndPush
+      #   pool:
+      #     vmImage: 'ubuntu-22.04'
+      #   variables:
+      #     appversion: $[ dependencies.buildAndPush.outputs['appversion.next'] ]
+      #   steps:
+      #     # Dev: deploy directly to production slot
+      #     - task: AzureRMWebAppDeployment@4
+      #       displayName: Azure App Service Deploy [DEV]
+      #       condition: eq('${{ parameters.ENV }}', 'dev')
+      #       inputs:
+      #         appType: webAppContainer
+      #         ConnectedServiceName: '$(ARM_SERVICE_CONN)'
+      #         WebAppName: '$(APP_NAME)'
+      #         DockerNamespace: '$(CONTAINER_NAMESPACE)'
+      #         DockerRepository: '$(IMAGE_REPOSITORY)'
+      #         DockerImageTag: '$(Build.BuildId)'
+      #
+      #     - task: AzureAppServiceSettings@1
+      #       displayName: Set App Settings [DEV]
+      #       condition: eq('${{ parameters.ENV }}', 'dev')
+      #       inputs:
+      #         azureSubscription: '$(ARM_SERVICE_CONN)'
+      #         appName: '$(APP_NAME)'
+      #         resourceGroupName: '$(RESOURCE_GROUP)'
+      #         appSettings: |
+      #           [
+      #             { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
+      #             { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
+      #             { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
+      #             { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
+      #           ]
+      #
+      #     # UAT/Prod: deploy to staging slot, swap happens after approval
+      #     - task: AzureRMWebAppDeployment@4
+      #       displayName: Azure App Service Deploy staging [${{ parameters.ENV }}]
+      #       condition: in('${{ parameters.ENV }}', 'uat', 'prod')
+      #       inputs:
+      #         appType: webAppContainer
+      #         ConnectedServiceName: '$(ARM_SERVICE_CONN)'
+      #         WebAppName: '$(APP_NAME)'
+      #         DockerNamespace: '$(CONTAINER_NAMESPACE)'
+      #         DockerRepository: '$(IMAGE_REPOSITORY)'
+      #         DockerImageTag: '$(Build.BuildId)'
+      #         deployToSlotOrASE: true
+      #         slotName: staging
+      #         resourceGroupName: $(RESOURCE_GROUP)
+      #
+      #     - task: AzureAppServiceSettings@1
+      #       displayName: Set App Settings on staging slot [UAT/PROD]
+      #       condition: in('${{ parameters.ENV }}', 'uat', 'prod')
+      #       inputs:
+      #         azureSubscription: '$(ARM_SERVICE_CONN)'
+      #         appName: '$(APP_NAME)'
+      #         resourceGroupName: '$(RESOURCE_GROUP)'
+      #         slotName: staging
+      #         appSettings: |
+      #           [
+      #             { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
+      #             { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
+      #             { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
+      #             { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
+      #           ]
 
   # ── Manual approval + slot swap for UAT and Prod ──────────────────────────
-  - stage: deployApproval_UAT_PROD
-    # TODO: ripristinare dopo creazione ARM service connection:
-    # condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
-    condition: false
-    dependsOn: build_and_deploy
-    jobs:
-      - job: waitForApproval
-        displayName: Waiting for approval
-        pool: server
-        timeoutInMinutes: 4320 # 3 days
-        steps:
-          - task: ManualValidation@0
-            displayName: Manual Approval
-            inputs:
-              onTimeout: reject
-
-      - job: swapSlot
-        displayName: Swap staging → production [${{ parameters.ENV }}]
-        condition: succeeded('waitForApproval')
-        dependsOn: waitForApproval
-        steps:
-          - task: AzureAppServiceManage@0
-            displayName: Swap App Service slot
-            inputs:
-              ConnectedServiceName: $(ARM_SERVICE_CONN)
-              WebAppName: '$(APP_NAME)'
-              ResourceGroupName: $(RESOURCE_GROUP)
-              SourceSlot: staging
-              SwapWithProduction: true
-              Slot: production
+  # TODO: riabilitare dopo creazione ARM service connection
+  # - stage: deployApproval_UAT_PROD
+  #   condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
+  #   dependsOn: build_and_deploy
+  #   jobs:
+  #     - job: waitForApproval
+  #       displayName: Waiting for approval
+  #       pool: server
+  #       timeoutInMinutes: 4320 # 3 days
+  #       steps:
+  #         - task: ManualValidation@0
+  #           displayName: Manual Approval
+  #           inputs:
+  #             onTimeout: reject
+  #
+  #     - job: swapSlot
+  #       displayName: Swap staging → production [${{ parameters.ENV }}]
+  #       condition: succeeded('waitForApproval')
+  #       dependsOn: waitForApproval
+  #       steps:
+  #         - task: AzureAppServiceManage@0
+  #           displayName: Swap App Service slot
+  #           inputs:
+  #             ConnectedServiceName: $(ARM_SERVICE_CONN)
+  #             WebAppName: '$(APP_NAME)'
+  #             ResourceGroupName: $(RESOURCE_GROUP)
+  #             SourceSlot: staging
+  #             SwapWithProduction: true
+  #             Slot: production
