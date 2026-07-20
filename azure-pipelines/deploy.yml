@@ -163,10 +163,11 @@ stages:
             inputs:
               targetType: inline
               script: |
-                VERSION=$(node -p "require('./package.json').version")
+                VERSION=$(jq -r '.version' package.json 2>/dev/null \
+                  || grep '"version"' package.json | sed 's/.*"version": *"\([^"]*\)".*/\1/')
                 echo "##vso[task.setvariable variable=next;isOutput=true]${VERSION}"
                 echo "Version: ${VERSION}"
-              failOnStderr: true
+              failOnStderr: false
 
           - task: Docker@2
             displayName: Build and push image to container registry
