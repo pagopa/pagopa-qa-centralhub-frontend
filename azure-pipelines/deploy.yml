@@ -175,6 +175,7 @@ stages:
                 $(appversion.next)
 
       - job: deploy
+        condition: false  # TODO: riabilitare dopo creazione ARM service connection
         dependsOn: buildAndPush
         pool:
           vmImage: 'ubuntu-22.04'
@@ -241,7 +242,9 @@ stages:
 
   # ── Manual approval + slot swap for UAT and Prod ──────────────────────────
   - stage: deployApproval_UAT_PROD
-    condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
+    # TODO: ripristinare dopo creazione ARM service connection:
+    # condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
+    condition: false
     dependsOn: build_and_deploy
     jobs:
       - job: waitForApproval
