@@ -43,7 +43,7 @@ variables:
     ${{ if eq(parameters.ENV, 'prod') }}:
       value: 'sc-arm-prod'
   - name: GITHUB_CONN
-    value: 'sc-github-qa-hub'
+    value: 'github-pat-qa-hub'
   # ── Pipeline-level constants ───────────────────────────────────────────────
   - name: IMAGE_REPOSITORY
     value: 'pagopa-qa-centralhub-fe'
