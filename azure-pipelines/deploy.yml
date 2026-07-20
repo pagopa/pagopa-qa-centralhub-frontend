@@ -144,6 +144,8 @@ stages:
     condition: not(failed('release_service'))
     jobs:
       - job: buildAndPush
+        pool:
+          name: 'pagopa-dev-linux'  # self-hosted con Managed Identity per ACR
         steps:
           - checkout: self
             clean: true
