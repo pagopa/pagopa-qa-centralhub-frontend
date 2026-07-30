@@ -254,7 +254,7 @@ stages:
             condition: eq('${{ parameters.ENV }}', 'dev')
             inputs:
               appType: webAppContainer
-              ConnectedServiceName: '$(ARM_SERVICE_CONNECTION)'
+              ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
               WebAppName: '$(APP_NAME)'
               DockerNamespace: '$(dockerNamespace)'
               DockerRepository: '$(IMAGE_REPOSITORY)'
@@ -281,7 +281,7 @@ stages:
             condition: in('${{ parameters.ENV }}', 'uat', 'prod')
             inputs:
               appType: webAppContainer
-              ConnectedServiceName: '$(ARM_SERVICE_CONNECTION)'
+              ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
               WebAppName: '$(APP_NAME)'
               DockerNamespace: '$(dockerNamespace)'
               DockerRepository: '$(IMAGE_REPOSITORY)'
@@ -294,7 +294,7 @@ stages:
             displayName: Set App Settings on staging slot [UAT/PROD]
             condition: in('${{ parameters.ENV }}', 'uat', 'prod')
             inputs:
-              azureSubscription: '$(ARM_SERVICE_CONNECTION)'
+              azureSubscription: '$(AZURE_SUBSCRIPTION)'
               appName: '$(APP_NAME)'
               resourceGroupName: '$(RESOURCE_GROUP)'
               slotName: staging
@@ -329,7 +329,7 @@ stages:
           - task: AzureAppServiceManage@0
             displayName: Swap App Service slot
             inputs:
-              ConnectedServiceName: $(ARM_SERVICE_CONNECTION)
+              ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
               WebAppName: '$(APP_NAME)'
               ResourceGroupName: $(RESOURCE_GROUP)
               SourceSlot: staging
