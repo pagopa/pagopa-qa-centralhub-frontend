@@ -18,58 +18,106 @@ parameters:
     default: skip
 
 variables:
-  ${{ if eq(parameters['ENV'], 'dev') }}:
-    AZURE_SUBSCRIPTION: $(DEV_AZURE_SUBSCRIPTION)
-    ARM_SERVICE_CONNECTION: $(DEV_ARM_SERVICE_CONNECTION)
-    RESOURCE_GROUP: $(DEV_WEB_APP_RESOURCE_GROUP_NAME)
-    APP_NAME: $(DEV_WEB_APP_NAME)
-    STAGE: "d"
-    dockerRegistryServiceConnection: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
-    dockerNamespace: $(DEV_CONTAINER_NAMESPACE)
-    NEXT_PUBLIC_API_URL: $(DEV_NEXT_PUBLIC_API_URL)
-    NEXTAUTH_URL: $(DEV_NEXTAUTH_URL)
-    NEXTAUTH_SECRET: $(DEV_NEXTAUTH_SECRET)
-    GOOGLE_CLIENT_ID: $(DEV_GOOGLE_CLIENT_ID)
-    GOOGLE_CLIENT_SECRET: $(DEV_GOOGLE_CLIENT_SECRET)
-    poolImage: 'pagopa-dev-linux'
-  ${{ if eq(parameters['ENV'], 'uat') }}:
-    AZURE_SUBSCRIPTION: $(UAT_AZURE_SUBSCRIPTION)
-    ARM_SERVICE_CONNECTION: $(UAT_ARM_SERVICE_CONNECTION)
-    RESOURCE_GROUP: $(UAT_WEB_APP_RESOURCE_GROUP_NAME)
-    APP_NAME: $(UAT_WEB_APP_NAME)
-    STAGE: "u"
-    dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
-    dockerNamespace: $(UAT_CONTAINER_NAMESPACE)
-    NEXT_PUBLIC_API_URL: $(UAT_NEXT_PUBLIC_API_URL)
-    NEXTAUTH_URL: $(UAT_NEXTAUTH_URL)
-    NEXTAUTH_SECRET: $(UAT_NEXTAUTH_SECRET)
-    GOOGLE_CLIENT_ID: $(UAT_GOOGLE_CLIENT_ID)
-    GOOGLE_CLIENT_SECRET: $(UAT_GOOGLE_CLIENT_SECRET)
-    poolImage: 'pagopa-uat-linux'
-  ${{ if eq(parameters['ENV'], 'prod') }}:
-    AZURE_SUBSCRIPTION: $(PROD_AZURE_SUBSCRIPTION)
-    ARM_SERVICE_CONNECTION: $(PROD_ARM_SERVICE_CONNECTION)
-    RESOURCE_GROUP: $(PROD_WEB_APP_RESOURCE_GROUP_NAME)
-    APP_NAME: $(PROD_WEB_APP_NAME)
-    STAGE: "p"
-    dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
-    dockerNamespace: $(PROD_CONTAINER_NAMESPACE)
-    NEXT_PUBLIC_API_URL: $(PROD_NEXT_PUBLIC_API_URL)
-    NEXTAUTH_URL: $(PROD_NEXTAUTH_URL)
-    NEXTAUTH_SECRET: $(PROD_NEXTAUTH_SECRET)
-    GOOGLE_CLIENT_ID: $(PROD_GOOGLE_CLIENT_ID)
-    GOOGLE_CLIENT_SECRET: $(PROD_GOOGLE_CLIENT_SECRET)
-    poolImage: 'pagopa-prod-linux'
-  ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
-    SOURCE_BRANCH: "main"
-  ${{ if ne(variables['Build.SourceBranchName'], 'merge') }}:
-    SOURCE_BRANCH: ${{ variables['Build.SourceBranchName'] }}
-
-  IMAGE_REPOSITORY: 'pagopa-qa-centralhub-fe'
-  GITHUB_CONN: 'github-pat-qa-hub'
-  title: ""
-  sha: ""
-  tag: ""
+  - ${{ if eq(parameters['ENV'], 'dev') }}:
+      - group: qa-hub-dev
+      - name: AZURE_SUBSCRIPTION
+        value: $(DEV_AZURE_SUBSCRIPTION)
+      - name: ARM_SERVICE_CONNECTION
+        value: $(DEV_ARM_SERVICE_CONNECTION)
+      - name: RESOURCE_GROUP
+        value: $(DEV_WEB_APP_RESOURCE_GROUP_NAME)
+      - name: APP_NAME
+        value: $(DEV_WEB_APP_NAME)
+      - name: STAGE
+        value: "d"
+      - name: dockerRegistryServiceConnection
+        value: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
+      - name: dockerNamespace
+        value: $(DEV_CONTAINER_NAMESPACE)
+      - name: NEXT_PUBLIC_API_URL
+        value: $(DEV_NEXT_PUBLIC_API_URL)
+      - name: NEXTAUTH_URL
+        value: $(DEV_NEXTAUTH_URL)
+      - name: NEXTAUTH_SECRET
+        value: $(DEV_NEXTAUTH_SECRET)
+      - name: GOOGLE_CLIENT_ID
+        value: $(DEV_GOOGLE_CLIENT_ID)
+      - name: GOOGLE_CLIENT_SECRET
+        value: $(DEV_GOOGLE_CLIENT_SECRET)
+      - name: poolImage
+        value: 'pagopa-dev-linux'
+  - ${{ if eq(parameters['ENV'], 'uat') }}:
+      - group: qa-hub-uat
+      - name: AZURE_SUBSCRIPTION
+        value: $(UAT_AZURE_SUBSCRIPTION)
+      - name: ARM_SERVICE_CONNECTION
+        value: $(UAT_ARM_SERVICE_CONNECTION)
+      - name: RESOURCE_GROUP
+        value: $(UAT_WEB_APP_RESOURCE_GROUP_NAME)
+      - name: APP_NAME
+        value: $(UAT_WEB_APP_NAME)
+      - name: STAGE
+        value: "u"
+      - name: dockerRegistryServiceConnection
+        value: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
+      - name: dockerNamespace
+        value: $(UAT_CONTAINER_NAMESPACE)
+      - name: NEXT_PUBLIC_API_URL
+        value: $(UAT_NEXT_PUBLIC_API_URL)
+      - name: NEXTAUTH_URL
+        value: $(UAT_NEXTAUTH_URL)
+      - name: NEXTAUTH_SECRET
+        value: $(UAT_NEXTAUTH_SECRET)
+      - name: GOOGLE_CLIENT_ID
+        value: $(UAT_GOOGLE_CLIENT_ID)
+      - name: GOOGLE_CLIENT_SECRET
+        value: $(UAT_GOOGLE_CLIENT_SECRET)
+      - name: poolImage
+        value: 'pagopa-uat-linux'
+  - ${{ if eq(parameters['ENV'], 'prod') }}:
+      - group: qa-hub-prod
+      - name: AZURE_SUBSCRIPTION
+        value: $(PROD_AZURE_SUBSCRIPTION)
+      - name: ARM_SERVICE_CONNECTION
+        value: $(PROD_ARM_SERVICE_CONNECTION)
+      - name: RESOURCE_GROUP
+        value: $(PROD_WEB_APP_RESOURCE_GROUP_NAME)
+      - name: APP_NAME
+        value: $(PROD_WEB_APP_NAME)
+      - name: STAGE
+        value: "p"
+      - name: dockerRegistryServiceConnection
+        value: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
+      - name: dockerNamespace
+        value: $(PROD_CONTAINER_NAMESPACE)
+      - name: NEXT_PUBLIC_API_URL
+        value: $(PROD_NEXT_PUBLIC_API_URL)
+      - name: NEXTAUTH_URL
+        value: $(PROD_NEXTAUTH_URL)
+      - name: NEXTAUTH_SECRET
+        value: $(PROD_NEXTAUTH_SECRET)
+      - name: GOOGLE_CLIENT_ID
+        value: $(PROD_GOOGLE_CLIENT_ID)
+      - name: GOOGLE_CLIENT_SECRET
+        value: $(PROD_GOOGLE_CLIENT_SECRET)
+      - name: poolImage
+        value: 'pagopa-prod-linux'
+  - ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
+      - name: SOURCE_BRANCH
+        value: "main"
+  - ${{ if ne(variables['Build.SourceBranchName'], 'merge') }}:
+      - name: SOURCE_BRANCH
+        value: ${{ variables['Build.SourceBranchName'] }}
+  - name: IMAGE_REPOSITORY
+    value: 'pagopa-qa-centralhub-fe'
+  - name: GITHUB_CONN
+    value: 'github-pat-qa-hub'
+  - name: title
+    value: ""
+  - name: sha
+    value: ""
+  - name: tag
+    value: ""
 
 trigger: none
 pr: none
