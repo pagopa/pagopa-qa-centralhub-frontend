@@ -1,0 +1,57 @@
+# Code review (PR gate) for pagopa-qa-centralhub-frontend (Next.js).
+# Triggered on pull requests towards main by the Azure DevOps build definition.
+# ⚠️ assumes package.json exposes the scripts: lint, test, build.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-22.04'
+
+variables:
+  NODE_VERSION: '20.x'
+  # dummy value: only needed so `next build` does not fail on a public env var
+  NEXT_PUBLIC_API_URL: 'http://localhost'
+
+stages:
+  - stage: code_review
+    displayName: Code review
+    jobs:
+      - job: quality
+        displayName: Lint, type-check, test, build
+        steps:
+          - checkout: self
+            clean: true
+            submodules: true
+
+          - task: NodeTool@0
+            displayName: 'Use Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: Cache@2
+            displayName: Cache npm
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(System.DefaultWorkingDirectory)/node_modules
+
+          - script: npm ci
+            displayName: 'Install dependencies (npm ci)'
+
+          - script: npm run lint
+            displayName: 'Lint (eslint)'
+
+          - script: npx tsc --noEmit
+            displayName: 'Type-check (tsc)'
+
+          - script: npm test -- --ci --passWithNoTests
+            displayName: 'Unit tests'
+
+          - script: npm run build
+            displayName: 'Build (next build)'
