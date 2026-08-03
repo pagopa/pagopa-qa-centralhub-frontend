@@ -4,22 +4,32 @@ module.exports = async ({github, context, core}) => {
     let changes = additions + deletions;
     console.log('additions: ' + additions + ' + deletions: ' + deletions + ' = total changes: ' + changes);
 
-    const {IGNORED_FILES, BRANCH_NAME} = process.env
-    const ignored_files = IGNORED_FILES.trim().split(',').filter(word => word.length > 0);
+    const {IGNORED_FILES = '', BRANCH_NAME = ''} = process.env
+    const ignored_files = IGNORED_FILES.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
     if (ignored_files.length > 0) {
+        if (!/^[A-Za-z0-9._/-]+$/.test(BRANCH_NAME)) {
+            throw new Error('Invalid BRANCH_NAME format');
+        }
+
         var ignored = 0
-        const execSync = require('child_process').execSync;
-        for (const file of IGNORED_FILES.trim().split(',')) {
+        const execFileSync = require('child_process').execFileSync;
+        const diffOutput = execFileSync(
+            'git',
+            ['--no-pager', 'diff', '--numstat', 'origin/main..origin/' + BRANCH_NAME],
+            {encoding: 'utf-8'}
+        );
+        const diffLines = diffOutput.split('\n').filter(line => line.trim().length > 0);
 
-            const ignored_additions_str = execSync('git --no-pager  diff --numstat origin/main..origin/' + BRANCH_NAME + ' | grep ' + file + ' | cut -f 1', {encoding: 'utf-8'})
-            const ignored_deletions_str = execSync('git --no-pager  diff --numstat origin/main..origin/' + BRANCH_NAME + ' | grep ' + file + ' | cut -f 2', {encoding: 'utf-8'})
-
-            const ignored_additions = ignored_additions_str.split('\n').map(elem => parseInt(elem || 0)).reduce(
-                (accumulator, currentValue) => accumulator + currentValue,
-                0);
-            const ignored_deletions = ignored_deletions_str.split('\n').map(elem => parseInt(elem || 0)).reduce(
-                (accumulator, currentValue) => accumulator + currentValue,
-                0);
+        for (const file of ignored_files) {
+            const matchingLines = diffLines.filter(line => line.includes(file));
+            const ignored_additions = matchingLines
+                .map(line => parseInt((line.split('\t')[0] || '0'), 10))
+                .filter(value => !Number.isNaN(value))
+                .reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+            const ignored_deletions = matchingLines
+                .map(line => parseInt((line.split('\t')[1] || '0'), 10))
+                .filter(value => !Number.isNaN(value))
+                .reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 
             ignored += ignored_additions + ignored_deletions;
         }
