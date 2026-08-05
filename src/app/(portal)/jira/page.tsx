@@ -22,6 +22,8 @@ const STATUS_COLOR: Record<string, string> = {
   "BLOCKED": "var(--danger)",
   "WAITING FOR": "var(--danger)",
   "Done": "var(--success)",
+  "Resolved": "var(--success)",
+  "RESOLVED": "var(--success)",
 };
 
 const PHASE_COLOR: Record<string, string> = {
@@ -195,7 +197,7 @@ const SECTIONS = [
     key: "data",
     label: "Supporto Data",
     boardUrl: "https://pagopa.atlassian.net/jira/servicedesk/projects/PIDM/queues/custom/1416/board/6360",
-    baseJql: 'project = PIDM AND "request type" = "Data Quality Support (PIDM)"',
+    baseJql: 'project = PIDM AND "request type" IN ("Data Quality Support (PIDM)", "SR6 - Data Quality Support (PIDM)")',
   },
 ] as const;
 
@@ -278,12 +280,9 @@ function SectionDashboard({
   const jqlUrl = (extra: string) =>
     `${JIRA_SEARCH}/?jql=${encodeURIComponent(`${baseJql} AND ${extra}`)}`;
 
-  const inProgress = overview.by_status.find((s) => s.name === "In Progress")?.count ?? 0;
-  const done       = overview.by_status.find((s) => s.name === "Done")?.count ?? 0;
-  const blocked    = overview.by_status.find((s) => s.name === "BLOCKED")?.count ?? 0;
-  const waitingForSupport = overview.by_status
-    .filter((s) => s.name.toLowerCase() === "waiting for support")
-    .reduce((sum, s) => sum + s.count, 0);
+  const topStatuses = [...overview.by_status]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
   const maxStatus  = Math.max(...overview.by_status.map((s) => s.count), 1);
   const maxComp    = Math.max(...overview.by_component.map((c) => c.count), 1);
   const maxAssignee = Math.max(...overview.by_assignee.map((a) => a.count), 1);
@@ -296,18 +295,15 @@ function SectionDashboard({
         <div className="flex gap-3 flex-wrap flex-1">
           <KpiCard label="Totale" value={overview.total}
             href={`${JIRA_SEARCH}/?jql=${encodeURIComponent(baseJql)}`} />
-          <KpiCard label="In Progress" value={inProgress} color="var(--accent)"
-            href={jqlUrl('status = "In Progress"')} />
-          <KpiCard label="Done" value={done} color="var(--success)"
-            href={jqlUrl('status = "Done"')} />
-          <KpiCard label="Blocked" value={blocked}
-            color={blocked > 0 ? "var(--danger)" : undefined}
-            href={jqlUrl('status = "BLOCKED"')} />
-          {sectionKey !== "testing" && (
-            <KpiCard label="Waiting for support" value={waitingForSupport}
-              color={waitingForSupport > 0 ? "var(--danger)" : undefined}
-              href={jqlUrl('status = "Waiting for support"')} />
-          )}
+          {topStatuses.map((s) => (
+            <KpiCard
+              key={s.name}
+              label={s.name}
+              value={s.count}
+              color={STATUS_COLOR[s.name]}
+              href={jqlUrl(`status = "${s.name}"`)}
+            />
+          ))}
         </div>
         <a href={boardUrl} target="_blank" rel="noopener noreferrer"
           className="text-[12px] text-accent hover:underline shrink-0">
