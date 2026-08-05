@@ -191,7 +191,7 @@ const SECTIONS = [
     key: "sanp",
     label: "Supporto SANP / SACI",
     boardUrl: "https://pagopa.atlassian.net/jira/servicedesk/projects/PIDM/queues/custom/1919",
-    baseJql: 'project = PIDM AND "request type" = "SANP/SACI Support (PIDM)"',
+    baseJql: 'project = PIDM AND "request type" in ("SR5 - SANP / SACI Support (PIDM)" , "SANP/SACI Support (PIDM)")',
   },
   {
     key: "data",
