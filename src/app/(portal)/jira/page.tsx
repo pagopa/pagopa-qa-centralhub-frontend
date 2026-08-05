@@ -22,6 +22,8 @@ const STATUS_COLOR: Record<string, string> = {
   "BLOCKED": "var(--danger)",
   "WAITING FOR": "var(--danger)",
   "Done": "var(--success)",
+  "Resolved": "var(--success)",
+  "RESOLVED": "var(--success)",
 };
 
 const PHASE_COLOR: Record<string, string> = {
