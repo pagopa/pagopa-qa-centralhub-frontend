@@ -225,12 +225,23 @@ stages:
               failOnStderr: false
 
           - task: Docker@2
-            displayName: Build and push image to container registry
+            displayName: Build image
             inputs:
               containerRegistry: '$(dockerRegistryServiceConnection)'
               repository: '$(IMAGE_REPOSITORY)'
-              command: 'buildAndPush'
+              command: 'build'
               arguments: '--build-arg NEXT_PUBLIC_API_URL=$(NEXT_PUBLIC_API_URL) --platform linux/amd64'
+              tags: |
+                $(Build.BuildId)
+                latest
+                $(appversion.next)
+
+          - task: Docker@2
+            displayName: Push image
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: '$(IMAGE_REPOSITORY)'
+              command: 'push'
               tags: |
                 $(Build.BuildId)
                 latest
