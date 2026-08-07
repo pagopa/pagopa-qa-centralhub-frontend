@@ -141,7 +141,7 @@ const NAV_TILES = [
     bg: "var(--subtle)",
   },
   {
-    href: `${API_BASE_URL}/docs`,
+    href: `${API_BASE_URL}/api/v1/docs`,
     icon: BookOpen,
     label: "API Docs",
     description: "Documentazione interattiva (Swagger UI) delle API del backend QA Hub.",

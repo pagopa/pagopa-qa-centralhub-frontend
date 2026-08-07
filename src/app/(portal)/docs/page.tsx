@@ -35,6 +35,29 @@ const ICON_OPTIONS: { value: DocIcon; label: string }[] = [
   { value: "video", label: "Video" },
 ];
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+function normalizeLegacyOpenApiUrl(rawUrl: string) {
+  try {
+    const isAbsolute = /^https?:\/\//i.test(rawUrl);
+    const parsed = new URL(rawUrl, API_BASE_URL);
+    const apiHost = new URL(API_BASE_URL).host;
+    const isBackendUrl = !isAbsolute || parsed.host === apiHost;
+
+    if (isBackendUrl && (parsed.pathname === "/docs" || parsed.pathname.startsWith("/docs/"))) {
+      parsed.pathname = `/api/v1${parsed.pathname}`;
+      if (!isAbsolute) {
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
+      return parsed.toString();
+    }
+
+    return rawUrl;
+  } catch {
+    return rawUrl;
+  }
+}
+
 function faviconUrl(url: string) {
   try {
     const { hostname } = new URL(url);
@@ -175,11 +198,12 @@ function TileCard({
 }) {
   const Icon = ICONS[item.icon] ?? FileText;
   const isEmbedded = item.type === "embedded";
-  const favicon = faviconUrl(item.url);
+  const targetUrl = normalizeLegacyOpenApiUrl(item.url);
+  const favicon = faviconUrl(targetUrl);
 
   const handleClick = () => {
     if (isEmbedded) onOpen(item);
-    else window.open(item.url, "_blank", "noopener");
+    else window.open(targetUrl, "_blank", "noopener");
   };
 
   return (
@@ -290,7 +314,8 @@ function TileCard({
 // ── Embed modal ───────────────────────────────────────────────────────────────
 
 function EmbedModal({ item, onClose }: { item: DocItem; onClose: () => void }) {
-  const proxyUrl = `/api/v1/docs/proxy?url=${encodeURIComponent(item.url)}`;
+  const targetUrl = normalizeLegacyOpenApiUrl(item.url);
+  const proxyUrl = `/api/v1/docs/proxy?url=${encodeURIComponent(targetUrl)}`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--bg)" }}>
@@ -306,7 +331,7 @@ function EmbedModal({ item, onClose }: { item: DocItem; onClose: () => void }) {
         </button>
         <span className="text-[13px] font-semibold text-text flex-1">{item.title}</span>
         <a
-          href={item.url}
+          href={targetUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-[12px] text-text-muted hover:text-text transition-colors no-underline"
