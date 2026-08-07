@@ -73,7 +73,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd" },
       { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
       { href: "/settings/tm-resources", label: "Risorse T&M", icon: Receipt, requiresSuperadmin: true },
-      { href: `${API_BASE_URL}/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs" },
+      { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs" },
     ],
   },
 ];
