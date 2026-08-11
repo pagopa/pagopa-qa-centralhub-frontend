@@ -253,10 +253,10 @@ stages:
         variables:
           appversion: $[ dependencies.buildAndPush.outputs['appversion.next'] ]
         steps:
-          # Dev: deploy directly to production slot
+          # Dev and Uat: deploy directly to production slot
           - task: AzureRMWebAppDeployment@4
             displayName: Azure App Service Deploy [DEV]
-            condition: eq('${{ parameters.ENV }}', 'dev')
+            condition: in('${{ parameters.ENV }}', 'dev', 'uat')
             inputs:
               appType: webAppContainer
               ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
@@ -267,7 +267,7 @@ stages:
 
           - task: AzureAppServiceSettings@1
             displayName: Set App Settings [DEV]
-            condition: eq('${{ parameters.ENV }}', 'dev')
+            condition: in('${{ parameters.ENV }}', 'dev', 'uat')
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
               appName: '$(APP_NAME)'
@@ -280,10 +280,10 @@ stages:
                   { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
                 ]
 
-          # UAT/Prod: deploy to staging slot, swap happens after approval
+          # Prod: deploy to staging slot, swap happens after approval
           - task: AzureRMWebAppDeployment@4
             displayName: Azure App Service Deploy staging [${{ parameters.ENV }}]
-            condition: in('${{ parameters.ENV }}', 'uat', 'prod')
+            condition: eq('${{ parameters.ENV }}', 'prod')
             inputs:
               appType: webAppContainer
               ConnectedServiceName: '$(AZURE_SUBSCRIPTION)'
@@ -296,8 +296,8 @@ stages:
               resourceGroupName: $(RESOURCE_GROUP)
 
           - task: AzureAppServiceSettings@1
-            displayName: Set App Settings on staging slot [UAT/PROD]
-            condition: in('${{ parameters.ENV }}', 'uat', 'prod')
+            displayName: Set App Settings on staging slot [PROD]
+            condition: eq('${{ parameters.ENV }}', 'prod')
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
               appName: '$(APP_NAME)'
@@ -311,9 +311,9 @@ stages:
                   { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
                 ]
 
-  # ── Manual approval + slot swap for UAT and Prod ──────────────────────────
+  # ── Manual approval + slot swap for Prod ──────────────────────────
   - stage: deployApproval_UAT_PROD
-    condition: and(not(failed('build_and_deploy')), in('${{ parameters.ENV }}', 'uat', 'prod'))
+    condition: and(not(failed('build_and_deploy')), eq('${{ parameters.ENV }}', 'prod'))
     dependsOn: build_and_deploy
     jobs:
       - job: waitForApproval
