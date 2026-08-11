@@ -255,7 +255,7 @@ stages:
         steps:
           # Dev and Uat: deploy directly to production slot
           - task: AzureRMWebAppDeployment@4
-            displayName: Azure App Service Deploy [DEV]
+            displayName: Azure App Service Deploy [DEV-UAT]
             condition: in('${{ parameters.ENV }}', 'dev', 'uat')
             inputs:
               appType: webAppContainer
@@ -266,7 +266,7 @@ stages:
               DockerImageTag: '$(Build.BuildId)'
 
           - task: AzureAppServiceSettings@1
-            displayName: Set App Settings [DEV]
+            displayName: Set App Settings [DEV-UAT]
             condition: in('${{ parameters.ENV }}', 'dev', 'uat')
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
