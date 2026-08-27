@@ -265,20 +265,20 @@ stages:
               DockerRepository: '$(IMAGE_REPOSITORY)'
               DockerImageTag: '$(Build.BuildId)'
 
-          - task: AzureAppServiceSettings@1
-            displayName: Set App Settings [DEV-UAT]
-            condition: in('${{ parameters.ENV }}', 'dev', 'uat')
-            inputs:
-              azureSubscription: '$(AZURE_SUBSCRIPTION)'
-              appName: '$(APP_NAME)'
-              resourceGroupName: '$(RESOURCE_GROUP)'
-              appSettings: |
-                [
-                  { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
-                  { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
-                ]
+          # - task: AzureAppServiceSettings@1
+          #   displayName: Set App Settings [DEV-UAT]
+          #   condition: in('${{ parameters.ENV }}', 'dev', 'uat')
+          #   inputs:
+          #     azureSubscription: '$(AZURE_SUBSCRIPTION)'
+          #     appName: '$(APP_NAME)'
+          #     resourceGroupName: '$(RESOURCE_GROUP)'
+          #     appSettings: |
+          #       [
+          #         { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
+          #         { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
+          #         { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
+          #         { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
+          #       ]
 
           # Prod: deploy to staging slot, swap happens after approval
           - task: AzureRMWebAppDeployment@4
@@ -295,21 +295,21 @@ stages:
               slotName: staging
               resourceGroupName: $(RESOURCE_GROUP)
 
-          - task: AzureAppServiceSettings@1
-            displayName: Set App Settings on staging slot [PROD]
-            condition: eq('${{ parameters.ENV }}', 'prod')
-            inputs:
-              azureSubscription: '$(AZURE_SUBSCRIPTION)'
-              appName: '$(APP_NAME)'
-              resourceGroupName: '$(RESOURCE_GROUP)'
-              slotName: staging
-              appSettings: |
-                [
-                  { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
-                  { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
-                  { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
-                ]
+          # - task: AzureAppServiceSettings@1
+          #   displayName: Set App Settings on staging slot [PROD]
+          #   condition: eq('${{ parameters.ENV }}', 'prod')
+          #   inputs:
+          #     azureSubscription: '$(AZURE_SUBSCRIPTION)'
+          #     appName: '$(APP_NAME)'
+          #     resourceGroupName: '$(RESOURCE_GROUP)'
+          #     slotName: staging
+          #     appSettings: |
+          #       [
+          #         { "name": "NEXTAUTH_URL",        "value": "$(NEXTAUTH_URL)",        "slotSetting": false },
+          #         { "name": "NEXTAUTH_SECRET",     "value": "$(NEXTAUTH_SECRET)",     "slotSetting": false },
+          #         { "name": "GOOGLE_CLIENT_ID",    "value": "$(GOOGLE_CLIENT_ID)",    "slotSetting": false },
+          #         { "name": "GOOGLE_CLIENT_SECRET","value": "$(GOOGLE_CLIENT_SECRET)","slotSetting": false }
+          #       ]
 
   # ── Manual approval + slot swap for Prod ──────────────────────────
   - stage: deployApproval_UAT_PROD
