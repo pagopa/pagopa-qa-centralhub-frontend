@@ -194,6 +194,28 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
+input,
+textarea,
+select {
+  color: var(--text);
+  background-color: var(--surface);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] select option {
+  color: var(--text);
+  background-color: var(--surface);
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
