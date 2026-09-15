@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import {
@@ -49,7 +51,7 @@ export default function BddSettingsPage() {
   }, [settings]);
 
   const handleSave = async () => {
-    const payload: Record<string, any> = {
+    const payload: Record<string, string | number | null> = {
       ai_provider: form.ai_provider,
       claude_model: form.claude_model,
       ollama_base_url: form.ollama_base_url,

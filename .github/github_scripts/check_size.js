@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 module.exports = async ({github, context, core}) => {
     const additions = context.payload.pull_request.additions || 0
     const deletions = context.payload.pull_request.deletions || 0

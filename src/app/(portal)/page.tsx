@@ -170,7 +170,7 @@ export default function OverviewPage() {
               Centro di Competenza QA
             </h1>
             <p className="text-[13px] text-text-dim italic" style={{ color: "var(--accent)" }}>
-              "Build Quality Together!"
+              &quot;Build Quality Together!&quot;
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">
