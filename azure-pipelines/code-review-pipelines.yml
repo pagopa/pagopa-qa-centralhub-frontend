@@ -34,24 +34,32 @@ stages:
               versionSpec: $(NODE_VERSION)
 
           - task: Cache@2
-            displayName: Cache npm
+            displayName: Cache pnpm
             inputs:
-              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              key: 'pnpm | "$(Agent.OS)" | pnpm-lock.yaml'
               restoreKeys: |
-                npm | "$(Agent.OS)"
-              path: $(System.DefaultWorkingDirectory)/node_modules
+                pnpm | "$(Agent.OS)"
+              path: $(Pipeline.Workspace)/.pnpm-store
 
-          - script: npm ci
-            displayName: 'Install dependencies (npm ci)'
+          - script: |
+              npm install --global pnpm@10.33.2
+              pnpm config set store-dir $(Pipeline.Workspace)/.pnpm-store
+              pnpm install --frozen-lockfile
+            displayName: 'Install dependencies (pnpm)'
 
-          - script: npm run lint
+          - script: pnpm lint
             displayName: 'Lint (eslint)'
 
-          - script: npx tsc --noEmit
+          - script: pnpm exec tsc --noEmit
             displayName: 'Type-check (tsc)'
 
-          - script: npm test -- --ci --passWithNoTests
+          - script: |
+              if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then
+                pnpm test -- --ci --passWithNoTests
+              else
+                echo 'No test script configured; skipping unit tests.'
+              fi
             displayName: 'Unit tests'
 
-          - script: npm run build
+          - script: pnpm build
             displayName: 'Build (next build)'
