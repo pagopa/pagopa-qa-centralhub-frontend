@@ -113,6 +113,20 @@ const partialDetail: SanpHealthReportDetail = {
   items: [row],
 };
 
+const failedDetail: SanpHealthReportDetail = {
+  report: makeRun({
+    id: "failed-run",
+    github_run_id: 66903,
+    run_number: 103,
+    completed_at: "2026-09-16T12:30:00Z",
+    html_url: "https://github.com/pagopa/pagopa-api/actions/runs/66903",
+    import_status: "failed",
+    error_message: "Artifact SANP non disponibile",
+  }),
+  sanp_version: null,
+  items: [],
+};
+
 function queryResult<T>(data: T, overrides: Record<string, unknown> = {}) {
   return { data, isLoading: false, isError: false, error: null, ...overrides };
 }
@@ -200,6 +214,72 @@ describe("SANP Health page", () => {
     expect(screen.getByText(/GitHub non raggiungibile/)).toBeInTheDocument();
     expect(screen.getByText(/Ultimo aggiornamento riuscito/)).toBeInTheDocument();
     expect(screen.getByTestId("sanp-health-matrix")).toBeInTheDocument();
+  });
+
+  it("shows the sync-status error when no report is available", () => {
+    hooks.latest.mockReturnValue(queryResult({ report: null, is_stale: false, stale_reason: null }));
+    hooks.syncStatus.mockReturnValue(queryResult({
+      last_attempt_at: "2026-09-16T12:00:00Z",
+      last_success_at: null,
+      last_error: "GitHub non raggiungibile",
+      imported_run_count: 0,
+    }));
+
+    render(<SanpHealthPage />);
+
+    expect(screen.getByText("Dati non aggiornati")).toBeInTheDocument();
+    expect(screen.getByText("GitHub non raggiungibile")).toBeInTheDocument();
+    expect(screen.getByText("Nessun report SANP Health disponibile")).toBeInTheDocument();
+  });
+
+  it("shows a failed synchronization error", () => {
+    hooks.sync.mockReturnValue({
+      mutate,
+      isPending: false,
+      isError: true,
+      error: new Error("Sincronizzazione GitHub fallita"),
+    });
+
+    render(<SanpHealthPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Sincronizzazione GitHub fallita");
+  });
+
+  it("shows a dedicated unavailable banner for a failed report", async () => {
+    const user = userEvent.setup();
+    hooks.reports.mockReturnValue(queryResult({
+      items: [failedDetail.report, partialDetail.report, completeDetail.report],
+    }));
+    hooks.report.mockImplementation((runId: string | null) => queryResult(
+      runId === failedDetail.report.id ? failedDetail : partialDetail,
+    ));
+    render(<SanpHealthPage />);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Report" }), "failed-run");
+
+    expect(screen.getByText("Report non disponibile")).toBeInTheDocument();
+    expect(screen.getByText("Artifact SANP non disponibile")).toBeInTheDocument();
+    expect(screen.queryByText("Report incompleto")).not.toBeInTheDocument();
+  });
+
+  it("resets a removed historical selection to the latest available report", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<SanpHealthPage />);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Report" }), "partial-run");
+    expect(screen.getByText("SANP 3.14.0")).toBeInTheDocument();
+
+    hooks.reports.mockReturnValue(queryResult({ items: [completeDetail.report] }));
+    hooks.report.mockImplementation((runId: string | null) => queryResult(
+      undefined,
+      runId === partialDetail.report.id
+        ? { isError: true, error: new Error("Report non trovato") }
+        : {},
+    ));
+    rerender(<SanpHealthPage />);
+
+    expect(screen.getByRole("combobox", { name: "Report" })).toHaveValue("complete-run");
+    expect(screen.queryByText("Report non trovato")).not.toBeInTheDocument();
+    expect(screen.getByText("SANP 3.13.0")).toBeInTheDocument();
   });
 
   it("renders loading, no-data and fatal-error states", () => {

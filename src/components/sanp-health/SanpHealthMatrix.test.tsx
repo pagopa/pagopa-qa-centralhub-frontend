@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SanpHealthMatrix } from "@/components/sanp-health/SanpHealthMatrix";
@@ -15,7 +15,9 @@ vi.mock("@/components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => children,
   Tooltip: ({ children }: { children: ReactNode }) => children,
   TooltipTrigger: ({ render }: { render: ReactNode }) => render,
-  TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
+  TooltipContent: ({ children, ...props }: { children: ReactNode; "aria-hidden"?: boolean | "true" }) => (
+    <div role="tooltip" {...props}>{children}</div>
+  ),
 }));
 
 vi.mock("@/components/sanp-health/SanpHealthFilters", () => ({
@@ -193,19 +195,19 @@ describe("SanpHealthMatrix", () => {
     expect(within(table).getByText("OK")).toHaveAttribute("data-status", "OK");
   });
 
-  it("uses production API description priority and exposes the full description in a tooltip", async () => {
+  it("uses production priority and exposes the full description once on a keyboard-focusable control", () => {
     render(<SanpHealthMatrix rows={rows} />);
 
     expect(screen.getByText("Payments PROD")).toBeInTheDocument();
     expect(screen.queryByText("Payments UAT")).not.toBeInTheDocument();
 
-    const description = screen.getAllByText(
-      "The complete production description used by the API Desc tooltip",
-    ).find((element) => element.tagName === "SPAN");
-    expect(description).not.toHaveAttribute("tabindex");
-    expect(screen.getAllByRole("tooltip")[0]).toHaveTextContent(
-      "The complete production description used by the API Desc tooltip",
-    );
+    const description = screen.getByRole("button", {
+      name: "Descrizione completa: The complete production description used by the API Desc tooltip",
+    });
+    act(() => description.focus());
+    expect(description).toHaveFocus();
+    expect(description).not.toHaveAttribute("aria-describedby");
+    expect(screen.getAllByRole("tooltip", { hidden: true })[0]).toHaveAttribute("aria-hidden", "true");
   });
 
   it("expands a row into environment metadata and severity-grouped change fields", async () => {
