@@ -69,16 +69,20 @@ function DescriptionCell({ row }: { row: SanpHealthMatrixRow }) {
       <Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
         <TooltipTrigger
           render={(
-            <span
-              className="mt-0.5 line-clamp-2 cursor-help text-xs text-text-dim"
+            <button
+              type="button"
+              aria-label={`Descrizione completa: ${description.description}`}
+              className="mt-0.5 line-clamp-2 cursor-help rounded-sm text-left text-xs text-text-dim outline-none focus-visible:ring-2 focus-visible:ring-accent"
               onPointerEnter={() => setTooltipOpen(true)}
               onPointerLeave={() => setTooltipOpen(false)}
+              onFocus={() => setTooltipOpen(true)}
+              onBlur={() => setTooltipOpen(false)}
             >
               {description.description}
-            </span>
+            </button>
           )}
         />
-        <TooltipContent>{description.description}</TooltipContent>
+        <TooltipContent aria-hidden="true">{description.description}</TooltipContent>
       </Tooltip>
     </td>
   );

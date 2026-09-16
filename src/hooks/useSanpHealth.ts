@@ -50,5 +50,6 @@ export function useSyncSanpHealth() {
   return useMutation({
     mutationFn: () => apiClient<SanpHealthSyncResult>("/api/v1/sanp-health/sync", { method: "POST" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: sanpHealthQueryKey }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: [...sanpHealthQueryKey, "sync-status"] }),
   });
 }
