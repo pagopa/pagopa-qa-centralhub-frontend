@@ -9,6 +9,7 @@ import {
   FileText,
   Home,
   LayoutGrid,
+  Radar,
   Receipt,
   Settings,
   ShieldCheck,
@@ -42,7 +43,10 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Test Results",
-    items: [{ href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" }],
+    items: [
+      { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" },
+      { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
+    ],
   },
   {
     label: "Project Tracking",
