@@ -135,6 +135,7 @@ stages:
           - script: |
               git fetch origin $(SOURCE_BRANCH)
               git checkout $(SOURCE_BRANCH)
+              git reset --hard origin/$(SOURCE_BRANCH)
             displayName: Checkout source branch
 
           - script: |
@@ -210,6 +211,7 @@ stages:
           - script: |
               git fetch origin $(SOURCE_BRANCH)
               git checkout $(SOURCE_BRANCH)
+              git reset --hard origin/$(SOURCE_BRANCH)
             displayName: Checkout source branch
 
           - task: Bash@3
