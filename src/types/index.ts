@@ -453,6 +453,95 @@ export interface DqControlInstanceUpdate {
   notes?: string | null;
 }
 
+// SANP Health
+export type SanpEnvironment = "SANP" | "COLLAUDO" | "PRODUZIONE";
+export type SanpImportStatus = "complete" | "partial" | "failed";
+export type SanpResultStatus = "KO" | "WARNING" | "INFO" | "OK" | "NOT_CONFIGURED";
+export type SanpSeverity = "error" | "warning" | "info";
+
+export interface SanpHealthChange {
+  id: string;
+  level: number;
+  severity: SanpSeverity;
+  rule_id: string;
+  message: string;
+  path: string | null;
+  operation: string | null;
+  section: string | null;
+  comment: string | null;
+  change_order: number;
+}
+
+export interface SanpHealthRun {
+  id: string;
+  github_run_id: number;
+  run_number: number;
+  head_sha: string;
+  workflow_branch: string;
+  conclusion: string;
+  html_url: string;
+  started_at: string;
+  completed_at: string;
+  synced_at: string;
+  import_status: SanpImportStatus;
+  error_message: string | null;
+  error_count: number;
+  warning_count: number;
+  info_count: number;
+}
+
+export interface SanpHealthMatrixCell {
+  id: string | null;
+  environment: SanpEnvironment;
+  status: SanpResultStatus;
+  source_branch: string | null;
+  target_apim: string | null;
+  display_name: string | null;
+  description: string | null;
+  error_count: number;
+  warning_count: number;
+  info_count: number;
+  changes: SanpHealthChange[];
+}
+
+export interface SanpHealthMatrixRow {
+  spec_name: string;
+  display_name: string;
+  description: string;
+  sanp: SanpHealthMatrixCell;
+  collaudo: SanpHealthMatrixCell;
+  produzione: SanpHealthMatrixCell;
+}
+
+export interface SanpHealthReportDetail {
+  report: SanpHealthRun;
+  sanp_version: string | null;
+  items: SanpHealthMatrixRow[];
+}
+
+export interface SanpHealthReportsResponse {
+  items: SanpHealthRun[];
+}
+
+export interface SanpHealthLatestResponse {
+  report: SanpHealthReportDetail | null;
+  is_stale: boolean;
+  stale_reason: string | null;
+}
+
+export interface SanpHealthSyncStatus {
+  last_attempt_at: string;
+  last_success_at: string | null;
+  last_error: string | null;
+  imported_run_count: number;
+}
+
+export interface SanpHealthSyncResult {
+  status: SanpImportStatus;
+  imported_run_count: number;
+  errors: string[];
+}
+
 // ── T&M Resource Management ──────────────────────────────────────────────────
 
 export interface ExternalResource {

@@ -40,6 +40,7 @@ src/
 │   │   │       ├── page.tsx         Scenario list for a project
 │   │   │       └── new/page.tsx     Generate wizard (3-step SSE)
 │   │   ├── e2e/            ← Suite list, run table (bulk delete), Allure modal — RouteGuard: view:e2e
+│   │   ├── sanp-health/    ← Drift OpenAPI SANP/Collaudo/Produzione — RouteGuard: view:sanp_health
 │   │   ├── jira/           ← 3 sezioni (Testing / SANP / Data), Monitoraggio + Insights — RouteGuard: view:jira
 │   │   ├── data-hub/       ← RouteGuard: view:data_hub
 │   │   │   ├── psp-fees/            Catalogo PSP/servizi pagoPA AFM (sync button: Gate sync:trigger)
@@ -81,6 +82,12 @@ src/
 ## Design system
 
 Tokens live in `src/app/globals.css`. See `../design_handoff_qa_webportal/README.md` for full reference.
+
+## SANP Health
+
+La route `/sanp-health` apre l'ultimo report completo disponibile e permette di selezionare i run conservati negli ultimi sette giorni. La pagina mostra versione SANP, timestamp e link alla run GitHub, KPI aggregati e la matrice dei drift per SANP, Collaudo e Produzione; ricerca, filtri ed espansione delle righe consentono il drill-down fino alla singola differenza OpenAPI.
+
+I run parziali restano consultabili nello storico senza sostituire il report completo predefinito. Gli avvisi segnalano dati non aggiornati o report incompleti. Il pulsante **Sincronizza ora** è disponibile agli utenti con permesso `sync:trigger`; l'accesso alla route richiede `view:sanp_health`.
 
 ## Auth & RBAC
 
