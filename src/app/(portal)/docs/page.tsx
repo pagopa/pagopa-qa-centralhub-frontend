@@ -531,7 +531,7 @@ function DeleteModal({ item, onClose }: { item: DocItem; onClose: () => void }) 
       >
         <p className="font-semibold text-[14px] text-text">Elimina contenuto</p>
         <p className="text-[13px] text-text-dim">
-          Sei sicuro di voler eliminare <strong className="text-text">"{item.title}"</strong>? L'operazione non è reversibile.
+          Sei sicuro di voler eliminare <strong className="text-text">&quot;{item.title}&quot;</strong>? L&apos;operazione non è reversibile.
         </p>
         <div className="flex justify-end gap-2">
           <button

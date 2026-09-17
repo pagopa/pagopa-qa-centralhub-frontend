@@ -82,6 +82,7 @@ export default function GpdPositionsPage() {
   const { data, isLoading } = useGpdPositionSnapshots();
   const sync = useSyncGpdPositions();
   const [period, setPeriod] = useState<PeriodKey>("30");
+  const [now] = useState(() => Date.now());
 
   const items = useMemo(() => data?.items ?? [], [data]);
   const syncStatus = data?.sync_status ?? null;
@@ -90,9 +91,9 @@ export default function GpdPositionsPage() {
   const filteredItems = useMemo(() => {
     const periodDef = PERIODS.find((p) => p.key === period)!;
     if (periodDef.days === null) return items;
-    const cutoff = Date.now() - periodDef.days * 24 * 60 * 60 * 1000;
+    const cutoff = now - periodDef.days * 24 * 60 * 60 * 1000;
     return items.filter((s) => new Date(s.report_date).getTime() >= cutoff);
-  }, [items, period]);
+  }, [items, now, period]);
 
   const [dateAIndex, setDateAIndex] = useState<number | null>(null);
   const [dateBIndex, setDateBIndex] = useState<number | null>(null);

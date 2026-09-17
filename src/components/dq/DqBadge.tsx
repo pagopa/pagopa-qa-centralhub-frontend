@@ -15,6 +15,7 @@ const STATUS_STYLE: Record<DqControlStatus, { color: string; bg: string; label: 
   in_sviluppo: { color: "var(--info)", bg: "var(--info-soft)", label: "In sviluppo" },
   attivo: { color: "var(--success)", bg: "var(--success-soft)", label: "Attivo" },
   non_attivo: { color: "var(--text-muted)", bg: "var(--neutral-soft)", label: "Non attivo" },
+  eliminato: { color: "var(--text-muted)", bg: "var(--neutral-soft)", label: "Eliminato" },
 };
 
 export function DqBadge(props: DqBadgeProps) {

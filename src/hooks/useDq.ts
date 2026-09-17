@@ -8,6 +8,7 @@ import type {
   DqControlInstance,
   DqControlInstanceCreate,
   DqControlInstanceUpdate,
+  DqControlStatus,
   DqDimension,
   DqDimensionCreate,
   DqDimensionUpdate,
@@ -126,15 +127,35 @@ export function useDeleteDqCatalogControl() {
 
 // ── Control instances ────────────────────────────────────────────────────────
 
-export function useDqInstances(domainId?: string, category?: DqCategory) {
+export function useDqInstances(
+  domainId?: string,
+  category?: DqCategory,
+  status?: DqControlStatus,
+  tableRef?: string,
+) {
   return useQuery<DqControlInstance[]>({
-    queryKey: ["dq", "instances", domainId ?? "all", category ?? "all"],
+    queryKey: ["dq", "instances", domainId ?? "all", category ?? "all", status ?? "all", tableRef ?? "all"],
     queryFn: () => {
       const params = new URLSearchParams();
       if (domainId) params.set("domain_id", domainId);
       if (category) params.set("category", category);
+      if (status) params.set("status", status);
+      if (tableRef) params.set("table_ref", tableRef);
       const qs = params.toString();
       return apiClient<DqControlInstance[]>(`/api/v1/dq/instances${qs ? `?${qs}` : ""}`);
+    },
+    enabled: !!domainId,
+  });
+}
+
+export function useDqInstanceTables(domainId?: string, category?: DqCategory) {
+  return useQuery<string[]>({
+    queryKey: ["dq", "instance-tables", domainId ?? "all", category ?? "all"],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (domainId) params.set("domain_id", domainId);
+      if (category) params.set("category", category);
+      return apiClient<string[]>(`/api/v1/dq/instances/tables?${params.toString()}`);
     },
     enabled: !!domainId,
   });
@@ -162,6 +183,9 @@ export function useDeleteDqInstance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiClient<void>(`/api/v1/dq/instances/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "instances"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dq", "instances"] });
+      qc.invalidateQueries({ queryKey: ["dq", "instance-tables"] });
+    },
   });
 }
