@@ -354,7 +354,7 @@ export interface SyncLoginResponse {
 // Data Quality
 export type DqCategory = "puntuale" | "intra_entita" | "cross_entita";
 export type DqRiskLevel = "ALTO" | "MEDIO" | "BASSO";
-export type DqControlStatus = "da_implementare" | "in_sviluppo" | "attivo" | "non_attivo";
+export type DqControlStatus = "da_implementare" | "in_sviluppo" | "attivo" | "non_attivo" | "eliminato";
 
 export interface DqDimension {
   id: string;

@@ -72,7 +72,7 @@ export default function DqDomainsPage() {
               </TabsList>
               {CATEGORIES.map((c) => (
                 <TabsContent key={c.value} value={c.value}>
-                  <InstanceTable domainId={domain.id} category={c.value} />
+                  <InstanceTable key={`${domain.id}-${c.value}`} domainId={domain.id} category={c.value} />
                 </TabsContent>
               ))}
             </Tabs>

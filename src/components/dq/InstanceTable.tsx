@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import type { DqCategory, DqControlInstance } from "@/types/index";
-import { useDeleteDqInstance, useDqInstances } from "@/hooks/useDq";
+import type { DqCategory, DqControlInstance, DqControlStatus } from "@/types/index";
+import { useDeleteDqInstance, useDqInstanceTables, useDqInstances } from "@/hooks/useDq";
 import { DqBadge } from "@/components/dq/DqBadge";
 import { InstanceDialog } from "@/components/dq/InstanceDialog";
 import { Gate } from "@/lib/permissions";
 
 export function InstanceTable({ domainId, category }: { domainId: string; category: DqCategory }) {
-  const { data: instances, isLoading } = useDqInstances(domainId, category);
+  const [status, setStatus] = useState<DqControlStatus | "">("");
+  const [tableRef, setTableRef] = useState("");
+  const { data: instances, isLoading } = useDqInstances(domainId, category, status || undefined, tableRef || undefined);
+  const { data: tables } = useDqInstanceTables(domainId, category);
   const deleteInstance = useDeleteDqInstance();
   const [dialogState, setDialogState] = useState<{ open: boolean; instance: DqControlInstance | null }>({
     open: false,
@@ -28,7 +31,35 @@ export function InstanceTable({ domainId, category }: { domainId: string; catego
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-end">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div className="flex items-end gap-3 flex-wrap">
+          <label className="flex flex-col gap-1 text-[12px] text-text-muted">
+            Stato
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as DqControlStatus | "")}
+              className="h-8 rounded-[var(--radius-sm)] border border-border bg-surface px-2 text-[13px] text-text"
+            >
+              <option value="">Tutti gli stati</option>
+              <option value="da_implementare">Da implementare</option>
+              <option value="in_sviluppo">In sviluppo</option>
+              <option value="attivo">Attivo</option>
+              <option value="non_attivo">Non attivo</option>
+              <option value="eliminato">Eliminato</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-[12px] text-text-muted">
+            Tabella
+            <select
+              value={tableRef}
+              onChange={(event) => setTableRef(event.target.value)}
+              className="h-8 min-w-52 rounded-[var(--radius-sm)] border border-border bg-surface px-2 text-[13px] text-text"
+            >
+              <option value="">Tutte le tabelle</option>
+              {tables?.map((table) => <option key={table} value={table}>{table}</option>)}
+            </select>
+          </label>
+        </div>
         <Gate action="manage:data_quality">
           <button
             onClick={() => setDialogState({ open: true, instance: null })}
