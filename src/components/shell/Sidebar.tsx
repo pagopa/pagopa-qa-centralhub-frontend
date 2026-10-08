@@ -66,6 +66,12 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality" },
     ],
   },
+   {
+    label: "Data Analysis",
+    items: [
+      { href: "/metrics/", label: "Metriche", icon: Database, action: "view:metrics" },
+    ],
+  },
   {
     label: "Knowledge Base",
     items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs" }],
