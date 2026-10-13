@@ -97,6 +97,7 @@ Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend ch
 - **`usePermissions()`**: hook che espone `{ role, roleLabel, can, isLoading }`, basato sulla matrice ruolo→permessi (`GET /api/v1/roles`, cache 5 minuti).
 - **`<Gate action="...">`**: nasconde i figli se `can(action)` è `false` (es. pulsanti "Sync" dietro `sync:trigger`).
 - **`<RouteGuard action="...">`**: redirige a `/` se l'utente non ha il permesso `view:*` / `manage:*` per la pagina (usato in layout/pagine del portale).
-- **`/settings/users`**: pagina riservata a `superadmin` (controllo client-side dedicato, non basato su `ACTION_CATALOG`), con due tab:
+- **`/settings/users`**: pagina riservata a `superadmin` (controllo client-side dedicato, non basato su `ACTION_CATALOG`), con tre tab:
   - **Utenti**: lista utenti, modifica ruolo e stato attivo/disattivo (`PATCH /api/v1/users/{id}`).
   - **Ruoli & Permessi**: matrice permessi per categoria, modificabile per i ruoli non di sistema (`PATCH /api/v1/roles/{role}`).
+  - **Funzionalità**: toggle globali per pagina (`GET/PATCH /api/v1/features`), inclusi Settings E2E e Settings Gherkin; una pagina è visibile solo se abilitata e permessa dal ruolo. I valori mancanti sono abilitati di default. Il controllo è client-side come l'RBAC corrente; l'URL Swagger diretto resta accessibile.
