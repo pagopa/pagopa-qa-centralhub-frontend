@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { usePermissions } from "@/hooks/usePermissions";
 import { UsersTab } from "./UsersTab";
 import { RolesTab } from "./RolesTab";
+import { FeatureVisibilityTab } from "./FeatureVisibilityTab";
 
-type TabKey = "users" | "roles";
+type TabKey = "users" | "roles" | "features";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "users", label: "Utenti" },
   { key: "roles", label: "Ruoli & Permessi" },
+  { key: "features", label: "Funzionalità" },
 ];
 
 export default function SettingsUsersPage() {
@@ -49,7 +51,7 @@ export default function SettingsUsersPage() {
         ))}
       </div>
 
-      {tab === "users" ? <UsersTab /> : <RolesTab />}
+      {tab === "users" ? <UsersTab /> : tab === "roles" ? <RolesTab /> : <FeatureVisibilityTab />}
     </div>
   );
 }

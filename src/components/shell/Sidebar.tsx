@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -30,60 +31,61 @@ interface NavItem {
   external?: boolean;
   action?: string;
   requiresSuperadmin?: boolean;
+  featureKey?: string;
 }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Workspace",
-    items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview" }],
+    items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" }],
   },
   {
     label: "BDD",
-    items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd" }],
+    items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd", featureKey: "bdd" }],
   },
   {
     label: "Test Results",
     items: [
-      { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" },
-      { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
+      { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e", featureKey: "e2e" },
+      { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health", featureKey: "sanp_health" },
     ],
   },
   {
     label: "Project Tracking",
-    items: [{ href: "/jira", label: "KPI Jira", icon: LayoutGrid, action: "view:jira" }],
+    items: [{ href: "/jira", label: "KPI Jira", icon: LayoutGrid, action: "view:jira", featureKey: "jira" }],
   },
   {
     label: "Data Hub",
     items: [
-      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub" },
-      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub" },
+      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub", featureKey: "psp_fees" },
+      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub", featureKey: "gpd_positions" },
     ],
   },
   {
     label: "Data Quality",
     items: [
-      { href: "/data-quality/catalog", label: "Catalogo Controlli", icon: ShieldCheck, action: "view:data_quality" },
-      { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality" },
+      { href: "/data-quality/catalog", label: "Catalogo Controlli", icon: ShieldCheck, action: "view:data_quality", featureKey: "dq_catalog" },
+      { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality", featureKey: "dq_domains" },
     ],
   },
    {
     label: "Data Analysis",
     items: [
-      { href: "/metrics/", label: "Metriche", icon: Database, action: "view:metrics" },
+      { href: "/metrics/", label: "Metriche", icon: Database, action: "view:metrics", featureKey: "metrics" },
     ],
   },
   {
     label: "Knowledge Base",
-    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs" }],
+    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs", featureKey: "docs" }],
   },
   {
     label: "Amministrazione",
     items: [
-      { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations" },
-      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd" },
+      { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations", featureKey: "settings_e2e" },
+      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd", featureKey: "settings_gherkin" },
       { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
       { href: "/settings/tm-resources", label: "Risorse T&M", icon: Receipt, requiresSuperadmin: true },
-      { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs" },
+      { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs", featureKey: "api_docs" },
     ],
   },
 ];
@@ -91,10 +93,15 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { can, role, isLoading } = usePermissions();
+  const featuresQuery = useFeatureVisibility();
 
   function isVisible(item: NavItem): boolean {
     if (isLoading) return false;
     if (item.requiresSuperadmin) return role === "superadmin";
+    if (item.featureKey && (featuresQuery.isLoading || featuresQuery.isError)) return false;
+    if (item.featureKey && !featuresQuery.data?.items.some(
+      (feature) => feature.key === item.featureKey && feature.enabled,
+    )) return false;
     if (item.action) return can(item.action);
     return true;
   }

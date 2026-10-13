@@ -453,6 +453,19 @@ export interface DqControlInstanceUpdate {
   notes?: string | null;
 }
 
+export interface FeatureVisibilityItem {
+  key: string;
+  label: string;
+  route: string;
+  action: string;
+  external: boolean;
+  enabled: boolean;
+}
+
+export interface FeatureVisibilityResponse {
+  items: FeatureVisibilityItem[];
+}
+
 // SANP Health
 export type SanpEnvironment = "SANP" | "COLLAUDO" | "PRODUZIONE";
 export type SanpImportStatus = "complete" | "partial" | "failed";
