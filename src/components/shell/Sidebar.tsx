@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,6 +10,9 @@ import {
   FileText,
   Home,
   LayoutGrid,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Network,
   Radar,
   Receipt,
   Settings,
@@ -21,6 +25,9 @@ import {
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
+import { useStoredFlag } from "@/lib/stored-flag";
+
+const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -38,6 +45,10 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Workspace",
     items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" }],
+  },
+  {
+    label: "Architettura",
+    items: [{ href: "/ea-map", label: "EA Map", icon: Network, action: "view:ea_map", featureKey: "ea_map" }],
   },
   {
     label: "BDD",
@@ -94,6 +105,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const { can, role, isLoading } = usePermissions();
   const featuresQuery = useFeatureVisibility();
+  const [collapsed, setCollapsed] = useStoredFlag(COLLAPSED_KEY);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (collapsed) root.setAttribute("data-sidebar", "collapsed");
+    else root.removeAttribute("data-sidebar");
+  }, [collapsed]);
 
   function isVisible(item: NavItem): boolean {
     if (isLoading) return false;
@@ -110,7 +128,7 @@ export function Sidebar() {
     <aside className="flex flex-col h-screen border-r border-border bg-surface">
       {/* Brand */}
       <div
-        className="flex items-center gap-[10px] px-4 border-b border-border"
+        className={`flex items-center gap-[10px] border-b border-border ${collapsed ? "justify-center px-2" : "px-4"}`}
         style={{ minHeight: "var(--topbar-h)" }}
       >
         <div
@@ -119,7 +137,7 @@ export function Sidebar() {
         >
           QA
         </div>
-        <div className="flex-1">
+        <div className={collapsed ? "hidden" : "flex-1"}>
           <div className="font-semibold text-[14px] text-text" style={{ letterSpacing: "-0.01em" }}>
             QA Hub
           </div>
@@ -130,7 +148,7 @@ export function Sidebar() {
         <svg
           viewBox="0 0 35 23"
           fill="currentColor"
-          className="text-text-dim shrink-0"
+          className={collapsed ? "hidden" : "text-text-dim shrink-0"}
           style={{ height: 25, width: "auto" }}
           aria-label="pagoPA"
         >
@@ -151,12 +169,16 @@ export function Sidebar() {
 
           return (
             <div key={group.label} className="px-2 py-1">
-              <div
-                className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
-                style={{ fontSize: 10, letterSpacing: ".08em" }}
-              >
-                {group.label}
-              </div>
+              {collapsed ? (
+                <div className="mx-2 my-[6px] border-t border-border" aria-hidden="true" />
+              ) : (
+                <div
+                  className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
+                  style={{ fontSize: 10, letterSpacing: ".08em" }}
+                >
+                  {group.label}
+                </div>
+              )}
               {items.map((item) => {
                 const isActive =
                   !item.external &&
@@ -167,8 +189,10 @@ export function Sidebar() {
                   background: isActive ? "var(--accent-soft)" : "transparent",
                   fontWeight: isActive ? 500 : 450,
                 };
-                const linkClassName =
-                  "flex items-center gap-[10px] px-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px]";
+                const linkClassName = `flex items-center gap-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px] ${
+                  collapsed ? "justify-center px-0" : "px-[10px]"
+                }`;
+                const label = collapsed ? <span className="sr-only">{item.label}</span> : item.label;
 
                 if (item.external) {
                   return (
@@ -179,9 +203,10 @@ export function Sidebar() {
                       rel="noopener noreferrer"
                       className={linkClassName}
                       style={linkStyle}
+                      title={collapsed ? item.label : undefined}
                     >
-                      <Icon size={15} strokeWidth={1.6} />
-                      {item.label}
+                      <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} />
+                      {label}
                     </a>
                   );
                 }
@@ -192,9 +217,10 @@ export function Sidebar() {
                     href={item.href}
                     className={linkClassName}
                     style={linkStyle}
+                    title={collapsed ? item.label : undefined}
                   >
-                    <Icon size={15} strokeWidth={1.6} />
-                    {item.label}
+                    <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} />
+                    {label}
                   </Link>
                 );
               })}
@@ -203,6 +229,20 @@ export function Sidebar() {
         })}
       </nav>
 
+      <div className={`border-t border-border p-2 ${collapsed ? "flex justify-center" : ""}`}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Espandi menu" : "Riduci menu"}
+          title={collapsed ? "Espandi menu" : "Riduci menu"}
+          className="flex w-full items-center gap-[10px] rounded-[var(--radius-sm)] px-[10px] py-[7px] text-[13px] text-text-dim transition-colors hover:bg-hover"
+          style={collapsed ? { justifyContent: "center", paddingInline: 0 } : undefined}
+        >
+          {collapsed ? <PanelLeftOpen size={17} strokeWidth={1.6} /> : <PanelLeftClose size={15} strokeWidth={1.6} />}
+          {!collapsed && "Riduci menu"}
+        </button>
+      </div>
     </aside>
   );
 }

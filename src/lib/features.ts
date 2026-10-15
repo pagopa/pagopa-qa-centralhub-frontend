@@ -11,6 +11,7 @@ const FEATURE_ROUTES = [
   { route: "/data-hub/gpd-positions", key: "gpd_positions" },
   { route: "/data-quality/catalog", key: "dq_catalog" },
   { route: "/data-quality/domains", key: "dq_domains" },
+  { route: "/ea-map", key: "ea_map" },
   { route: "/docs", key: "docs" },
 ] as const;
 
