@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "./Sidebar";
 
@@ -27,6 +27,7 @@ const featureItems = [
   ["dq_domains", "Controlli per Dominio", "/data-quality/domains", "view:data_quality", false],
   ["settings_e2e", "Settings E2E", "/settings/integrations", "manage:integrations", false],
   ["settings_gherkin", "Settings Gherkin", "/settings/bdd", "manage:bdd", false],
+  ["ea_map", "EA Map", "/ea-map", "view:ea_map", false],
   ["docs", "Docs & Decks", "/docs", "view:docs", false],
   ["api_docs", "API Docs", "/api/v1/docs", "view:api_docs", true],
 ] as const;
@@ -117,5 +118,18 @@ describe("Sidebar feature visibility", () => {
 
     expect(await screen.findByRole("link", { name: "Settings Gherkin" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Settings E2E" })).not.toBeInTheDocument();
+  });
+
+  it("collapses to an icon rail and keeps accessible link names", async () => {
+    window.localStorage.removeItem("qa-hub-sidebar-collapsed");
+    renderSidebar();
+
+    expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Riduci menu" }));
+
+    expect(document.documentElement.getAttribute("data-sidebar")).toBe("collapsed");
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("title", "Overview");
+    fireEvent.click(screen.getByRole("button", { name: "Espandi menu" }));
+    expect(document.documentElement.hasAttribute("data-sidebar")).toBe(false);
   });
 });

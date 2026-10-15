@@ -1,0 +1,122 @@
+export type EaComponentKind = "be" | "fn" | "fe" | "lib" | "infra" | "test" | "mock" | "tool" | "doc";
+export type EaEdgeType = "api" | "soap" | "event" | "data" | "ui";
+export type EaEdgeOrigin = "helm" | "infra_rule" | "curated" | "manual";
+
+export interface EaQa {
+  unit: number;
+  it_repo: number;
+  it_wf: boolean;
+  perf_repo: boolean;
+  e2e_repo: boolean;
+  sonar: boolean;
+  central: string[];
+  nrt: string[];
+  tas: boolean;
+  tas_ci: boolean | null;
+  nodo_bdd: boolean;
+  under_qa: boolean | null;
+  qa_owner?: string | null;
+  qa_notes?: string | null;
+  score: number;
+}
+
+export interface EaDocLink {
+  space: string | null;
+  title: string;
+  pages: number;
+  url: string;
+  source?: string;
+}
+
+interface EaNodeBase {
+  id: string;
+  name: string;
+  desc: string;
+  source?: string;
+  verified?: boolean;
+}
+
+export interface EaArea extends EaNodeBase {
+  type: "area";
+  short?: string | null;
+}
+
+export interface EaProduct extends EaNodeBase {
+  type: "product";
+  parent: string;
+  domain: string | null;
+  conf: EaDocLink[];
+}
+
+export interface EaComponent extends EaNodeBase {
+  type: "component";
+  parent: string;
+  kind: EaComponentKind;
+  kindLabel: string;
+  repo: string;
+  private: boolean;
+  lang: string[];
+  fw: string[];
+  ns: string | null;
+  ingress: [string, string] | null;
+  owners: string[];
+  apis: { f: string; t: string | null }[];
+  readme: string;
+  workflows: { f: string; n: string | null; cron?: boolean }[];
+  confRepo: string[];
+  qa: EaQa;
+}
+
+export interface EaExternal extends EaNodeBase {
+  type: "external" | "datastore";
+}
+
+export type EaNode = EaArea | EaProduct | EaComponent | EaExternal;
+
+export interface EaEdge {
+  id?: string;
+  from: string;
+  to: string;
+  type: EaEdgeType;
+  label?: string | null;
+  origin?: EaEdgeOrigin;
+  status?: string;
+}
+
+export interface EaBlueprint {
+  segments: { id: string; name: string; who: string[]; actors: string[] }[];
+  services: { id: string; name: string; seg: string[]; proc: string[] }[];
+  functions: { id: string; name: string }[];
+  processes: {
+    id: string;
+    name: string;
+    fn: string;
+    prod: string[];
+    ref: { space: string; title: string; url: string } | null;
+    suites: string[];
+  }[];
+  infra: { id: string; name: string; group: string; desc: string }[];
+  prodInfra: Record<string, string[]>;
+  risk: Record<string, string>;
+  riskSrc: string | null;
+  panels: {
+    mission?: string;
+    stakeholders?: string[];
+    principles?: [string, string][];
+    initiatives?: { name: string; url: string }[];
+    references?: { name: string; url: string }[];
+    qa_gate?: string[];
+  };
+}
+
+export interface EaKb {
+  meta: {
+    generated?: string;
+    updated_at?: string;
+    sources?: { github_repos?: number; confluence_pages?: number; confluence_spaces?: string[] };
+    tas?: { repo: string; workflow: string; nrt_workflow: string; nrt_cron: string };
+  };
+  nodes: EaNode[];
+  edges: EaEdge[];
+  blueprint: EaBlueprint;
+}
