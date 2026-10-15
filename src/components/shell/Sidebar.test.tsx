@@ -58,6 +58,14 @@ describe("Sidebar feature visibility", () => {
     });
   });
 
+  it("lists the architecture map right after the overview", async () => {
+    renderSidebar();
+
+    expect(await screen.findByRole("link", { name: "EA Map" })).toBeInTheDocument();
+    const labels = screen.getAllByRole("link").map((link) => link.textContent?.trim());
+    expect(labels.indexOf("EA Map")).toBe(labels.indexOf("Overview") + 1);
+  });
+
   it("hides disabled pages while preserving enabled navigation items", async () => {
     renderSidebar();
 

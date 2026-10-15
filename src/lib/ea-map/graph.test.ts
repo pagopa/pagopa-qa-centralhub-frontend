@@ -99,6 +99,7 @@ describe("ea-map graph", () => {
     for (const r of [
       { view: "blueprint", nodeId: null },
       { view: "qa", nodeId: null },
+      { view: "review", nodeId: null },
       { view: "map", nodeId: null },
       { view: "map", nodeId: "prod:gpd" },
       { view: "map", nodeId: "area:core" },

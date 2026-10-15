@@ -240,7 +240,7 @@ export function traceBlueprint(g: EaGraph, bp: EaBlueprint, id: string): Trace {
 
 /* ── Hash routing (bare tokens only) ───────────────────────────── */
 
-export type EaView = "blueprint" | "map" | "qa" | "guida";
+export type EaView = "blueprint" | "map" | "qa" | "guida" | "review";
 
 export interface EaRoute {
   view: EaView;
@@ -257,7 +257,7 @@ export function encodeRoute(r: EaRoute): string {
 
 export function decodeRoute(hash: string): EaRoute {
   const h = hash.replace(/^#/, "");
-  if (h === "qa" || h === "guida" || h === "blueprint" || h === "map") return { view: h, nodeId: null };
+  if (h === "qa" || h === "guida" || h === "blueprint" || h === "map" || h === "review") return { view: h, nodeId: null };
   if (h.startsWith("a-")) return { view: "map", nodeId: `area:${h.slice(2)}` };
   if (h.startsWith("p-")) return { view: "map", nodeId: `prod:${h.slice(2)}` };
   if (h.startsWith("c-")) return { view: "map", nodeId: h.slice(2) };

@@ -47,6 +47,10 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" }],
   },
   {
+    label: "Architettura",
+    items: [{ href: "/ea-map", label: "EA Map", icon: Network, action: "view:ea_map", featureKey: "ea_map" }],
+  },
+  {
     label: "BDD",
     items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd", featureKey: "bdd" }],
   },
@@ -80,10 +84,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/metrics/", label: "Metriche", icon: Database, action: "view:metrics", featureKey: "metrics" },
     ],
-  },
-  {
-    label: "Architettura",
-    items: [{ href: "/ea-map", label: "EA Map", icon: Network, action: "view:ea_map", featureKey: "ea_map" }],
   },
   {
     label: "Knowledge Base",

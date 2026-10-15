@@ -231,11 +231,19 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
           </Sec>
 
           <Sec id="aggiorna" title="Aggiornamento dei dati">
-            <p>I dati sono su PostgreSQL. Il primo caricamento importa la knowledge base prodotta dagli script di discovery. In arrivo:</p>
+            <p>I dati sono su PostgreSQL. Il primo caricamento ha importato la knowledge base prodotta dagli script di discovery; da lì in poi la mappa si aggiorna con una <b>sincronizzazione settimanale</b> (il lunedì mattina) che si può forzare con il pulsante &quot;Sincronizza ora&quot;.</p>
+            <h3>Cosa legge</h3>
             <ul>
-              <li>una <b>sincronizzazione settimanale</b> con GitHub e Confluence, forzabile dal pulsante &quot;Sincronizza ora&quot;, che applica da sola le variazioni di metadati e propone a un revisore (qa_manager o superadmin) quelle strutturali: repo nuovi o archiviati, legami nuovi o spariti;</li>
-              <li>la distinzione, già attiva, tra ciò che è stato rilevato automaticamente e ciò che è stato confermato da una persona, così una sincronizzazione non cancella mai una correzione.</li>
+              <li><b>GitHub</b>: l&apos;elenco dei repository dell&apos;organizzazione e, solo per quelli modificati dall&apos;ultima volta, l&apos;albero dei file e i file di metadati (Helm, CODEOWNERS, build, OpenAPI, workflow, README). Le regole sono le stesse dell&apos;import: una sync su dati invariati non cambia nulla.</li>
+              <li><b>Confluence</b>: i titoli delle pagine dei sette spazi, per aggiornare i link ai prodotti. Usa l&apos;utenza Atlassian già configurata per Jira; se manca, la sync aggiorna comunque GitHub e risulta &quot;parziale&quot;.</li>
             </ul>
+            <h3>Cosa applica da sola e cosa chiede</h3>
+            <ul>
+              <li><b>Applicato subito</b>: linguaggi e framework, namespace, owner, API, pipeline, estratto del README, segnali di test osservati (unit, feature, performance, Sonar, chiamata al TAS) e link Confluence. Sono dati osservati: si vedono nella scheda &quot;Revisione&quot; alla voce &quot;Applicato automaticamente&quot;.</li>
+              <li><b>Proposto a un revisore</b> (permesso &quot;review&quot;, di default qa_manager e superadmin) nella scheda <b>Revisione</b>: repository nuovi con un owner già presente nella mappa, repository archiviati, dipendenze nuove trovate nella configurazione Helm e dipendenze sparite.</li>
+              <li><b>Conflitti</b>: se sparisce dalla configurazione un legame che una persona aveva confermato, decide sempre una persona.</li>
+            </ul>
+            <p>La sync non tocca mai nomi, descrizioni, prodotto di appartenenza, tipo di componente, dati QA manuali e legami manuali o verificati. Una proposta rifiutata non viene riproposta; una proposta che la sync successiva non trova più viene chiusa da sola come &quot;superata&quot;.</p>
           </Sec>
 
           <Sec id="glossario" title="Glossario">

@@ -196,3 +196,51 @@ export interface EaQaUpdate {
   qa_owner?: string | null;
   qa_notes?: string | null;
 }
+
+/* ── Sync & review queue (PR3) ─────────────────────────────────── */
+
+export type EaSyncRunStatus = "running" | "success" | "partial" | "failed";
+
+export interface EaSyncRun {
+  id: string;
+  trigger: "beat" | "manual" | "import";
+  triggered_by: string | null;
+  started_at: string;
+  finished_at: string | null;
+  status: EaSyncRunStatus;
+  stats: Record<string, number | null>;
+  error: string | null;
+}
+
+export interface EaSyncStatus {
+  running: EaSyncRun | null;
+  last: EaSyncRun | null;
+  last_success_at: string | null;
+  last_error: string | null;
+  open_changes: number;
+}
+
+export type EaChangeStatus = "pending" | "conflict" | "approved" | "rejected" | "auto_applied" | "superseded";
+
+export interface EaChange {
+  id: string;
+  run_id: string | null;
+  entity: "node" | "edge" | "qa" | "doc";
+  op: "add" | "update" | "remove";
+  target_id: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  structural: boolean;
+  status: EaChangeStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+}
+
+export interface EaChangeDecision {
+  note?: string | null;
+  parent_id?: string;
+  ctype?: EaComponentKind;
+  name?: string;
+}

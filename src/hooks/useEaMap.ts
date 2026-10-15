@@ -1,7 +1,11 @@
 import { useSession } from "next-auth/react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type {
+  EaChange,
+  EaChangeDecision,
+  EaChangeStatus,
   EaEdgeCreate,
   EaEdgeDetail,
   EaEdgeUpdate,
@@ -10,6 +14,8 @@ import type {
   EaNodeDetail,
   EaNodeUpdate,
   EaQaUpdate,
+  EaSyncRun,
+  EaSyncStatus,
 } from "@/types/ea";
 
 export const eaMapQueryKey = ["ea-map"] as const;
@@ -99,4 +105,64 @@ export function eaErrorMessage(error: unknown): string | null {
   if (typeof body?.detail === "string") return body.detail;
   if (Array.isArray(body?.detail)) return "Dati non validi";
   return "Operazione non riuscita, riprova";
+}
+
+/* ── Sync & review queue ───────────────────────────────────────── */
+
+const syncKey = [...eaMapQueryKey, "sync"] as const;
+
+/** Polls every 5 s while a sync runs; when it ends, everything EA is refetched. */
+export function useEaSyncStatus() {
+  const qc = useQueryClient();
+  const query = useQuery<EaSyncStatus>({
+    queryKey: [...syncKey, "status"],
+    queryFn: () => apiClient("/api/v1/ea/sync-status"),
+    refetchInterval: (q) => (q.state.data?.running ? 5_000 : 60_000),
+  });
+  const wasRunning = useRef(false);
+  const running = !!query.data?.running;
+  useEffect(() => {
+    if (wasRunning.current && !running) qc.invalidateQueries({ queryKey: eaMapQueryKey });
+    wasRunning.current = running;
+  }, [running, qc]);
+  return query;
+}
+
+export function useTriggerEaSync() {
+  return useEaMutation((_: void, actor) => apiClient<EaSyncRun>("/api/v1/ea/sync", json("POST", { actor })));
+}
+
+export function useEaSyncRuns(enabled = true) {
+  return useQuery<EaSyncRun[]>({
+    queryKey: [...syncKey, "runs"],
+    queryFn: () => apiClient("/api/v1/ea/sync-runs?limit=10"),
+    enabled,
+  });
+}
+
+export function useEaChanges(statuses: EaChangeStatus[] = ["pending", "conflict"], runId?: string | null, enabled = true) {
+  const params = new URLSearchParams({ status: statuses.join(",") });
+  if (runId) params.set("run_id", runId);
+  return useQuery<EaChange[]>({
+    queryKey: [...eaMapQueryKey, "changes", statuses.join(","), runId ?? null],
+    queryFn: () => apiClient(`/api/v1/ea/changes?${params.toString()}`),
+    enabled,
+  });
+}
+
+export function useDecideEaChange() {
+  return useEaMutation(
+    ({ id, approve, ...body }: EaChangeDecision & { id: string; approve: boolean }, actor) =>
+      apiClient<EaChange>(`/api/v1/ea/changes/${id}/${approve ? "approve" : "reject"}`, json("POST", { ...body, actor })),
+  );
+}
+
+export function useBulkDecideEaChanges() {
+  return useEaMutation(
+    ({ ids, approve, note }: { ids: string[]; approve: boolean; note?: string | null }, actor) =>
+      apiClient<Record<string, string>>(
+        "/api/v1/ea/changes/bulk",
+        json("POST", { ids, decision: approve ? "approve" : "reject", note: note ?? null, actor }),
+      ),
+  );
 }

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Search } from "lucide-react";
 import type { EaArea, EaNode, EaProduct } from "@/types/ea";
-import { useEaKb } from "@/hooks/useEaMap";
+import { useEaKb, useEaSyncStatus } from "@/hooks/useEaMap";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   KIND_BADGE,
   buildGraph,
@@ -21,6 +22,7 @@ import { EaBlueprint } from "./EaBlueprint";
 import { EaGuide } from "./EaGuide";
 import { EaNodeDrawer } from "./EaNodeDrawer";
 import { EaQaMatrix } from "./EaQaMatrix";
+import { EaReview, EaSyncBar } from "./EaReview";
 import { cx } from "./shared";
 import s from "./ea-map.module.css";
 
@@ -29,6 +31,7 @@ const TABS: [EaView, string][] = [
   ["map", "Architettura"],
   ["qa", "Matrice QA"],
   ["guida", "Guida"],
+  ["review", "Revisione"],
 ];
 const LENS_KEY = "ea-map-lens";
 const LENS_EVENT = "ea-map-lens-change";
@@ -159,6 +162,9 @@ export function EaMapView() {
   const [lensSession, setLensSession] = useState<boolean | null>(null);
   const lens = lensSession ?? lensStored;
   const [externalId, setExternalId] = useState<string | null>(null);
+  const { can } = usePermissions();
+  const canReview = can("review:ea_map");
+  const openChanges = useEaSyncStatus().data?.open_changes ?? 0;
 
   const navigate = useCallback((r: EaRoute) => {
     setExternalId(null);
@@ -227,10 +233,11 @@ export function EaMapView() {
     <div className={cx(s.root, lens && s.lensOn)}>
       <div className={s.toolbar}>
         <div className={s.tabs} role="tablist" aria-label="Viste della mappa">
-          {TABS.map(([v, l]) => (
+          {TABS.filter(([v]) => v !== "review" || canReview).map(([v, l]) => (
             <button key={v} type="button" role="tab" className={s.tab} aria-selected={route.view === v}
               onClick={() => navigate({ view: v, nodeId: null })}>
               {l}
+              {v === "review" && openChanges > 0 && <span className={s.tabBadge}>{openChanges}</span>}
             </button>
           ))}
         </div>
@@ -240,11 +247,13 @@ export function EaMapView() {
         </div>
         <SearchBox g={g} onPick={(n) => openNode(n.id)} />
       </div>
+      <EaSyncBar onReview={() => navigate({ view: "review", nodeId: null })} />
 
       {route.view === "blueprint" && <EaBlueprint g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "map" && mapContent()}
       {route.view === "qa" && <EaQaMatrix g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "guida" && <EaGuide g={g} goTo={goTo} />}
+      {route.view === "review" && <EaReview g={g} goTo={goTo} onOpen={openNode} />}
 
       {drawerNode && <EaNodeDrawer g={g} node={drawerNode} onClose={closeDrawer} onOpen={openNode} goTo={goTo} />}
     </div>

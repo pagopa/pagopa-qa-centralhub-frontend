@@ -6,7 +6,7 @@ import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
-import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck } from "lucide-react";
+import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -76,6 +76,14 @@ function JiraStatusCard() {
 }
 
 const NAV_TILES = [
+  {
+    href: "/ea-map",
+    icon: Network,
+    label: "Architettura",
+    description: "Mappa EA della piattaforma pagamenti: blueprint, prodotti, componenti, dipendenze e copertura dei test.",
+    color: "var(--accent)",
+    bg: "var(--accent-soft)",
+  },
   {
     href: "/bdd",
     icon: Sparkles,
