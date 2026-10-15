@@ -1,3 +1,4 @@
+import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type {
@@ -101,18 +102,28 @@ export function useDqCatalog(category?: DqCategory) {
 
 export function useCreateDqCatalogControl() {
   const qc = useQueryClient();
+  const { data: session } = useSession();
+  const actor = session?.user?.email ?? session?.user?.name ?? null;
   return useMutation({
     mutationFn: (data: DqCatalogControlCreate) =>
-      apiClient<DqCatalogControl>("/api/v1/dq/catalog", { method: "POST", body: JSON.stringify(data) }),
+      apiClient<DqCatalogControl>("/api/v1/dq/catalog", {
+        method: "POST",
+        body: JSON.stringify({ ...data, created_by: actor }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "catalog"] }),
   });
 }
 
 export function useUpdateDqCatalogControl() {
   const qc = useQueryClient();
+  const { data: session } = useSession();
+  const actor = session?.user?.email ?? session?.user?.name ?? null;
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & DqCatalogControlUpdate) =>
-      apiClient<DqCatalogControl>(`/api/v1/dq/catalog/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+      apiClient<DqCatalogControl>(`/api/v1/dq/catalog/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ ...data, updated_by: actor }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "catalog"] }),
   });
 }
@@ -163,26 +174,42 @@ export function useDqInstanceTables(domainId?: string, category?: DqCategory) {
 
 export function useCreateDqInstance() {
   const qc = useQueryClient();
+  const { data: session } = useSession();
+  const actor = session?.user?.email ?? session?.user?.name ?? null;
   return useMutation({
     mutationFn: (data: DqControlInstanceCreate) =>
-      apiClient<DqControlInstance>("/api/v1/dq/instances", { method: "POST", body: JSON.stringify(data) }),
+      apiClient<DqControlInstance>("/api/v1/dq/instances", {
+        method: "POST",
+        body: JSON.stringify({ ...data, created_by: actor }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "instances"] }),
   });
 }
 
 export function useUpdateDqInstance() {
   const qc = useQueryClient();
+  const { data: session } = useSession();
+  const actor = session?.user?.email ?? session?.user?.name ?? null;
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & DqControlInstanceUpdate) =>
-      apiClient<DqControlInstance>(`/api/v1/dq/instances/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+      apiClient<DqControlInstance>(`/api/v1/dq/instances/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ ...data, updated_by: actor }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dq", "instances"] }),
   });
 }
 
 export function useDeleteDqInstance() {
   const qc = useQueryClient();
+  const { data: session } = useSession();
+  const actor = session?.user?.email ?? session?.user?.name ?? null;
   return useMutation({
-    mutationFn: (id: string) => apiClient<void>(`/api/v1/dq/instances/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) =>
+      apiClient<void>(`/api/v1/dq/instances/${id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ updated_by: actor }),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dq", "instances"] });
       qc.invalidateQueries({ queryKey: ["dq", "instance-tables"] });

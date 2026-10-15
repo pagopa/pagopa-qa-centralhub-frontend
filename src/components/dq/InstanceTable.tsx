@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import type { DqCategory, DqControlInstance, DqControlStatus } from "@/types/index";
 import { useDeleteDqInstance, useDqInstanceTables, useDqInstances } from "@/hooks/useDq";
 import { DqBadge } from "@/components/dq/DqBadge";
+import { DqAuditCell } from "@/components/dq/DqAuditCell";
 import { InstanceDialog } from "@/components/dq/InstanceDialog";
 import { Gate } from "@/lib/permissions";
 
@@ -73,25 +74,29 @@ export function InstanceTable({ domainId, category }: { domainId: string; catego
       {isLoading ? (
         <p className="text-text-muted text-[13px]">Caricamento…</p>
       ) : (
-        <div className="rounded-[var(--radius)] border border-border overflow-hidden bg-surface">
-          <table className="w-full border-collapse text-[13px]">
+        <div className="rounded-[var(--radius)] border border-border overflow-x-auto bg-surface">
+          <table className="w-full min-w-[1720px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-subtle">
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Controllo</th>
+                <th className="text-left px-3 py-2 font-medium text-text-muted">ID SODA</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Tabella</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Campo</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Owner</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Rischio</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Impatto</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Stato</th>
+                <th className="text-left px-3 py-2 font-medium text-text-muted">SODA</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Note</th>
+                <th className="text-left px-3 py-2 font-medium text-text-muted">Inserito il / da</th>
+                <th className="text-left px-3 py-2 font-medium text-text-muted">Modificato il / da</th>
                 <th className="w-16 px-2 py-2" />
               </tr>
             </thead>
             <tbody>
               {instances?.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center px-4 py-8 text-text-muted">
+                  <td colSpan={13} className="text-center px-4 py-8 text-text-muted">
                     Nessuna istanza configurata
                   </td>
                 </tr>
@@ -99,6 +104,9 @@ export function InstanceTable({ domainId, category }: { domainId: string; catego
               {instances?.map((instance) => (
                 <tr key={instance.id} className="border-b border-border last:border-0 hover:bg-hover transition-colors">
                   <td className="px-4 py-2 font-semibold">{instance.catalog_control.name}</td>
+                  <td className="max-w-72 break-all px-3 py-2 font-mono text-[11px] text-text-dim">
+                    {instance.check_name ?? "—"}
+                  </td>
                   <td className="px-4 py-2 font-mono text-[12px] text-text-dim">{instance.table_ref}</td>
                   <td className="px-4 py-2 font-mono text-[12px] text-text-dim">{instance.field_ref}</td>
                   <td className="px-4 py-2">{instance.owner ?? "—"}</td>
@@ -111,7 +119,26 @@ export function InstanceTable({ domainId, category }: { domainId: string; catego
                   <td className="px-4 py-2">
                     <DqBadge variant="status" value={instance.status} />
                   </td>
+                  <td className="px-3 py-2">
+                    {instance.soda_url ? (
+                      <a
+                        href={instance.soda_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+                        aria-label={`Apri il controllo ${instance.check_name ?? "SODA"} in SODA`}
+                      >
+                        Apri <ExternalLink size={13} />
+                      </a>
+                    ) : instance.status === "attivo" ? (
+                      <span className="text-[12px] text-danger">Link mancante</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-text-dim text-[12px]">{instance.notes ?? "—"}</td>
+                  <DqAuditCell date={instance.created_at} user={instance.created_by} />
+                  <DqAuditCell date={instance.updated_at} user={instance.updated_by} />
                   <td className="px-2 py-2">
                     <Gate action="manage:data_quality">
                       <div className="flex items-center gap-1">

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { DqCategory, DqControlInstance, DqControlStatus, DqRiskLevel } from "@/types/index";
 import { useCreateDqInstance, useDqCatalog, useUpdateDqInstance } from "@/hooks/useDq";
+import { validateDqCode, validateSodaUrl } from "@/lib/dq-codes";
 
 const RISK_LEVELS: DqRiskLevel[] = ["ALTO", "MEDIO", "BASSO"];
 const STATUSES: { value: DqControlStatus; label: string }[] = [
@@ -53,6 +54,8 @@ export function InstanceDialog({
   const [impact, setImpact] = useState<DqRiskLevel>("BASSO");
   const [status, setStatus] = useState<DqControlStatus>("da_implementare");
   const [notes, setNotes] = useState("");
+  const [checkName, setCheckName] = useState("");
+  const [sodaUrl, setSodaUrl] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -64,13 +67,26 @@ export function InstanceDialog({
       setImpact(instance?.impact ?? "BASSO");
       setStatus(instance?.status ?? "da_implementare");
       setNotes(instance?.notes ?? "");
+      setCheckName(instance?.check_name ?? "");
+      setSodaUrl(instance?.soda_url ?? "");
     }
   }, [open, instance, catalogControls]);
 
   const isPending = createInstance.isPending || updateInstance.isPending;
+  const selectedControl = catalogControls?.find((control) => control.id === catalogControlId);
+  const checkNameError = checkName.trim()
+    ? selectedControl
+      ? validateDqCode(checkName.trim(), selectedControl.category, selectedControl.dimension.name)
+      : "Seleziona un controllo di catalogo"
+    : "Inserisci l'identificativo check_name di SODA";
+  const sodaUrlError = sodaUrl.trim()
+    ? validateSodaUrl(sodaUrl.trim())
+    : status === "attivo"
+      ? "Inserisci il link SODA per i controlli attivi"
+      : null;
 
   const handleSubmit = () => {
-    if (!catalogControlId || !tableRef.trim() || !fieldRef.trim()) return;
+    if (!catalogControlId || !tableRef.trim() || !fieldRef.trim() || checkNameError || sodaUrlError) return;
 
     if (instance) {
       updateInstance.mutate(
@@ -83,6 +99,8 @@ export function InstanceDialog({
           impact,
           status,
           notes: notes.trim() || null,
+          check_name: checkName.trim(),
+          soda_url: sodaUrl.trim() || null,
         },
         { onSuccess: () => onOpenChange(false) },
       );
@@ -98,6 +116,8 @@ export function InstanceDialog({
           impact,
           status,
           notes: notes.trim() || null,
+          check_name: checkName.trim(),
+          soda_url: sodaUrl.trim() || null,
         },
         { onSuccess: () => onOpenChange(false) },
       );
@@ -132,6 +152,18 @@ export function InstanceDialog({
                 ))}
               </SelectContent>
             </Select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-[13px]">
+            ID controllo SODA (`check_name`)
+            <input
+              className="rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 font-mono text-[12px]"
+              value={checkName}
+              onChange={(event) => setCheckName(event.target.value)}
+              placeholder="fld__vld__createddate__date_format"
+              aria-invalid={!!checkNameError}
+            />
+            {checkNameError && <span className="text-[12px] text-danger">{checkNameError}</span>}
           </label>
 
           <div className="grid grid-cols-2 gap-3">
@@ -214,6 +246,21 @@ export function InstanceDialog({
             </label>
           </div>
 
+          {(status === "attivo" || sodaUrl) && (
+            <label className="flex flex-col gap-1 text-[13px]">
+              Link controllo SODA{status === "attivo" ? " *" : ""}
+              <input
+                className="rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5"
+                type="url"
+                value={sodaUrl}
+                onChange={(event) => setSodaUrl(event.target.value)}
+                placeholder="https://cloud.soda.io/..."
+                aria-invalid={!!sodaUrlError}
+              />
+              {sodaUrlError && <span className="text-[12px] text-danger">{sodaUrlError}</span>}
+            </label>
+          )}
+
           <label className="flex flex-col gap-1 text-[13px]">
             Note
             <textarea
@@ -228,7 +275,7 @@ export function InstanceDialog({
         <DialogFooter>
           <button
             onClick={handleSubmit}
-            disabled={isPending || !catalogControlId || !tableRef.trim() || !fieldRef.trim()}
+            disabled={isPending || !catalogControlId || !tableRef.trim() || !fieldRef.trim() || !!checkNameError || !!sodaUrlError}
             className="rounded-[var(--radius-sm)] border border-[var(--accent)] bg-surface text-[var(--accent)] text-[13px] px-3 py-1.5 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Salva
