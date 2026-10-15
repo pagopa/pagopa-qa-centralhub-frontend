@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { DqCatalogControl, DqCategory } from "@/types/index";
 import { useDeleteDqCatalogControl, useDqCatalog } from "@/hooks/useDq";
 import { CatalogControlDialog } from "@/components/dq/CatalogControlDialog";
+import { DqAuditCell } from "@/components/dq/DqAuditCell";
 import { Gate } from "@/lib/permissions";
 
 export function CatalogTable({ category }: { category: DqCategory }) {
@@ -37,20 +38,22 @@ export function CatalogTable({ category }: { category: DqCategory }) {
       {isLoading ? (
         <p className="text-text-muted text-[13px]">Caricamento…</p>
       ) : (
-        <div className="rounded-[var(--radius)] border border-border overflow-hidden bg-surface">
-          <table className="w-full border-collapse text-[13px]">
+        <div className="rounded-[var(--radius)] border border-border overflow-x-auto bg-surface">
+          <table className="w-full min-w-[900px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-subtle">
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Nome</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Descrizione</th>
                 <th className="text-left px-4 py-2 font-medium text-text-muted">Dimensione</th>
+                <th className="text-left px-3 py-2 font-medium text-text-muted">Inserito il / da</th>
+                <th className="text-left px-3 py-2 font-medium text-text-muted">Modificato il / da</th>
                 <th className="w-16 px-2 py-2" />
               </tr>
             </thead>
             <tbody>
               {controls?.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="text-center px-4 py-8 text-text-muted">
+                  <td colSpan={6} className="text-center px-4 py-8 text-text-muted">
                     Nessun controllo definito
                   </td>
                 </tr>
@@ -60,6 +63,8 @@ export function CatalogTable({ category }: { category: DqCategory }) {
                   <td className="px-4 py-2 font-semibold">{control.name}</td>
                   <td className="px-4 py-2 text-text-dim">{control.description}</td>
                   <td className="px-4 py-2 text-text-dim">{control.dimension.name}</td>
+                  <DqAuditCell date={control.created_at} user={control.created_by} />
+                  <DqAuditCell date={control.updated_at} user={control.updated_by} />
                   <td className="px-2 py-2">
                     <Gate action="manage:data_quality">
                       <div className="flex items-center gap-1">

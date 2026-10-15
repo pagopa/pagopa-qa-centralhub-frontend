@@ -5,6 +5,7 @@ import { Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDqDomains } from "@/hooks/useDq";
 import { InstanceTable } from "@/components/dq/InstanceTable";
+import { DqNamingGuide } from "@/components/dq/DqNamingGuide";
 import { DomainManagerDialog } from "@/components/dq/DomainManagerDialog";
 import { Gate } from "@/lib/permissions";
 import type { DqCategory } from "@/types/index";
@@ -39,6 +40,7 @@ export default function DqDomainsPage() {
           {manageButton}
         </div>
         <p className="text-text-muted text-[13px]">Nessun dominio configurato</p>
+        <DqNamingGuide />
         <DomainManagerDialog open={domainDialogOpen} onOpenChange={setDomainDialogOpen} />
       </div>
     );
@@ -50,6 +52,8 @@ export default function DqDomainsPage() {
         <h1 className="text-xl font-semibold text-text">Controlli per Dominio</h1>
         {manageButton}
       </div>
+
+      <DqNamingGuide />
 
       <Tabs defaultValue={domains[0].id}>
         <TabsList>

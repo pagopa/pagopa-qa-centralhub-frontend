@@ -379,6 +379,8 @@ export interface DqCatalogControl {
   description: string;
   dimension_id: string;
   dimension: DqDimension;
+  created_by: string | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -388,6 +390,7 @@ export interface DqCatalogControlCreate {
   name: string;
   description: string;
   dimension_id: string;
+  created_by?: string | null;
 }
 
 export interface DqCatalogControlUpdate {
@@ -395,6 +398,7 @@ export interface DqCatalogControlUpdate {
   name?: string;
   description?: string;
   dimension_id?: string;
+  updated_by?: string | null;
 }
 
 export interface DqDomain {
@@ -427,6 +431,10 @@ export interface DqControlInstance {
   impact: DqRiskLevel;
   status: DqControlStatus;
   notes: string | null;
+  check_name: string | null;
+  soda_url: string | null;
+  created_by: string | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -441,6 +449,9 @@ export interface DqControlInstanceCreate {
   impact: DqRiskLevel;
   status: DqControlStatus;
   notes?: string | null;
+  check_name: string;
+  soda_url?: string | null;
+  created_by?: string | null;
 }
 
 export interface DqControlInstanceUpdate {
@@ -451,6 +462,9 @@ export interface DqControlInstanceUpdate {
   impact?: DqRiskLevel;
   status?: DqControlStatus;
   notes?: string | null;
+  check_name?: string;
+  soda_url?: string | null;
+  updated_by?: string | null;
 }
 
 export interface FeatureVisibilityItem {
