@@ -13,6 +13,7 @@ export interface EaQa {
   nrt: string[];
   tas: boolean;
   tas_ci: boolean | null;
+  tas_ci_override?: boolean | null;
   nodo_bdd: boolean;
   under_qa: boolean | null;
   qa_owner?: string | null;
@@ -119,4 +120,79 @@ export interface EaKb {
   nodes: EaNode[];
   edges: EaEdge[];
   blueprint: EaBlueprint;
+}
+
+/* ── Editing (PR2) ─────────────────────────────────────────────── */
+
+export type EaEdgeStatus = "proposed" | "active" | "verified" | "rejected" | "removed";
+
+/** Edge as returned by GET /ea/nodes/{id} (all statuses, with provenance). */
+export interface EaEdgeDetail {
+  id: string;
+  from: string;
+  to: string;
+  type: string;
+  label: string | null;
+  origin: EaEdgeOrigin;
+  status: EaEdgeStatus;
+  confidence: number;
+  note: string | null;
+  evidence: Record<string, unknown> | null;
+  created_by: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+}
+
+export interface EaNodeDetail {
+  id: string;
+  kind: string;
+  parent: string | null;
+  name: string;
+  desc: string | null;
+  attrs: Record<string, unknown>;
+  source: string;
+  status: string;
+  verified_at: string | null;
+  verified_by: string | null;
+  qa: EaQa | null;
+  docs: EaDocLink[];
+  out: EaEdgeDetail[];
+  in: EaEdgeDetail[];
+}
+
+export interface EaHistoryItem {
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  actor: string | null;
+  at: string;
+  detail: Record<string, unknown>;
+}
+
+export interface EaEdgeCreate {
+  from_id: string;
+  to_id: string;
+  type: EaEdgeType;
+  label?: string | null;
+  note: string;
+}
+
+export interface EaEdgeUpdate {
+  type?: EaEdgeType;
+  label?: string | null;
+  note?: string | null;
+}
+
+export interface EaNodeUpdate {
+  name?: string;
+  description?: string | null;
+  parent_id?: string;
+  ctype?: EaComponentKind;
+}
+
+export interface EaQaUpdate {
+  under_qa?: boolean | null;
+  tas_ci_override?: boolean | null;
+  qa_owner?: string | null;
+  qa_notes?: string | null;
 }

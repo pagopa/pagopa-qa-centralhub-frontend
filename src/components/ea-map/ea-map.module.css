@@ -197,8 +197,9 @@
 .lc { color: var(--text-muted); font-size: 12px; margin-left: auto; flex: none; font-variant-numeric: tabular-nums; }
 
 /* drawer */
-.scrim { position: fixed; inset: 0; background: rgba(8, 14, 26, 0.35); z-index: 60; }
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--surface); z-index: 61; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; }
+/* below the Hub dialogs (z-50) so edit forms open on top of the drawer */
+.scrim { position: fixed; inset: 0; background: rgba(8, 14, 26, 0.35); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--surface); z-index: 41; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; }
 .dh { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
 .dh h2 { margin: 0; font-size: 22px; line-height: 1.15; }
 .x { margin-left: auto; border: 1px solid var(--border); background: var(--subtle); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; flex: none; }
@@ -383,3 +384,23 @@
 @media (prefers-reduced-motion: reduce) {
   .switch::after { transition: none; }
 }
+
+/* editing (relations, history) */
+.secHead { display: flex; align-items: center; gap: 10px; }
+.secHead h4 { margin-right: auto; }
+.linkBtn { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--accent) !important; font-size: 12.5px; font-weight: 600; }
+.linkBtn:hover { text-decoration: underline; }
+.rels { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rel { border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px 6px 10px; display: flex; flex-direction: column; gap: 3px; }
+.relRemoved { border-style: dashed; opacity: 0.75; }
+.relMain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.relName { border: 0; background: none; padding: 0; font-weight: 600; font-size: 13.5px; cursor: pointer; text-align: left; margin-right: 2px; }
+.relName:hover:not(:disabled) { color: var(--accent); }
+.relNote { font-size: 12.5px; color: var(--text-dim); overflow-wrap: anywhere; }
+.relAct { display: inline-flex; gap: 4px; margin-left: auto; }
+.iconBtn { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text-dim); padding: 0; }
+.iconBtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.iconBtn:disabled { opacity: 0.5; cursor: progress; }
+.iconDanger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.hist { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.hist li { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }

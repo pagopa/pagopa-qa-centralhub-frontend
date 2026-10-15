@@ -1,40 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { EaArea, EaComponent, EaEdge, EaNode, EaProduct } from "@/types/ea";
+import { useEffect, useRef, useState } from "react";
+import { Pencil } from "lucide-react";
+import type { EaArea, EaComponent, EaNode } from "@/types/ea";
+import { Gate } from "@/lib/permissions";
 import { productOf, shortName, type EaGraph } from "@/lib/ea-map/graph";
+import { EaNodeDialog, EaQaDialog } from "./EaEditDialogs";
+import { EaHistory, EaRelations } from "./EaRelations";
 import { ScoreBar, cx } from "./shared";
 import s from "./ea-map.module.css";
 
-const ORIGIN_LABEL: Record<string, string> = {
-  helm: "dal codice",
-  infra_rule: "da regola",
-  curated: "curato",
-  manual: "manuale",
-};
+/** True while a modal dialog (edit forms) is open above the drawer. */
+const dialogOpen = () => typeof document !== "undefined" && !!document.querySelector('[data-slot="dialog-content"]');
 
 type Tile = [title: string, state: "y" | "n" | "u", text: string];
 
 function yn(v: boolean | null | undefined, yes: string, no: string, unknown = "Da confermare"): ["y" | "n" | "u", string] {
   if (v === null || v === undefined) return ["u", unknown];
   return v ? ["y", yes] : ["n", no];
-}
-
-function EdgeButtons({ g, edges, side, onOpen }: { g: EaGraph; edges: EaEdge[]; side: "to" | "from"; onOpen: (id: string) => void }) {
-  return (
-    <div className={s.deps}>
-      {edges.map((e) => {
-        const other = g.byId.get(e[side]);
-        if (!other) return null;
-        return (
-          <button key={`${e.from}-${e.to}-${e.type}`} type="button" onClick={() => onOpen(other.id)} title={e.label ?? e.type}>
-            {other.name}
-            {e.origin && <span className={s.origin}>· {ORIGIN_LABEL[e.origin] ?? e.origin}</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onOpen: (id: string) => void; goTo: (id: string) => void }) {
@@ -51,8 +34,7 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
     ["Pipeline invoca TAS", ...yn(q.tas_ci ? true : null, "La CI del repo chiama il TAS", "", "Nessuna chiamata rilevata")],
     ["Analisi statica", ...yn(q.sonar, "SonarCloud in CI", "Sonar non rilevato")],
   ];
-  const out = g.outEdges.get(c.id) ?? [];
-  const inn = g.inEdges.get(c.id) ?? [];
+  const [qaOpen, setQaOpen] = useState(false);
   return (
     <>
       <p style={{ margin: 0, fontSize: 15 }}>{c.desc}</p>
@@ -61,7 +43,14 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
         <button type="button" className={cx(s.btn, s.btnGhost)} onClick={() => goTo(p.id)}>{shortName(p.name)}</button>
       </div>
       <section className={s.dbSec}>
-        <h4>Copertura QA</h4>
+        <div className={s.secHead}>
+          <h4>Copertura QA</h4>
+          <Gate action="edit:ea_qa">
+            <button type="button" className={s.linkBtn} onClick={() => setQaOpen(true)}>
+              <Pencil size={12} /> Modifica dati QA
+            </button>
+          </Gate>
+        </div>
         <div className={s.score}>
           <ScoreBar value={q.score} />
           <b>{q.score}/5</b>
@@ -75,6 +64,13 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
             </div>
           ))}
         </div>
+        {(q.qa_owner || q.qa_notes) && (
+          <dl className={s.kv}>
+            {q.qa_owner && (<><dt>Referente QA</dt><dd>{q.qa_owner}</dd></>)}
+            {q.qa_notes && (<><dt>Note QA</dt><dd style={{ whiteSpace: "pre-wrap" }}>{q.qa_notes}</dd></>)}
+          </dl>
+        )}
+        {qaOpen && <EaQaDialog component={c} open onOpenChange={setQaOpen} />}
       </section>
       <section className={s.dbSec}>
         <h4>Scheda tecnica</h4>
@@ -85,13 +81,7 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
           {c.owners.length > 0 && (<><dt>Owner GitHub</dt><dd className={s.deps}>{c.owners.map((o) => <span key={o} className={s.pill}>{o}</span>)}</dd></>)}
         </dl>
       </section>
-      {(out.length > 0 || inn.length > 0) && (
-        <section className={s.dbSec}>
-          <h4>Relazioni</h4>
-          {out.length > 0 && (<><span className={s.no}>Chiama / usa</span><EdgeButtons g={g} edges={out} side="to" onOpen={onOpen} /></>)}
-          {inn.length > 0 && (<><span className={s.no}>Usato da</span><EdgeButtons g={g} edges={inn} side="from" onOpen={onOpen} /></>)}
-        </section>
-      )}
+      <EaRelations g={g} node={c} onOpen={onOpen} />
       {c.apis.length > 0 && (
         <section className={s.dbSec}>
           <h4>Contratti API</h4>
@@ -127,7 +117,7 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
           <div className={s.deps}>
             {c.workflows.map((w) => (
               <a key={w.f} href={`${c.repo}/blob/HEAD/.github/workflows/${w.f}`} target="_blank" rel="noopener noreferrer">
-                {w.n}{w.cron ? " ⏱" : ""}
+                {w.n ?? w.f}{w.cron ? " ⏱" : ""}
               </a>
             ))}
           </div>
@@ -144,13 +134,10 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
 }
 
 function OtherBody({ g, n, onOpen }: { g: EaGraph; n: EaNode; onOpen: (id: string) => void }) {
-  const inn = g.inEdges.get(n.id) ?? [];
-  const out = g.outEdges.get(n.id) ?? [];
   return (
     <>
       <p style={{ margin: 0 }}>{n.desc}</p>
-      {inn.length > 0 && (<section className={s.dbSec}><h4>Usato da</h4><EdgeButtons g={g} edges={inn} side="from" onOpen={onOpen} /></section>)}
-      {out.length > 0 && (<section className={s.dbSec}><h4>Chiama</h4><EdgeButtons g={g} edges={out} side="to" onOpen={onOpen} /></section>)}
+      <EaRelations g={g} node={n} onOpen={onOpen} />
     </>
   );
 }
@@ -171,16 +158,17 @@ export function EaNodeDrawer({
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !dialogOpen() && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [node.id, onClose]);
 
+  const [editOpen, setEditOpen] = useState(false);
   const isComp = node.type === "component";
   const typeLabel = isComp ? node.kindLabel : node.type === "datastore" ? "Datastore" : node.type === "product" ? "Prodotto" : "Sistema esterno";
   return (
     <>
-      <div className={s.scrim} onClick={onClose} aria-hidden="true" />
+      <div className={s.scrim} onClick={() => !dialogOpen() && onClose()} aria-hidden="true" />
       <aside className={s.drawer} role="dialog" aria-modal="true" aria-label={`Dettaglio ${node.name}`}>
         <div className={s.dh}>
           <div style={{ minWidth: 0 }}>
@@ -191,6 +179,11 @@ export function EaNodeDrawer({
             </div>
             <h2>{node.name}</h2>
             {isComp && <div className={s.mono} style={{ color: "var(--text-muted)", marginTop: 2 }}>{node.id}</div>}
+            <Gate action="edit:ea_map">
+              <button type="button" className={s.linkBtn} style={{ marginTop: 6 }} onClick={() => setEditOpen(true)}>
+                <Pencil size={12} /> Modifica scheda
+              </button>
+            </Gate>
           </div>
           <button ref={closeRef} type="button" className={s.x} aria-label="Chiudi" onClick={onClose}>✕</button>
         </div>
@@ -198,10 +191,12 @@ export function EaNodeDrawer({
           {isComp ? (
             <ComponentBody g={g} c={node} onOpen={onOpen} goTo={goTo} />
           ) : (
-            <OtherBody g={g} n={node as EaProduct | EaNode} onOpen={onOpen} />
+            <OtherBody g={g} n={node} onOpen={onOpen} />
           )}
+          <EaHistory g={g} nodeId={node.id} />
         </div>
       </aside>
+      {editOpen && <EaNodeDialog key={node.id} g={g} node={node} open onOpenChange={setEditOpen} />}
     </>
   );
 }

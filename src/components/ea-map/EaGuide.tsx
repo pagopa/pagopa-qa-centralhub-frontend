@@ -14,6 +14,7 @@ const TOC: [string, string][] = [
   ["qa", "Integrazione con la QA"],
   ["maturita", "Livello di maturità"],
   ["limiti", "Limiti e cose da validare"],
+  ["correggi", "Correggere la mappa"],
   ["aggiorna", "Aggiornamento dei dati"],
   ["glossario", "Glossario"],
 ];
@@ -219,12 +220,21 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
             </ul>
           </Sec>
 
+          <Sec id="correggi" title="Correggere la mappa">
+            <p>Chi ha il permesso di modifica (di default qa_engineer, qa_manager e superadmin) corregge la mappa direttamente dalla scheda di un elemento:</p>
+            <ul>
+              <li><b>Relazioni</b>: ogni legame mostra il tipo, da dove viene (dal codice, da regola, curato, manuale) e se è <b>verificato</b> o <b>da verificare</b>. Con ✓ lo confermi, con la matita ne correggi tipo, etichetta e nota, con ✕ lo rimuovi. &quot;Aggiungi legame&quot; crea un legame nuovo: la nota è obbligatoria e serve a dire da dove viene l&apos;informazione.</li>
+              <li><b>Modifica scheda</b>: nome, descrizione, prodotto di appartenenza e tipo del componente.</li>
+              <li><b>Modifica dati QA</b> (permesso dedicato): perimetro CoE, chiamata al TAS dalla pipeline quando il rilevamento automatico sbaglia, referente e note QA. I segnali letti dai repository (test trovati, suite, NRT) restano automatici.</li>
+            </ul>
+            <p>Ogni correzione porta il nome di chi l&apos;ha fatta e finisce nello <b>Storico modifiche</b> in fondo alla scheda. Un legame rimosso non sparisce dal database: resta tra i &quot;legami rimossi&quot;, da cui si può ripristinare, e la sincronizzazione non lo riproporrà. Le correzioni manuali hanno sempre la precedenza sui dati letti da GitHub e Confluence.</p>
+          </Sec>
+
           <Sec id="aggiorna" title="Aggiornamento dei dati">
             <p>I dati sono su PostgreSQL. Il primo caricamento importa la knowledge base prodotta dagli script di discovery. In arrivo:</p>
             <ul>
               <li>una <b>sincronizzazione settimanale</b> con GitHub e Confluence, forzabile dal pulsante &quot;Sincronizza ora&quot;, che applica da sola le variazioni di metadati e propone a un revisore (qa_manager o superadmin) quelle strutturali: repo nuovi o archiviati, legami nuovi o spariti;</li>
-              <li>la possibilità di <b>correggere e aggiungere legami</b> dalla mappa, con lo storico delle modifiche;</li>
-              <li>la distinzione tra ciò che è stato rilevato automaticamente e ciò che è stato confermato da una persona, così una sincronizzazione non cancella mai una correzione.</li>
+              <li>la distinzione, già attiva, tra ciò che è stato rilevato automaticamente e ciò che è stato confermato da una persona, così una sincronizzazione non cancella mai una correzione.</li>
             </ul>
           </Sec>
 
