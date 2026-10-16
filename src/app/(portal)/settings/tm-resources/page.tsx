@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
+import { ABSENCE_SOURCE_LABEL, isWeekend, italianHolidays } from "@/lib/tm-calendar";
 import {
   useTmResources,
   useCreateTmResource,
@@ -10,6 +11,7 @@ import {
   useTmAbsences,
   useCreateTmAbsence,
   useDeleteTmAbsence,
+  useDeleteAllTmAbsences,
   useImportTmAbsencesCsv,
   useSyncConfluenceAbsences,
   useTmCostReport,
@@ -530,9 +532,23 @@ function days_in_month(year: number, month: number) {
   return new Date(year, month, 0).getDate(); // month is 1-based here
 }
 
-function is_weekend(year: number, month: number, day: number) {
-  const dow = new Date(year, month - 1, day).getDay();
-  return dow === 0 || dow === 6;
+const NON_WORKING_BG = "color-mix(in srgb, var(--subtle) 60%, transparent)";
+
+/** Solid = Confluence, solid with outline = manual, hollow = CSV/ICS import. */
+function absenceSwatchStyle(color: string, source: string): React.CSSProperties {
+  if (source === "manual") return { background: color, boxShadow: "0 0 0 1.5px var(--bg), 0 0 0 3px var(--text)" };
+  if (source === "csv") return { background: "transparent", border: `2px solid ${color}` };
+  return { background: color };
+}
+
+function absenceTitle(absence: ResourceAbsence): string {
+  const type = absence.absence_type.charAt(0).toUpperCase() + absence.absence_type.slice(1);
+  const source = ABSENCE_SOURCE_LABEL[absence.source] ?? absence.source;
+  const hint =
+    absence.source === "manual" ? "Clic per rimuovere"
+      : absence.source === "confluence" ? "Si aggiorna con il Sync Confluence"
+        : "Importata da file";
+  return `${type} · ${source}${absence.note ? ` — ${absence.note}` : ""}\n${hint}`;
 }
 
 function CalendarioTab() {
@@ -546,10 +562,13 @@ function CalendarioTab() {
   const { data: absences = [], isLoading: loadingAbs } = useTmAbsences({ year, month });
   const deleteAbsence = useDeleteTmAbsence();
   const syncMutation = useSyncConfluenceAbsences();
+  const deleteAll = useDeleteAllTmAbsences();
   const importCsvMutation = useImportTmAbsencesCsv();
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const nDays = days_in_month(year, month);
+  const holidays = italianHolidays(year, month);
+  const isNonWorking = (d: number) => isWeekend(year, month, d) || holidays.has(d);
   const absenceMap: Record<string, Record<number, ResourceAbsence>> = {};
   for (const a of absences) {
     const d = new Date(a.absence_date).getUTCDate();
@@ -566,8 +585,32 @@ function CalendarioTab() {
 
   async function handleSync() {
     setSyncMsg(null);
-    const result = await syncMutation.mutateAsync({ year, month });
-    setSyncMsg(`Sincronizzati ${result.synced} giorni da Confluence.${result.errors.length > 0 ? ` Errori: ${result.errors.join(", ")}` : ""}`);
+    try {
+      const result = await syncMutation.mutateAsync();
+      const fmt = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString("it-IT") : "");
+      const period = result.period_start ? ` (${fmt(result.period_start)} – ${fmt(result.period_end)})` : "";
+      setSyncMsg(
+        `Sincronizzati ${result.synced} giorni da Confluence${period}.` +
+          (result.errors.length > 0 ? ` Note: ${result.errors.join(" | ")}` : ""),
+      );
+    } catch (err: unknown) {
+      setSyncMsg(err instanceof Error ? err.message : "Errore durante il sync Confluence");
+    }
+  }
+
+  async function handleDeleteAll() {
+    const ok = window.confirm(
+      "Eliminare TUTTE le assenze di tutte le risorse, in tutti i mesi (Confluence, manuali e importate)?\n\nL'operazione non si può annullare.",
+    );
+    if (!ok) return;
+    setSyncMsg(null);
+    setImportMsg(null);
+    try {
+      const { deleted } = await deleteAll.mutateAsync();
+      setSyncMsg(`Eliminate ${deleted} assenze. Usa Sync Confluence per ricaricare i mesi che ti servono.`);
+    } catch (err: unknown) {
+      setSyncMsg(err instanceof Error ? err.message : "Errore durante l'eliminazione");
+    }
   }
 
   async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -614,9 +657,15 @@ function CalendarioTab() {
             className="px-3 py-1.5 text-[13px] rounded-[var(--radius-sm)] border border-border text-text-dim hover:bg-hover">
             + Assenza manuale
           </button>
+          <button onClick={handleDeleteAll} disabled={deleteAll.isPending}
+            title="Elimina tutte le assenze di tutti i mesi"
+            className="px-3 py-1.5 text-[13px] rounded-[var(--radius-sm)] border border-[var(--danger)] text-[var(--danger)] hover:bg-hover disabled:opacity-50">
+            {deleteAll.isPending ? "Svuoto…" : "Svuota tutto"}
+          </button>
           <button onClick={handleSync} disabled={syncMutation.isPending}
+            title="Sincronizza tutti i mesi, dall'inizio dell'anno scorso alla fine del prossimo"
             className="px-3 py-1.5 text-[13px] rounded-[var(--radius-sm)] bg-accent text-white disabled:opacity-50">
-            {syncMutation.isPending ? "Sync…" : "↺ Sync Confluence"}
+            {syncMutation.isPending ? "Sync in corso…" : "↺ Sync Confluence"}
           </button>
         </div>
       </div>
@@ -630,20 +679,36 @@ function CalendarioTab() {
       )}
 
       <p className="text-[11px] text-text-muted">
-        Supporta CSV (<span className="font-mono">email</span>, <span className="font-mono">absence_date</span>, opzionali <span className="font-mono">absence_type</span>, <span className="font-mono">note</span>) e ICS (eventi con attendee/organizer email).
+        <span className="font-medium">Sync Confluence</span> legge il calendario del team nello spazio QDP (eventi e ferie): le voci a giornata intera diventano <span className="font-medium">ferie</span>, quelle con orario <span className="font-medium">permesso</span>. Sincronizza tutto il periodo dall&apos;inizio dell&apos;anno scorso alla fine del prossimo, non solo il mese visualizzato: sostituisce le assenze Confluence con quelle presenti in quel momento; assenze manuali e importate non vengono toccate.
+      </p>
+
+      <p className="text-[11px] text-text-muted">
+        Importa file: supporta CSV (<span className="font-mono">email</span>, <span className="font-mono">absence_date</span>, opzionali <span className="font-mono">absence_type</span>, <span className="font-mono">note</span>) e ICS (eventi con attendee/organizer email).
       </p>
 
       {/* Legend */}
-      <div className="flex gap-4 flex-wrap">
-        {ABSENCE_TYPES.map((t) => (
-          <div key={t} className="flex items-center gap-1.5 text-[12px] text-text-dim">
-            <div className="w-3 h-3 rounded-sm" style={{ background: ABSENCE_COLOR[t] }} />
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-4 flex-wrap items-center">
+          <span className="text-[11px] uppercase tracking-wide text-text-muted w-12">Tipo</span>
+          {ABSENCE_TYPES.map((t) => (
+            <div key={t} className="flex items-center gap-1.5 text-[12px] text-text-dim">
+              <div className="w-3 h-3 rounded-sm" style={{ background: ABSENCE_COLOR[t] }} />
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5 text-[12px] text-text-dim">
+            <div className="w-3 h-3 rounded-sm border border-border" style={{ background: NON_WORKING_BG }} />
+            Weekend / festivo
           </div>
-        ))}
-        <div className="flex items-center gap-1.5 text-[12px] text-text-dim">
-          <div className="w-3 h-3 rounded-sm bg-subtle" />
-          WE / festivo
+        </div>
+        <div className="flex gap-4 flex-wrap items-center">
+          <span className="text-[11px] uppercase tracking-wide text-text-muted w-12">Fonte</span>
+          {(["confluence", "manual", "csv"] as const).map((s) => (
+            <div key={s} className="flex items-center gap-1.5 text-[12px] text-text-dim">
+              <div className="w-3 h-3 rounded-sm" style={absenceSwatchStyle("var(--text-muted)", s)} />
+              {ABSENCE_SOURCE_LABEL[s]}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -660,14 +725,15 @@ function CalendarioTab() {
                   Risorsa
                 </th>
                 {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
-                  const we = is_weekend(year, month, d);
+                  const off = isNonWorking(d);
                   return (
                     <th key={d}
                       className="px-1 py-2 text-center font-mono border-b border-border"
+                      title={holidays.has(d) ? "Festivo" : undefined}
                       style={{
-                        color: we ? "var(--text-muted)" : "var(--text-dim)",
+                        color: off ? "var(--text-muted)" : "var(--text-dim)",
                         minWidth: 28,
-                        background: we ? "color-mix(in srgb, var(--subtle) 60%, transparent)" : "transparent",
+                        background: off ? NON_WORKING_BG : "transparent",
                       }}>
                       {d}
                     </th>
@@ -682,26 +748,26 @@ function CalendarioTab() {
                     {r.first_name} {r.last_name}
                   </td>
                   {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
-                    const we = is_weekend(year, month, d);
+                    const off = isNonWorking(d);
                     const absence = absenceMap[r.id]?.[d];
+                    const color = absence ? ABSENCE_COLOR[absence.absence_type] ?? "var(--text-muted)" : "";
+                    const removable = absence?.source === "manual";
                     return (
                       <td key={d}
                         className="px-0.5 py-1 text-center relative group"
                         style={{
-                          background: we
-                            ? "color-mix(in srgb, var(--subtle) 40%, transparent)"
+                          background: off
+                            ? NON_WORKING_BG
                             : absence
-                              ? `color-mix(in srgb, ${ABSENCE_COLOR[absence.absence_type] ?? "var(--text-muted)"} 20%, transparent)`
+                              ? `color-mix(in srgb, ${color} 20%, transparent)`
                               : "transparent",
                         }}>
                         {absence && (
                           <div
-                            className="w-4 h-4 rounded-sm mx-auto cursor-pointer hover:opacity-70 transition-opacity"
-                            style={{ background: ABSENCE_COLOR[absence.absence_type] ?? "var(--text-muted)" }}
-                            title={`${absence.absence_type} (${absence.source})\nClicca per rimuovere`}
-                            onClick={() => {
-                              if (absence.source === "manual") deleteAbsence.mutate(absence.id);
-                            }}
+                            className={`w-4 h-4 rounded-sm mx-auto ${removable ? "cursor-pointer hover:opacity-70 transition-opacity" : "cursor-default"}`}
+                            style={absenceSwatchStyle(color, absence.source)}
+                            title={absenceTitle(absence)}
+                            onClick={removable ? () => deleteAbsence.mutate(absence.id) : undefined}
                           />
                         )}
                       </td>
