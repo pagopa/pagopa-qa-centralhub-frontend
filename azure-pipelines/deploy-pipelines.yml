@@ -25,7 +25,8 @@ parameters:
 #   {ENV}_CONTAINER_REGISTRY_SERVICE_CONN, {ENV}_CONTAINER_NAMESPACE,
 #   {ENV}_NEXT_PUBLIC_API_URL, {ENV}_NEXTAUTH_URL,
 #   {ENV}_NEXTAUTH_SECRET, {ENV}_GOOGLE_CLIENT_ID, {ENV}_GOOGLE_CLIENT_SECRET
-# Also configure {ENV}_NEXT_PUBLIC_NRT_METRICS_URL for each target environment.
+# Optional: {ENV}_NEXT_PUBLIC_NRT_METRICS_URL overrides the frontend default.
+# Runtime expressions resolve missing overrides to empty strings, not literal macros.
 variables:
   - ${{ if eq(parameters['ENV'], 'dev') }}:
       - name: AZURE_SUBSCRIPTION
@@ -43,7 +44,7 @@ variables:
       - name: NEXT_PUBLIC_API_URL
         value: $(DEV_NEXT_PUBLIC_API_URL)
       - name: NEXT_PUBLIC_NRT_METRICS_URL
-        value: $(DEV_NEXT_PUBLIC_NRT_METRICS_URL)
+        value: $[variables['DEV_NEXT_PUBLIC_NRT_METRICS_URL']]
       - name: NEXTAUTH_URL
         value: $(DEV_NEXTAUTH_URL)
       - name: NEXTAUTH_SECRET
@@ -70,7 +71,7 @@ variables:
       - name: NEXT_PUBLIC_API_URL
         value: $(UAT_NEXT_PUBLIC_API_URL)
       - name: NEXT_PUBLIC_NRT_METRICS_URL
-        value: $(UAT_NEXT_PUBLIC_NRT_METRICS_URL)
+        value: $[variables['UAT_NEXT_PUBLIC_NRT_METRICS_URL']]
       - name: NEXTAUTH_URL
         value: $(UAT_NEXTAUTH_URL)
       - name: NEXTAUTH_SECRET
@@ -97,7 +98,7 @@ variables:
       - name: NEXT_PUBLIC_API_URL
         value: $(PROD_NEXT_PUBLIC_API_URL)
       - name: NEXT_PUBLIC_NRT_METRICS_URL
-        value: $(PROD_NEXT_PUBLIC_NRT_METRICS_URL)
+        value: $[variables['PROD_NEXT_PUBLIC_NRT_METRICS_URL']]
       - name: NEXTAUTH_URL
         value: $(PROD_NEXTAUTH_URL)
       - name: NEXTAUTH_SECRET

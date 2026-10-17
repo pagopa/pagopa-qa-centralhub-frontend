@@ -110,9 +110,12 @@ Riavviare `pnpm dev` dopo la modifica. Se il valore esplicitamente impostato non
 valido, la voce resta disabilitata e il tooltip segnala l'errore di configurazione.
 La variabile e' pubblica: non deve contenere token o credenziali.
 
-In Azure DevOps configurare `DEV_NEXT_PUBLIC_NRT_METRICS_URL`,
+In Azure DevOps e' possibile configurare `DEV_NEXT_PUBLIC_NRT_METRICS_URL`,
 `UAT_NEXT_PUBLIC_NRT_METRICS_URL` e `PROD_NEXT_PUBLIC_NRT_METRICS_URL` nelle variabili
 della pipeline (o nella definizione Terraform che le gestisce).
+Questi override sono opzionali: le espressioni runtime della pipeline risolvono
+le variabili assenti in stringhe vuote, consentendo l'uso del default del frontend
+senza passare macro Azure DevOps non risolte alla build.
 La pipeline passa il valore selezionato al build argument Docker
 `NEXT_PUBLIC_NRT_METRICS_URL`. Next.js lo incorpora durante la build:
 cambiare solo l'ambiente del container in esecuzione non basta; occorre ricostruire
