@@ -32,6 +32,9 @@ import { useStoredFlag } from "@/lib/stored-flag";
 const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const DEFAULT_NRT_METRICS_URL =
+  "https://pagopa-d-weu-grafana-emfwascrf8c4fyce.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics"
+  + "?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&kiosk";
 
 interface NavItem {
   href: string;
@@ -99,7 +102,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 ];
 
 export function Sidebar() {
-  const configuredDashboardUrl = process.env.NEXT_PUBLIC_NRT_METRICS_URL?.trim();
+  const configuredDashboardUrl = process.env.NEXT_PUBLIC_NRT_METRICS_URL?.trim() || DEFAULT_NRT_METRICS_URL;
   const dashboardUrl = configuredDashboardUrl
     && URL.canParse(configuredDashboardUrl)
     && ["https:", "http:"].includes(new URL(configuredDashboardUrl).protocol)

@@ -97,14 +97,16 @@ senza pagina intermedia o iframe. L'icona di link esterno e il tooltip indicano
 l'apertura in una nuova scheda anche con il menu ridotto.
 L'autenticazione Microsoft avviene direttamente su Grafana.
 
-Impostare `NEXT_PUBLIC_NRT_METRICS_URL` con l'URL completo della dashboard nella
+Se `NEXT_PUBLIC_NRT_METRICS_URL` non e' impostata, e' vuota o contiene solo spazi,
+viene utilizzata la dashboard Grafana di DEV riportata sotto.
+Per sovrascriverla, impostare la variabile con l'URL completo della dashboard nella
 configurazione locale (`.env.local`), ad esempio:
 
 ```dotenv
 NEXT_PUBLIC_NRT_METRICS_URL="https://pagopa-d-weu-grafana-emfwascrf8c4fyce.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&kiosk"
 ```
 
-Riavviare `pnpm dev` dopo la modifica. Se il valore manca o non e' un URL HTTP/HTTPS
+Riavviare `pnpm dev` dopo la modifica. Se il valore esplicitamente impostato non e' un URL HTTP/HTTPS
 valido, la voce resta disabilitata e il tooltip segnala l'errore di configurazione.
 La variabile e' pubblica: non deve contenere token o credenziali.
 

@@ -89,7 +89,28 @@ describe("Sidebar feature visibility", () => {
     expect(labels.indexOf("NRT Metrics")).toBe(labels.indexOf("SANP Health") + 1);
   });
 
-  it.each([undefined, "", "not-a-url", "javascript:alert(1)"])(
+  it.each([undefined, "", "   "])(
+    "uses the original Grafana dashboard as default for %s",
+    async (url) => {
+      vi.stubEnv("NEXT_PUBLIC_NRT_METRICS_URL", url);
+      mocks.apiClient.mockResolvedValue({
+        items: featureItems.map(([key, label, route, action, external]) => ({
+          key, label, route, action, external, enabled: true,
+        })),
+      });
+      renderSidebar();
+
+      const link = await screen.findByRole("link", { name: "NRT Metrics" });
+      expect(link).toHaveAttribute(
+        "href",
+        "https://pagopa-d-weu-grafana-emfwascrf8c4fyce.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&kiosk",
+      );
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    },
+  );
+
+  it.each(["not-a-url", "javascript:alert(1)"])(
     "disables NRT Metrics and explains invalid configuration for %s",
     async (url) => {
       vi.stubEnv("NEXT_PUBLIC_NRT_METRICS_URL", url);
