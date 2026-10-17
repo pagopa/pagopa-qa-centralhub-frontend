@@ -652,6 +652,8 @@ export interface CostReport {
 export interface TmSyncResult {
   synced: number
   errors: string[]
+  period_start?: string | null
+  period_end?: string | null
 }
 
 export interface ResourceAbsenceCsvRow {

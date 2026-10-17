@@ -159,6 +159,14 @@ export function useDqInstances(
   });
 }
 
+/** Every control instance of every domain (totals and Excel export). */
+export function useDqAllInstances() {
+  return useQuery<DqControlInstance[]>({
+    queryKey: ["dq", "instances", "all", "all", "all", "all"],
+    queryFn: () => apiClient<DqControlInstance[]>("/api/v1/dq/instances"),
+  });
+}
+
 export function useDqInstanceTables(domainId?: string, category?: DqCategory) {
   return useQuery<string[]>({
     queryKey: ["dq", "instance-tables", domainId ?? "all", category ?? "all"],
