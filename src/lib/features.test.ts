@@ -5,7 +5,8 @@ describe("featureKeyForPath", () => {
   it.each([
     ["/", "overview"],
     ["/e2e/runs/123", "e2e"],
-    ["/metrics/", "metrics"],
+    ["/nrt-metrics/", null],
+    ["/metrics", null],
     ["/data-hub/psp-fees", "psp_fees"],
     ["/data-hub/gpd-positions", "gpd_positions"],
     ["/data-quality/catalog", "dq_catalog"],

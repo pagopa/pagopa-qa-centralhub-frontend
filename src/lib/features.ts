@@ -6,7 +6,6 @@ const FEATURE_ROUTES = [
   { route: "/e2e", key: "e2e" },
   { route: "/sanp-health", key: "sanp_health" },
   { route: "/jira", key: "jira" },
-  { route: "/metrics", key: "metrics" },
   { route: "/data-hub/psp-fees", key: "psp_fees" },
   { route: "/data-hub/gpd-positions", key: "gpd_positions" },
   { route: "/data-quality/catalog", key: "dq_catalog" },
