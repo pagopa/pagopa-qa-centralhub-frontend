@@ -89,6 +89,33 @@ La route `/sanp-health` apre l'ultimo report completo disponibile e permette di 
 
 I run parziali restano consultabili nello storico senza sostituire il report completo predefinito. Gli avvisi segnalano dati non aggiornati o report incompleti. Il pulsante **Sincronizza ora** è disponibile agli utenti con permesso `sync:trigger`; l'accesso alla route richiede `view:sanp_health`.
 
+## NRT Metrics
+
+La voce **NRT Metrics** in **Test Results** (feature `nrt_metrics`, permesso
+`view:nrt_metrics`) apre direttamente la dashboard Grafana in una nuova scheda,
+senza pagina intermedia o iframe. L'icona di link esterno e il tooltip indicano
+l'apertura in una nuova scheda anche con il menu ridotto.
+L'autenticazione Microsoft avviene direttamente su Grafana.
+
+Impostare `NEXT_PUBLIC_NRT_METRICS_URL` con l'URL completo della dashboard nella
+configurazione locale (`.env.local`), ad esempio:
+
+```dotenv
+NEXT_PUBLIC_NRT_METRICS_URL="https://pagopa-d-weu-grafana-emfwascrf8c4fyce.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&kiosk"
+```
+
+Riavviare `pnpm dev` dopo la modifica. Se il valore manca o non e' un URL HTTP/HTTPS
+valido, la voce resta disabilitata e il tooltip segnala l'errore di configurazione.
+La variabile e' pubblica: non deve contenere token o credenziali.
+
+In Azure DevOps configurare `DEV_NEXT_PUBLIC_NRT_METRICS_URL`,
+`UAT_NEXT_PUBLIC_NRT_METRICS_URL` e `PROD_NEXT_PUBLIC_NRT_METRICS_URL` nelle variabili
+della pipeline (o nella definizione Terraform che le gestisce).
+La pipeline passa il valore selezionato al build argument Docker
+`NEXT_PUBLIC_NRT_METRICS_URL`. Next.js lo incorpora durante la build:
+cambiare solo l'ambiente del container in esecuzione non basta; occorre ricostruire
+e distribuire l'immagine.
+
 ## Auth & RBAC
 
 Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend chiama `POST /api/v1/users/sync-login` sul backend, che crea/aggiorna l'utente e restituisce `role` + `is_active`.

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "./Sidebar";
 
 const mocks = vi.hoisted(() => ({
@@ -20,7 +20,7 @@ const featureItems = [
   ["e2e", "E2E", "/e2e", "view:e2e", false],
   ["sanp_health", "SANP Health", "/sanp-health", "view:sanp_health", false],
   ["jira", "KPI Jira", "/jira", "view:jira", false],
-  ["metrics", "Metriche", "/metrics", "view:metrics", false],
+  ["nrt_metrics", "NRT Metrics", "/nrt-metrics", "view:nrt_metrics", false],
   ["psp_fees", "PSP Commissioni", "/data-hub/psp-fees", "view:data_hub", false],
   ["gpd_positions", "Posizioni Debitorie GPD", "/data-hub/gpd-positions", "view:data_hub", false],
   ["dq_catalog", "Catalogo Controlli", "/data-quality/catalog", "view:data_quality", false],
@@ -45,6 +45,14 @@ function renderSidebar() {
 
 describe("Sidebar feature visibility", () => {
   beforeEach(() => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    });
+    vi.stubEnv("NEXT_PUBLIC_NRT_METRICS_URL", "https://grafana.example.com/d/nrt?orgId=1&kiosk");
+    mocks.can.mockImplementation((action: string) => Boolean(action));
     mocks.apiClient.mockReset();
     mocks.apiClient.mockResolvedValue({
       items: featureItems.map(([key, label, route, action, external]) => ({
@@ -53,10 +61,51 @@ describe("Sidebar feature visibility", () => {
         route,
         action,
         external,
-        enabled: key !== "metrics",
+        enabled: key !== "nrt_metrics",
       })),
     });
   });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens NRT Metrics directly in a new tab with an external-link indicator", async () => {
+    mocks.apiClient.mockResolvedValue({
+      items: featureItems.map(([key, label, route, action, external]) => ({
+        key, label, route, action, external, enabled: true,
+      })),
+    });
+    renderSidebar();
+
+    const link = await screen.findByRole("link", { name: "NRT Metrics" });
+    expect(link).toHaveAttribute("href", "https://grafana.example.com/d/nrt?orgId=1&kiosk");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute("title", "NRT Metrics (si apre in una nuova scheda)");
+    expect(link.querySelector(".lucide-external-link")).toBeInTheDocument();
+    const labels = screen.getAllByRole("link").map((item) => item.textContent?.trim());
+    expect(labels.indexOf("NRT Metrics")).toBe(labels.indexOf("SANP Health") + 1);
+  });
+
+  it.each([undefined, "", "not-a-url", "javascript:alert(1)"])(
+    "disables NRT Metrics and explains invalid configuration for %s",
+    async (url) => {
+      vi.stubEnv("NEXT_PUBLIC_NRT_METRICS_URL", url);
+      mocks.apiClient.mockResolvedValue({
+        items: featureItems.map(([key, label, route, action, external]) => ({
+          key, label, route, action, external, enabled: true,
+        })),
+      });
+      renderSidebar();
+
+      const item = await screen.findByText("NRT Metrics");
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      expect(item).toHaveAttribute("title", expect.stringContaining("NEXT_PUBLIC_NRT_METRICS_URL"));
+      expect(screen.queryByRole("link", { name: "NRT Metrics" })).not.toBeInTheDocument();
+    },
+  );
 
   it("lists the architecture map right after the overview", async () => {
     renderSidebar();
@@ -70,11 +119,11 @@ describe("Sidebar feature visibility", () => {
     renderSidebar();
 
     expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Metriche" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "NRT Metrics" })).not.toBeInTheDocument();
   });
 
   it("continues to hide pages denied by RBAC even when their toggle is enabled", async () => {
-    mocks.can.mockImplementation((action) => action !== "view:metrics");
+    mocks.can.mockImplementation((action) => action !== "view:nrt_metrics");
     mocks.apiClient.mockResolvedValue({
       items: featureItems.map(([key, label, route, action, external]) => ({
         key,
@@ -89,7 +138,7 @@ describe("Sidebar feature visibility", () => {
     renderSidebar();
 
     expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Metriche" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "NRT Metrics" })).not.toBeInTheDocument();
   });
 
   it("hides the external API Docs link when its feature is disabled", async () => {
@@ -129,7 +178,11 @@ describe("Sidebar feature visibility", () => {
   });
 
   it("collapses to an icon rail and keeps accessible link names", async () => {
-    window.localStorage.removeItem("qa-hub-sidebar-collapsed");
+    mocks.apiClient.mockResolvedValue({
+      items: featureItems.map(([key, label, route, action, external]) => ({
+        key, label, route, action, external, enabled: true,
+      })),
+    });
     renderSidebar();
 
     expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
@@ -137,6 +190,10 @@ describe("Sidebar feature visibility", () => {
 
     expect(document.documentElement.getAttribute("data-sidebar")).toBe("collapsed");
     expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("title", "Overview");
+    const nrtLink = screen.getByRole("link", { name: "NRT Metrics" });
+    expect(nrtLink).toHaveAttribute("target", "_blank");
+    expect(nrtLink).toHaveAttribute("title", "NRT Metrics (si apre in una nuova scheda)");
+    expect(nrtLink.querySelector(".lucide-external-link")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Espandi menu" }));
     expect(document.documentElement.hasAttribute("data-sidebar")).toBe(false);
   });

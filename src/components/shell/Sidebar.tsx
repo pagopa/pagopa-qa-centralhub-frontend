@@ -4,9 +4,11 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
   BookOpen,
   CreditCard,
   Database,
+  ExternalLink,
   FileText,
   Home,
   LayoutGrid,
@@ -59,6 +61,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e", featureKey: "e2e" },
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health", featureKey: "sanp_health" },
+      { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },
     ],
   },
   {
@@ -79,12 +82,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality", featureKey: "dq_domains" },
     ],
   },
-   {
-    label: "Data Analysis",
-    items: [
-      { href: "/metrics/", label: "Metriche", icon: Database, action: "view:metrics", featureKey: "metrics" },
-    ],
-  },
   {
     label: "Knowledge Base",
     items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs", featureKey: "docs" }],
@@ -102,6 +99,12 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 ];
 
 export function Sidebar() {
+  const configuredDashboardUrl = process.env.NEXT_PUBLIC_NRT_METRICS_URL?.trim();
+  const dashboardUrl = configuredDashboardUrl
+    && URL.canParse(configuredDashboardUrl)
+    && ["https:", "http:"].includes(new URL(configuredDashboardUrl).protocol)
+    ? configuredDashboardUrl
+    : "";
   const pathname = usePathname();
   const { can, role, isLoading } = usePermissions();
   const featuresQuery = useFeatureVisibility();
@@ -126,6 +129,7 @@ export function Sidebar() {
 
   return (
     <aside className="flex flex-col h-screen border-r border-border bg-surface">
+      <span id="sidebar-new-tab" className="sr-only">Si apre in una nuova scheda</span>
       {/* Brand */}
       <div
         className={`flex items-center gap-[10px] border-b border-border ${collapsed ? "justify-center px-2" : "px-4"}`}
@@ -180,6 +184,7 @@ export function Sidebar() {
                 </div>
               )}
               {items.map((item) => {
+                const href = item.featureKey === "nrt_metrics" ? dashboardUrl : item.href;
                 const isActive =
                   !item.external &&
                   (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
@@ -195,18 +200,37 @@ export function Sidebar() {
                 const label = collapsed ? <span className="sr-only">{item.label}</span> : item.label;
 
                 if (item.external) {
+                  if (!href) {
+                    return (
+                      <span
+                        key={item.featureKey}
+                        aria-disabled="true"
+                        className={`${linkClassName} cursor-not-allowed opacity-50`}
+                        style={linkStyle}
+                        title={`${item.label}: configurare NEXT_PUBLIC_NRT_METRICS_URL con un URL HTTP o HTTPS valido`}
+                      >
+                        <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} aria-hidden="true" />
+                        {label}
+                      </span>
+                    );
+                  }
                   return (
                     <a
-                      key={item.href}
-                      href={item.href}
+                      key={href}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={linkClassName}
                       style={linkStyle}
-                      title={collapsed ? item.label : undefined}
+                      title={`${item.label} (si apre in una nuova scheda)`}
+                      aria-describedby="sidebar-new-tab"
                     >
-                      <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} />
+                      <span className="relative shrink-0">
+                        <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} aria-hidden="true" />
+                        {collapsed && <ExternalLink size={9} className="absolute -right-1 -bottom-1 bg-surface" aria-hidden="true" />}
+                      </span>
                       {label}
+                      {!collapsed && <ExternalLink size={12} className="ml-auto shrink-0" aria-hidden="true" />}
                     </a>
                   );
                 }
