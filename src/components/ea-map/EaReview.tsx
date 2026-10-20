@@ -14,7 +14,7 @@ import {
 } from "@/hooks/useEaMap";
 import { KIND_GROUP, KIND_ORDER, type EaGraph } from "@/lib/ea-map/graph";
 import type { EaChange, EaComponentKind, EaSyncRun } from "@/types/ea";
-import { EDGE_TYPE_LABEL } from "./EaEditDialogs";
+import { DATA_EDGE_LABEL, EDGE_TYPE_LABEL } from "./EaEditDialogs";
 import { Crumbs, cx } from "./shared";
 import s from "./ea-map.module.css";
 
@@ -71,11 +71,12 @@ export function EaSyncBar({ onReview }: { onReview: () => void }) {
 
 /* ── Review queue ─────────────────────────────────────────────── */
 
-type Group = "new" | "archived" | "edge_add" | "edge_remove" | "conflict";
+type Group = "new" | "archived" | "producer" | "edge_add" | "edge_remove" | "conflict";
 
 const GROUPS: [Group, string, string][] = [
   ["new", "Nuovi repository", "Repository dell'organizzazione con un owner già presente nella mappa. Scegli il prodotto e il tipo, oppure ignorali: non verranno riproposti."],
-  ["archived", "Repository archiviati", "Componenti il cui repository è archiviato o non esiste più. Archiviandoli spariscono dalla mappa insieme ai loro legami."],
+  ["archived", "Repository e contratti archiviati", "Componenti il cui repository è archiviato o non esiste più, e dataset il cui data contract è stato tolto. Archiviandoli spariscono dalla mappa insieme ai loro legami."],
+  ["producer", "Produttori del Data Lake", "Chi invia i dati di un'ingestion al Data Lake, proposto confrontando il topic del data contract con i componenti della mappa. Confermandoli compaiono nella vista Data Lake; rifiutandoli non vengono riproposti."],
   ["edge_add", "Nuove dipendenze", "Legami trovati nella configurazione Helm di produzione. Confermandoli diventano verificati; rifiutandoli non vengono riproposti."],
   ["edge_remove", "Dipendenze sparite", "Legami rilevati in passato dal codice che oggi non compaiono più nella configurazione."],
   ["conflict", "Conflitti", "Legami confermati da una persona che la configurazione non riporta più: decidi tu se esistono ancora."],
@@ -84,6 +85,7 @@ const GROUPS: [Group, string, string][] = [
 function groupOf(c: EaChange): Group {
   if (c.status === "conflict") return "conflict";
   if (c.entity === "node") return c.op === "add" ? "new" : "archived";
+  if (c.op === "add" && c.target_id.endsWith(":produces")) return "producer";
   return c.op === "add" ? "edge_add" : "edge_remove";
 }
 
@@ -220,16 +222,25 @@ function ChangeCard({ g, change, onOpen }: { g: EaGraph; change: EaChange; onOpe
     );
   }
   const e = edgeParts(change);
-  const evidence = ((change.after ?? {}).evidence ?? {}) as { value?: string };
+  const after = (change.after ?? {}) as { confidence?: number; evidence?: { value?: string; topic?: string; rule?: string } };
+  const evidence = after.evidence ?? {};
+  const typeLabel = EDGE_TYPE_LABEL[e.type as keyof typeof EDGE_TYPE_LABEL] ?? DATA_EDGE_LABEL[e.type] ?? e.type;
   return (
     <li className={s.revItem}>
       <div className={s.revHead}>
         {link(e.from)} <span className={s.no}>→</span> {link(e.to)}
-        <span className={s.pill}>{EDGE_TYPE_LABEL[e.type as keyof typeof EDGE_TYPE_LABEL] ?? e.type}</span>
+        <span className={s.pill}>{typeLabel}</span>
+        {after.confidence !== undefined && <span className={s.pill}>confidenza {after.confidence}%</span>}
       </div>
       {evidence.value && <p className={cx(s.relNote, s.mono)}>{evidence.value}</p>}
+      {evidence.topic && (
+        <p className={s.relNote}>
+          Topic <span className={s.mono}>{evidence.topic}</span>
+          {evidence.rule && <> · {evidence.rule}</>}
+        </p>
+      )}
       <Gate action="review:ea_map">
-        {group === "edge_add" ? (
+        {group === "edge_add" || group === "producer" ? (
           <Decision change={change} approveLabel="Conferma" rejectLabel="Rifiuta" />
         ) : (
           <Decision change={change} approveLabel="Rimuovi" rejectLabel="Esiste ancora" />
@@ -313,7 +324,7 @@ function BulkButtons({ ids, group }: { ids: string[]; group: Group }) {
         },
       },
     );
-  const [ok, ko] = group === "edge_add" ? ["Conferma tutte", "Rifiuta tutte"] : group === "archived" ? ["Archivia tutti", "Mantieni tutti"] : ["Rimuovi tutte", "Mantieni tutte"];
+  const [ok, ko] = group === "edge_add" || group === "producer" ? ["Conferma tutte", "Rifiuta tutte"] : group === "archived" ? ["Archivia tutti", "Mantieni tutti"] : ["Rimuovi tutte", "Mantieni tutte"];
   return (
     <Gate action="review:ea_map">
       <span className={s.revAct}>
@@ -344,7 +355,7 @@ export function EaReview({ g, goTo, onOpen }: { g: EaGraph; goTo: (id: string | 
       <div className={s.revIntro}>
         <h1 className={s.h2}>Revisione della sincronizzazione</h1>
         <p className={s.intro}>
-          Ogni settimana (e quando qualcuno preme &quot;Sincronizza ora&quot;) la mappa rilegge GitHub e Confluence. I dati osservati si
+          Ogni settimana (e quando qualcuno preme &quot;Sincronizza ora&quot;) la mappa rilegge GitHub, Confluence e i data contract del Data Lake. I dati osservati si
           aggiornano da soli; i cambiamenti di struttura aspettano qui una decisione. Ogni scelta resta nello storico del nodo e
           non viene riproposta.
         </p>

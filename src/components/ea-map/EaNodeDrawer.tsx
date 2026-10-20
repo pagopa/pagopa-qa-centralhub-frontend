@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import type { EaArea, EaComponent, EaNode } from "@/types/ea";
-import { DataLakeFeeds, DatasetBody } from "./EaDatasetBody";
+import { DataLakeFeeds, DataLakeProduced, DatasetBody } from "./EaDatasetBody";
 import { Gate } from "@/lib/permissions";
 import { productOf, shortName, type EaGraph } from "@/lib/ea-map/graph";
 import { EaNodeDialog, EaQaDialog } from "./EaEditDialogs";
@@ -83,6 +83,7 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
         </dl>
       </section>
       <EaRelations g={g} node={c} onOpen={onOpen} />
+      <DataLakeProduced g={g} n={c} onOpen={onOpen} />
       {c.apis.length > 0 && (
         <section className={s.dbSec}>
           <h4>Contratti API</h4>

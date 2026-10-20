@@ -28,7 +28,7 @@ const kb: EaKb = {
     { id: "ext-bi", type: "external", name: "Business Intelligence", desc: "" },
     { id: "ext-mef", type: "external", name: "MEF", desc: "" },
     ds("dc:biz:positive", "ingestion", "biz", { pii: 2 }),
-    ds("dc:gpd:position", "ingestion", "gpd"),
+    ds("dc:gpd:position", "ingestion", "gpd", { dq: 32, dqActive: 20 }),
     ds("dl:silver_positive", "silver", "biz", { contracted: false, checks: 0 }),
     ds("dc:gold:payments", "gold", "biz"),
     ds("dc:mef:tari", "export", "biz"),
@@ -76,6 +76,15 @@ describe("data lake view", () => {
     expect([...orphan.shown]).toEqual(["dc:gpd:position"]);
   });
 
+  it("finds contracted datasets without DQ controls", () => {
+    const lay = layout(g, { domain: null, uncontracted: false, noProducer: false, noDq: true });
+    expect([...lay.shown].filter((id) => id.startsWith("d")).sort()).toEqual([
+      "dc:biz:positive",
+      "dc:gold:payments",
+      "dc:mef:tari",
+    ]);
+  });
+
   it("follows the chain upstream and downstream", () => {
     const chain = lineage(g, "dl:silver_positive");
     expect([...chain].sort()).toEqual(
@@ -93,7 +102,17 @@ describe("data lake view", () => {
   });
 
   it("counts and searches datasets", () => {
-    expect(stats(g)).toMatchObject({ datasets: 4, ingestion: 2, silver: 1, gold: 1, export: 1, uncontracted: 1, noProducer: 1, pii: 1 });
+    expect(stats(g)).toMatchObject({
+      datasets: 4,
+      ingestion: 2,
+      silver: 1,
+      gold: 1,
+      export: 1,
+      uncontracted: 1,
+      noProducer: 1,
+      pii: 1,
+      withDq: 1,
+    });
     expect(domains(g)).toEqual([
       { key: "biz", n: 4 },
       { key: "gpd", n: 1 },

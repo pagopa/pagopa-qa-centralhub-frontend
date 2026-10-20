@@ -44,6 +44,11 @@ function DatasetBox({ d, on, dim, onPick }: { d: EaDataset; on: boolean; dim: bo
         {!d.contracted && <span title="Senza data contract">⚠</span>}
         {d.pii > 0 && <span title={`${d.pii} campi con dati personali`}>PII</span>}
         {d.checks > 0 && <span title={`${d.checks} check di qualità nel contratto`}>✓{d.checks}</span>}
+        {(d.dq ?? 0) > 0 && (
+          <span className={s.dlDq} title={`${d.dq} controlli nel DQ Framework del Hub, ${d.dqActive ?? 0} attivi`}>
+            DQ {d.dqActive ?? 0}/{d.dq}
+          </span>
+        )}
       </span>
     </button>
   );
@@ -152,6 +157,7 @@ export function EaDataLake({
         <div className={s.stat}><b>{st.gold + st.export}</b><span>tabelle gold ed export</span></div>
         <div className={s.stat}><b>{st.uncontracted}</b><span>tabelle senza contratto</span></div>
         <div className={s.stat}><b>{st.noProducer}</b><span>ingestion senza produttore</span></div>
+        <div className={s.stat}><b>{st.withDq}</b><span>dataset con controlli DQ</span></div>
       </div>
 
       <div className={s.dlFilters} role="group" aria-label="Filtri del Data Lake">
@@ -178,13 +184,18 @@ export function EaDataLake({
             onChange={(e) => setFilters((f) => ({ ...f, noProducer: e.target.checked }))} />
           Ingestion senza produttore
         </label>
+        <label className={s.dlToggle}>
+          <input type="checkbox" checked={!!filters.noDq}
+            onChange={(e) => setFilters((f) => ({ ...f, noDq: e.target.checked }))} />
+          Senza controlli DQ
+        </label>
       </div>
 
       <div className={s.legend}>
         <span><i />deriva da</span>
         <span><i className={s.lE} />produce</span>
         <span><i className={s.lD} />alimenta</span>
-        <span>⚠ senza data contract · PII dati personali · ✓ check di qualità nel contratto</span>
+        <span>⚠ senza data contract · PII dati personali · ✓ check nel contratto · DQ controlli attivi/censiti nel DQ Framework</span>
       </div>
 
       {selectedNode && (

@@ -109,6 +109,35 @@ describe("EaReview", () => {
     );
   });
 
+  it("shows Data Lake producer proposals in their own group", async () => {
+    const kb = {
+      ...KB,
+      nodes: [...KB.nodes, { id: "dc:pagopa:gpd:payment-position", type: "dataset", name: "Payment Position", desc: "" }],
+    } as unknown as EaKb;
+    mocks.apiClient.mockImplementation((path: string) => {
+      if (path.startsWith("/api/v1/ea/changes?"))
+        return Promise.resolve([
+          change({
+            id: "p1",
+            target_id: "svc-a>dc:pagopa:gpd:payment-position:produces",
+            after: {
+              origin: "contract_rule",
+              confidence: 90,
+              evidence: { topic: "gpd-ingestion.apd.payment_position", rule: "regola ^gpd-ingestion" },
+            },
+          }),
+        ]);
+      if (path === "/api/v1/ea/sync-status") return Promise.resolve(STATUS);
+      return Promise.resolve([]);
+    });
+    setup(<EaReview g={buildGraph(kb)} goTo={() => {}} onOpen={() => {}} />);
+    expect(await screen.findByText("Produttori del Data Lake")).toBeInTheDocument();
+    expect(screen.queryByText("Nuove dipendenze")).not.toBeInTheDocument();
+    expect(screen.getByText("Payment Position")).toBeInTheDocument();
+    expect(screen.getByText("confidenza 90%")).toBeInTheDocument();
+    expect(screen.getByText("gpd-ingestion.apd.payment_position")).toBeInTheDocument();
+  });
+
   it("hides decisions without the review permission", async () => {
     mocks.can.mockImplementation((a: string) => a !== "review:ea_map");
     const g = buildGraph(KB);

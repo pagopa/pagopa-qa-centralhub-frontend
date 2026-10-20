@@ -50,9 +50,11 @@ export interface DlFilters {
   domain: string | null;
   uncontracted: boolean;
   noProducer: boolean;
+  /** Datasets with a contract and no control in the DQ Framework of the Hub. */
+  noDq?: boolean;
 }
 
-export const NO_FILTERS: DlFilters = { domain: null, uncontracted: false, noProducer: false };
+export const NO_FILTERS: DlFilters = { domain: null, uncontracted: false, noProducer: false, noDq: false };
 
 export function producersOf(g: EaGraph, datasetId: string): string[] {
   return (g.inEdges.get(datasetId) ?? []).filter((e) => e.type === "produces").map((e) => e.from);
@@ -86,7 +88,8 @@ export function layout(g: EaGraph, f: DlFilters = NO_FILTERS): DlLayout {
     (d) =>
       (f.domain === null || (d.domain ?? "") === f.domain) &&
       (!f.uncontracted || !d.contracted) &&
-      (!f.noProducer || (d.layer === "ingestion" && producersOf(g, d.id).length === 0)),
+      (!f.noProducer || (d.layer === "ingestion" && producersOf(g, d.id).length === 0)) &&
+      (!f.noDq || (d.contracted && !(d.dq ?? 0))),
   );
   const ids = new Set(visible.map((d) => d.id));
   const edges = dataEdges(g).filter((e) => ids.has(e.from) || ids.has(e.to));
@@ -158,6 +161,7 @@ export interface DlStats {
   uncontracted: number;
   noProducer: number;
   pii: number;
+  withDq: number;
 }
 
 export function stats(g: EaGraph): DlStats {
@@ -172,5 +176,6 @@ export function stats(g: EaGraph): DlStats {
     uncontracted: ds.filter((d) => !d.contracted).length,
     noProducer: ds.filter((d) => d.layer === "ingestion" && producersOf(g, d.id).length === 0).length,
     pii: ds.filter((d) => d.pii > 0).length,
+    withDq: ds.filter((d) => (d.dq ?? 0) > 0).length,
   };
 }

@@ -11,7 +11,15 @@ import {
   useUpdateEaQa,
 } from "@/hooks/useEaMap";
 import { KIND_GROUP, KIND_ORDER, searchNodes, type EaGraph } from "@/lib/ea-map/graph";
-import type { EaComponent, EaComponentKind, EaEdgeDetail, EaEdgeType, EaNode, EaProduct } from "@/types/ea";
+import type {
+  EaComponent,
+  EaComponentKind,
+  EaDatasetLayer,
+  EaEdgeDetail,
+  EaEdgeType,
+  EaNode,
+  EaProduct,
+} from "@/types/ea";
 
 export const EDGE_TYPE_LABEL: Record<EaEdgeType, string> = {
   api: "API REST",
@@ -495,6 +503,195 @@ export function EaQaDialog({
       <label className={labelCls}>
         Note QA
         <textarea className={`${inputCls} min-h-[72px]`} value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </label>
+    </Shell>
+  );
+}
+
+/* ── Data Lake: link a producer or a consumer to a dataset ─────── */
+
+export const DATA_EDGE_LABEL: Record<string, string> = {
+  produces: "Produce i dati",
+  derives: "Deriva da",
+  feeds: "Alimenta",
+};
+
+export function EaDataLinkDialog({
+  g,
+  dataset,
+  mode,
+  open,
+  onOpenChange,
+}: {
+  g: EaGraph;
+  dataset: EaNode;
+  mode: "producer" | "consumer";
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [otherId, setOtherId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [note, setNote] = useState("");
+  const create = useCreateEaEdge();
+  const results = useMemo(() => {
+    const kinds = mode === "producer" ? ["component", "product"] : ["external"];
+    return searchNodes(g, query, 40)
+      .filter((n) => kinds.includes(n.type))
+      .slice(0, 8);
+  }, [g, query, mode]);
+  const other = otherId ? g.byId.get(otherId) : undefined;
+  const save = () => {
+    if (!otherId) return;
+    const [from_id, to_id, type] =
+      mode === "producer" ? [otherId, dataset.id, "produces" as const] : [dataset.id, otherId, "feeds" as const];
+    create.mutate({ from_id, to_id, type, note: note.trim() }, { onSuccess: () => onOpenChange(false) });
+  };
+  return (
+    <Shell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mode === "producer" ? "Collega un produttore" : "Aggiungi un consumer"}
+      description={
+        mode === "producer"
+          ? `Il componente o prodotto che invia i dati di "${dataset.name}" al Data Lake. Il legame sarà manuale e verificato.`
+          : `Il sistema esterno che usa "${dataset.name}" (es. BI, MEF). Il legame sarà manuale e verificato.`
+      }
+      error={eaErrorMessage(create.error)}
+      footer={
+        <>
+          <button type="button" className={secondaryCls} onClick={() => onOpenChange(false)}>
+            Annulla
+          </button>
+          <button
+            type="button"
+            className={primaryCls}
+            disabled={!otherId || !note.trim() || create.isPending}
+            onClick={save}
+          >
+            {create.isPending ? "Salvataggio…" : "Salva"}
+          </button>
+        </>
+      }
+    >
+      <div className={labelCls}>
+        <label htmlFor="ea-data-link">
+          {mode === "producer" ? "Componente o prodotto" : "Sistema esterno"} <span className="text-danger">*</span>
+        </label>
+        {other ? (
+          <div className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-border bg-subtle px-2 py-1.5">
+            <span className="min-w-0">
+              <b>{other.name}</b> <span className="font-mono text-[11.5px] text-text-muted">{other.id}</span>
+            </span>
+            <button type="button" className="text-[12.5px] text-[var(--accent)]" onClick={() => setOtherId(null)}>
+              Cambia
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              id="ea-data-link"
+              className={inputCls}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={mode === "producer" ? "Cerca componente o prodotto…" : "Cerca sistema esterno…"}
+              autoComplete="off"
+            />
+            {results.length > 0 && (
+              <ul className="max-h-48 overflow-auto rounded-[var(--radius-sm)] border border-border" role="listbox">
+                {results.map((n) => (
+                  <li key={n.id}>
+                    <button
+                      type="button"
+                      className="flex w-full flex-col items-start px-2 py-1.5 text-left hover:bg-hover"
+                      onClick={() => {
+                        setOtherId(n.id);
+                        setQuery("");
+                      }}
+                    >
+                      <span className="font-semibold">{n.name}</span>
+                      <span className="font-mono text-[11px] text-text-muted">
+                        {n.type} · {n.id}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+      <NoteField value={note} onChange={setNote} required />
+    </Shell>
+  );
+}
+
+/* ── Data Lake: correct the layer of a dataset ──────────────────── */
+
+const LAYER_OPTIONS: [EaDatasetLayer, string][] = [
+  ["ingestion", "Ingestion (bronze)"],
+  ["silver", "Silver"],
+  ["gold", "Gold"],
+  ["export", "Export verso l'esterno"],
+];
+
+export function EaLayerDialog({
+  dataset,
+  current,
+  overridden,
+  open,
+  onOpenChange,
+}: {
+  dataset: EaNode;
+  current: EaDatasetLayer;
+  overridden: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [layer, setLayer] = useState<EaDatasetLayer>(current);
+  const update = useUpdateEaNode();
+  const done = { onSuccess: () => onOpenChange(false) };
+  return (
+    <Shell
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Correggi il livello"
+      description={`Il livello di "${dataset.name}" è ricavato dal contratto. La correzione resta valida anche dopo le sincronizzazioni.`}
+      error={eaErrorMessage(update.error)}
+      footer={
+        <>
+          {overridden && (
+            <button
+              type="button"
+              className={secondaryCls}
+              disabled={update.isPending}
+              onClick={() => update.mutate({ id: dataset.id, layer: null }, done)}
+            >
+              Torna al contratto
+            </button>
+          )}
+          <button type="button" className={secondaryCls} onClick={() => onOpenChange(false)}>
+            Annulla
+          </button>
+          <button
+            type="button"
+            className={primaryCls}
+            disabled={update.isPending}
+            onClick={() => update.mutate({ id: dataset.id, layer }, done)}
+          >
+            {update.isPending ? "Salvataggio…" : "Salva"}
+          </button>
+        </>
+      }
+    >
+      <label className={labelCls}>
+        Livello
+        <select className={inputCls} value={layer} onChange={(e) => setLayer(e.target.value as EaDatasetLayer)}>
+          {LAYER_OPTIONS.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
       </label>
     </Shell>
   );

@@ -164,7 +164,15 @@ export function EaMapView() {
   const lensStored = useSyncExternalStore(subscribeLens, readLens, () => false);
   const [lensSession, setLensSession] = useState<boolean | null>(null);
   const lens = lensSession ?? lensStored;
-  const [externalId, setExternalId] = useState<string | null>(null);
+  // a drawer opened for a non-routed node (external, datastore, dataset) belongs to the page
+  // it was opened on: back/forward or a pasted link close it
+  const [external, setExternal] = useState<{ id: string; hash: string } | null>(null);
+  const externalId = external && external.hash === hash.replace(/^#/, "") ? external.id : null;
+  const setExternalId = useCallback(
+    (id: string | null, onHash?: string) =>
+      setExternal(id ? { id, hash: onHash ?? window.location.hash.replace(/^#/, "") } : null),
+    [],
+  );
   const { can } = usePermissions();
   const canReview = can("review:ea_map");
   const openChanges = useEaSyncStatus().data?.open_changes ?? 0;
@@ -172,7 +180,7 @@ export function EaMapView() {
   const navigate = useCallback((r: EaRoute) => {
     setExternalId(null);
     window.location.hash = encodeRoute(r);
-  }, []);
+  }, [setExternalId]);
 
   const goTo = useCallback((nodeId: string | null) => navigate({ view: "map", nodeId }), [navigate]);
   const openNode = useCallback(
@@ -183,10 +191,10 @@ export function EaMapView() {
       else if (n.type === "product" || n.type === "area") goTo(id);
       else if (n.type === "dataset") {
         navigate({ view: "datalake", nodeId: id });
-        setExternalId(id);
+        setExternalId(id, encodeRoute({ view: "datalake", nodeId: id }));
       } else setExternalId(id);
     },
-    [g, navigate, goTo],
+    [g, navigate, goTo, setExternalId],
   );
   const routedComponent = route.nodeId && g?.byId.get(route.nodeId)?.type === "component" ? route.nodeId : null;
   const drawerId = externalId ?? routedComponent;
@@ -198,7 +206,7 @@ export function EaMapView() {
     }
     const n = routedComponent ? g?.byId.get(routedComponent) : undefined;
     if (n && n.type === "component") goTo(n.parent);
-  }, [externalId, routedComponent, g, goTo]);
+  }, [externalId, routedComponent, g, goTo, setExternalId]);
 
   const toggleLens = () => {
     const next = !lens;

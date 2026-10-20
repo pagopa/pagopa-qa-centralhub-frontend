@@ -89,6 +89,35 @@ export interface EaDataset extends EaNodeBase {
   fields: number;
   pii: number;
   checks: number;
+  /** DQ Framework of the Hub: controls censused on this dataset's tables (total, active). */
+  dq?: number;
+  dqActive?: number;
+}
+
+export interface EaDqItem {
+  id: string;
+  table_ref: string;
+  field_ref: string;
+  check_name: string | null;
+  status: string;
+  dimension: string | null;
+  control: string | null;
+  domain: string | null;
+  soda_url: string | null;
+}
+
+export interface EaDqCoverage {
+  contract_checks: number;
+  contract_dimensions: Record<string, number>;
+  controls: number;
+  active: number;
+  statuses: Record<string, number>;
+  dimensions: Record<string, number>;
+  domains: string[];
+  aligned: number;
+  only_contract: string[];
+  only_hub: string[];
+  items: EaDqItem[];
 }
 export type EaNode = EaArea | EaProduct | EaComponent | EaExternal | EaDataset;
 
@@ -176,6 +205,7 @@ export interface EaNodeDetail {
   docs: EaDocLink[];
   out: EaEdgeDetail[];
   in: EaEdgeDetail[];
+  dq?: EaDqCoverage | null;
 }
 
 export interface EaHistoryItem {
@@ -190,7 +220,7 @@ export interface EaHistoryItem {
 export interface EaEdgeCreate {
   from_id: string;
   to_id: string;
-  type: EaEdgeType;
+  type: EaEdgeType | EaDataEdgeType;
   label?: string | null;
   note: string;
 }
@@ -206,6 +236,8 @@ export interface EaNodeUpdate {
   description?: string | null;
   parent_id?: string;
   ctype?: EaComponentKind;
+  /** Datasets only: corrected layer, null = back to the one from the contract. */
+  layer?: EaDatasetLayer | null;
 }
 
 export interface EaQaUpdate {

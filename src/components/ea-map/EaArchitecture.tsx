@@ -290,6 +290,25 @@ export function ProductView({ g, goTo, openNode, product }: NavProps & { product
             <div className={s.bar}><i style={{ width: `${(st.avg / 5) * 100}%`, background: qc(st.avg) }} /></div>
             <p className={s.no} style={{ margin: 0, fontSize: 12.5 }}>Maturità media {st.avg.toFixed(1)}/5 su {st.base} componenti runtime.</p>
           </div>
+          {(() => {
+            const sources = new Set([product.id, ...cs.map((c) => c.id)]);
+            const produced = g.kb.edges.filter((e) => e.type === "produces" && sources.has(e.from));
+            if (!produced.length) return null;
+            return (
+              <div className={s.panel}>
+                <h4>Dati nel Data Lake</h4>
+                <div className={s.links}>
+                  {produced.map((e) => (
+                    <button key={`${e.from}-${e.to}`} type="button" className={s.relName} style={{ textAlign: "left" }}
+                      onClick={() => openNode(e.to)}>
+                      {g.byId.get(e.to)?.name ?? e.to}
+                      <span className={s.rp}>da {g.byId.get(e.from)?.name ?? e.from}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           <div className={s.panel}>
             <h4>Documentazione Confluence</h4>
             {product.conf.length ? (
