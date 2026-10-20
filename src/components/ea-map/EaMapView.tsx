@@ -19,6 +19,7 @@ import {
 } from "@/lib/ea-map/graph";
 import { AreaView, PlatformView, ProductView } from "./EaArchitecture";
 import { EaBlueprint } from "./EaBlueprint";
+import { EaDataLake } from "./EaDataLake";
 import { EaGuide } from "./EaGuide";
 import { EaNodeDrawer } from "./EaNodeDrawer";
 import { EaQaMatrix } from "./EaQaMatrix";
@@ -29,6 +30,7 @@ import s from "./ea-map.module.css";
 const TABS: [EaView, string][] = [
   ["blueprint", "Blueprint"],
   ["map", "Architettura"],
+  ["datalake", "Data Lake"],
   ["qa", "Matrice QA"],
   ["guida", "Guida"],
   ["review", "Revisione"],
@@ -71,6 +73,7 @@ function where(g: EaGraph, n: EaNode): string {
   if (n.type === "component") return `${shortName(productOf(g, n).name)} · ${n.id}`;
   if (n.type === "product") return g.byId.get(n.parent)?.name ?? "";
   if (n.type === "area") return "Area";
+  if (n.type === "dataset") return `Data Lake · ${n.table ?? n.topic ?? n.layer}`;
   return "Sistema esterno";
 }
 
@@ -139,7 +142,7 @@ function SearchBox({ g, onPick }: { g: EaGraph; onPick: (n: EaNode) => void }) {
                 className={cx(s.res, i === sel && s.resSel)}
                 onMouseDown={(e) => { e.preventDefault(); pick(i); }}
               >
-                <span className={s.kb}>{n.type === "component" ? KIND_BADGE[n.kind] : n.type === "product" ? "PRD" : n.type === "area" ? "AREA" : "EXT"}</span>
+                <span className={s.kb}>{n.type === "component" ? KIND_BADGE[n.kind] : n.type === "product" ? "PRD" : n.type === "area" ? "AREA" : n.type === "dataset" ? "DATA" : "EXT"}</span>
                 <span className={s.resT}>{n.name}</span>
                 <span className={s.resP}>{where(g, n)}</span>
               </button>
@@ -161,7 +164,15 @@ export function EaMapView() {
   const lensStored = useSyncExternalStore(subscribeLens, readLens, () => false);
   const [lensSession, setLensSession] = useState<boolean | null>(null);
   const lens = lensSession ?? lensStored;
-  const [externalId, setExternalId] = useState<string | null>(null);
+  // a drawer opened for a non-routed node (external, datastore, dataset) belongs to the page
+  // it was opened on: back/forward or a pasted link close it
+  const [external, setExternal] = useState<{ id: string; hash: string } | null>(null);
+  const externalId = external && external.hash === hash.replace(/^#/, "") ? external.id : null;
+  const setExternalId = useCallback(
+    (id: string | null, onHash?: string) =>
+      setExternal(id ? { id, hash: onHash ?? window.location.hash.replace(/^#/, "") } : null),
+    [],
+  );
   const { can } = usePermissions();
   const canReview = can("review:ea_map");
   const openChanges = useEaSyncStatus().data?.open_changes ?? 0;
@@ -169,7 +180,7 @@ export function EaMapView() {
   const navigate = useCallback((r: EaRoute) => {
     setExternalId(null);
     window.location.hash = encodeRoute(r);
-  }, []);
+  }, [setExternalId]);
 
   const goTo = useCallback((nodeId: string | null) => navigate({ view: "map", nodeId }), [navigate]);
   const openNode = useCallback(
@@ -178,11 +189,28 @@ export function EaMapView() {
       if (!n) return;
       if (n.type === "component") navigate({ view: "map", nodeId: id });
       else if (n.type === "product" || n.type === "area") goTo(id);
+      else if (n.type === "dataset") {
+        navigate({ view: "datalake", nodeId: id });
+        setExternalId(id, encodeRoute({ view: "datalake", nodeId: id }));
+      } else setExternalId(id);
+    },
+    [g, navigate, goTo, setExternalId],
+  );
+  // from the Data Lake view, sources and consumers open their card in place: closing it keeps
+  // the user on the Data Lake instead of moving to the Architecture view
+  const openInDataLake = useCallback(
+    (id: string) => {
+      const n = g?.byId.get(id);
+      if (!n) return;
+      if (n.type === "dataset") openNode(id);
       else setExternalId(id);
     },
-    [g, navigate, goTo],
+    [g, openNode, setExternalId],
   );
-  const routedComponent = route.nodeId && g?.byId.get(route.nodeId)?.type === "component" ? route.nodeId : null;
+  // only the Architecture view opens the card of the component in the route: in the Data Lake
+  // view the route node is just the selection
+  const routedComponent =
+    route.view === "map" && route.nodeId && g?.byId.get(route.nodeId)?.type === "component" ? route.nodeId : null;
   const drawerId = externalId ?? routedComponent;
 
   const closeDrawer = useCallback(() => {
@@ -192,7 +220,7 @@ export function EaMapView() {
     }
     const n = routedComponent ? g?.byId.get(routedComponent) : undefined;
     if (n && n.type === "component") goTo(n.parent);
-  }, [externalId, routedComponent, g, goTo]);
+  }, [externalId, routedComponent, g, goTo, setExternalId]);
 
   const toggleLens = () => {
     const next = !lens;
@@ -251,6 +279,14 @@ export function EaMapView() {
 
       {route.view === "blueprint" && <EaBlueprint g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "map" && mapContent()}
+      {route.view === "datalake" && (
+        <EaDataLake
+          g={g}
+          selected={route.nodeId}
+          onSelect={(id) => navigate({ view: "datalake", nodeId: id })}
+          onOpen={openInDataLake}
+        />
+      )}
       {route.view === "qa" && <EaQaMatrix g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "guida" && <EaGuide g={g} goTo={goTo} />}
       {route.view === "review" && <EaReview g={g} goTo={goTo} onOpen={openNode} />}

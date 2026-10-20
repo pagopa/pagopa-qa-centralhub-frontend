@@ -1,6 +1,9 @@
 export type EaComponentKind = "be" | "fn" | "fe" | "lib" | "infra" | "test" | "mock" | "tool" | "doc";
 export type EaEdgeType = "api" | "soap" | "event" | "data" | "ui";
-export type EaEdgeOrigin = "helm" | "infra_rule" | "curated" | "manual";
+/** Data Lake edges: producer → dataset, dataset → dataset, dataset → consumer. */
+export type EaDataEdgeType = "produces" | "derives" | "feeds";
+export type EaEdgeOrigin = "helm" | "infra_rule" | "curated" | "manual" | "contract" | "contract_rule";
+export type EaDatasetLayer = "ingestion" | "silver" | "gold" | "export";
 
 export interface EaQa {
   unit: number;
@@ -72,13 +75,63 @@ export interface EaExternal extends EaNodeBase {
   type: "external" | "datastore";
 }
 
-export type EaNode = EaArea | EaProduct | EaComponent | EaExternal;
+/** A Data Lake dataset from the data contracts (docs/ea-map/DESIGN-data-lake.md). */
+export interface EaDataset extends EaNodeBase {
+  type: "dataset";
+  layer: EaDatasetLayer;
+  domain: string | null;
+  contracted: boolean;
+  table: string | null;
+  topic: string | null;
+  owner: string | null;
+  version: string | null;
+  url: string | null;
+  /** Documentation link: the contact url of the contract, or the one corrected by hand. */
+  docUrl?: string | null;
+  docOverridden?: boolean;
+  /** Slack channel: from the contract contact, or the one corrected by hand. */
+  slackUrl?: string | null;
+  slackOverridden?: boolean;
+  fields: number;
+  pii: number;
+  checks: number;
+  /** DQ Framework of the Hub: controls censused on this dataset's tables (total, active). */
+  dq?: number;
+  dqActive?: number;
+}
+
+export interface EaDqItem {
+  id: string;
+  table_ref: string;
+  field_ref: string;
+  check_name: string | null;
+  status: string;
+  dimension: string | null;
+  control: string | null;
+  domain: string | null;
+  soda_url: string | null;
+}
+
+export interface EaDqCoverage {
+  contract_checks: number;
+  contract_dimensions: Record<string, number>;
+  controls: number;
+  active: number;
+  statuses: Record<string, number>;
+  dimensions: Record<string, number>;
+  domains: string[];
+  aligned: number;
+  only_contract: string[];
+  only_hub: string[];
+  items: EaDqItem[];
+}
+export type EaNode = EaArea | EaProduct | EaComponent | EaExternal | EaDataset;
 
 export interface EaEdge {
   id?: string;
   from: string;
   to: string;
-  type: EaEdgeType;
+  type: EaEdgeType | EaDataEdgeType;
   label?: string | null;
   origin?: EaEdgeOrigin;
   status?: string;
@@ -158,6 +211,7 @@ export interface EaNodeDetail {
   docs: EaDocLink[];
   out: EaEdgeDetail[];
   in: EaEdgeDetail[];
+  dq?: EaDqCoverage | null;
 }
 
 export interface EaHistoryItem {
@@ -172,7 +226,7 @@ export interface EaHistoryItem {
 export interface EaEdgeCreate {
   from_id: string;
   to_id: string;
-  type: EaEdgeType;
+  type: EaEdgeType | EaDataEdgeType;
   label?: string | null;
   note: string;
 }
@@ -188,6 +242,10 @@ export interface EaNodeUpdate {
   description?: string | null;
   parent_id?: string;
   ctype?: EaComponentKind;
+  /** Datasets only: corrected layer, null = back to the one from the contract. */
+  layer?: EaDatasetLayer | null;
+  doc_url?: string | null;
+  slack_url?: string | null;
 }
 
 export interface EaQaUpdate {

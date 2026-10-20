@@ -104,6 +104,9 @@ describe("ea-map graph", () => {
       { view: "map", nodeId: "prod:gpd" },
       { view: "map", nodeId: "area:core" },
       { view: "map", nodeId: "pagopa-fdr" },
+      { view: "datalake", nodeId: null },
+      { view: "datalake", nodeId: "dc:pagopa:gold:payments" },
+      { view: "datalake", nodeId: "dl:pagopa.silver_negative" },
     ] as const) {
       expect(decodeRoute(`#${encodeRoute(r)}`)).toEqual(r);
     }

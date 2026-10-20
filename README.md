@@ -121,6 +121,16 @@ La pipeline passa il valore selezionato al build argument Docker
 cambiare solo l'ambiente del container in esecuzione non basta; occorre ricostruire
 e distribuire l'immagine.
 
+## EA Map
+
+La route `/ea-map` (`view:ea_map`) mostra la mappa di Enterprise Architecture della piattaforma pagoPA. Le viste sono tab con deep link nell'hash: Blueprint, Architettura (`#a-…`, `#p-…`, `#c-…`), **Data Lake** (`#datalake`, `#d-<id>`), Matrice QA, Guida e Revisione (`review:ea_map`). Codice in `src/components/ea-map/` e `src/lib/ea-map/` (funzioni pure, testate).
+
+**Vista Data Lake** (`EaDataLake.tsx`, `lib/ea-map/datalake.ts`): cinque colonne numerate (Sorgenti → Ingestion → Silver → Gold ed export → Consumer) con i dataset raggruppati per dominio e i fili SVG dei legami `produces` / `derives` / `feeds`. Cliccando un elemento si evidenzia la catena a monte e a valle; "Apri la scheda" apre il drawer senza lasciare la vista. Filtri per dominio, "Solo senza contratto", "Ingestion senza produttore" e "Senza controlli DQ"; badge ⚠ (senza contratto), PII, ✓ (check nel contratto) e "DQ attivi/totale".
+
+**Scheda del dataset** (`EaDatasetBody.tsx`): livello, tabella o topic, owner, SLA, server, link al contratto, documentazione e canale Slack; "Da dove arriva" (produttori e lineage), "Dove va" (consumer), copertura Data Quality e contratti che la citano. Con `edit:ea_map` si collegano o rimuovono produttori e consumer e si correggono livello, link alla documentazione e canale Slack (`EaEditDialogs.tsx`). I produttori proposti dalla sync si approvano in Revisione, gruppo "Produttori del Data Lake".
+
+Le schede di componenti e prodotti mostrano il pannello "Dati nel Data Lake" con i dataset prodotti.
+
 ## Auth & RBAC
 
 Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend chiama `POST /api/v1/users/sync-login` sul backend, che crea/aggiorna l'utente e restituisce `role` + `is_active`.
