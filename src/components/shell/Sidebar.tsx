@@ -33,8 +33,7 @@ const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEFAULT_NRT_METRICS_URL =
-  "https://pagopa-d-weu-grafana-emfwascrf8c4fyce.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics"
-  + "?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&kiosk";
+  "https://pagopa-u-weu-grafana-cpavbjb0axhrdcg3.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&var-test_object=fdr3&editIndex=0&tab=transformations&kiosk";
 
 interface NavItem {
   href: string;
