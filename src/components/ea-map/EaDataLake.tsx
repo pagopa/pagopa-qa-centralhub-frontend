@@ -224,12 +224,22 @@ export function EaDataLake({
             />
           ))}
         </svg>
-        {DL_COLUMNS.map((col) => {
+        {DL_COLUMNS.map((col, i) => {
           const groups = lay.columns[col.key];
           const empty = groups.every((gr) => gr.nodes.length === 0);
+          const count = groups.reduce((n, gr) => n + gr.nodes.length, 0);
           return (
             <div key={col.key} className={s.col}>
-              <h4 title={col.hint}>{col.title}</h4>
+              <div className={cx(s.dlHead, s[`dlHead_${col.key}`])}>
+                <span className={s.dlStep} aria-hidden="true">{i + 1}</span>
+                <div className={s.dlHeadText}>
+                  <h4>
+                    {col.title}
+                    <span className={s.dlCount}>{count}</span>
+                  </h4>
+                  <small>{col.hint}</small>
+                </div>
+              </div>
               {empty ? (
                 <span className={s.no}>
                   {col.key === "sources"
@@ -239,7 +249,7 @@ export function EaDataLake({
               ) : (
                 groups.map((gr) => (
                   <div key={gr.domain ?? "_"} className={s.grp}>
-                    {(col.key === "ingestion" || col.key === "silver" || col.key === "gold") && <span>{domainLabel(gr.domain)}</span>}
+                    {(col.key === "ingestion" || col.key === "silver" || col.key === "gold") && <span className={s.dlDomain}>{domainLabel(gr.domain)}</span>}
                     {gr.nodes.map((n) =>
                       n.type === "dataset" ? (
                         <DatasetBox key={n.id} d={n} on={isOn(n.id)} dim={isDim(n.id)} onPick={pick} />

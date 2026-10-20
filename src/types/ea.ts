@@ -86,6 +86,12 @@ export interface EaDataset extends EaNodeBase {
   owner: string | null;
   version: string | null;
   url: string | null;
+  /** Documentation link: the contact url of the contract, or the one corrected by hand. */
+  docUrl?: string | null;
+  docOverridden?: boolean;
+  /** Slack channel: from the contract contact, or the one corrected by hand. */
+  slackUrl?: string | null;
+  slackOverridden?: boolean;
   fields: number;
   pii: number;
   checks: number;
@@ -238,6 +244,8 @@ export interface EaNodeUpdate {
   ctype?: EaComponentKind;
   /** Datasets only: corrected layer, null = back to the one from the contract. */
   layer?: EaDatasetLayer | null;
+  doc_url?: string | null;
+  slack_url?: string | null;
 }
 
 export interface EaQaUpdate {

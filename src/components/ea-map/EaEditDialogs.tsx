@@ -696,3 +696,88 @@ export function EaLayerDialog({
     </Shell>
   );
 }
+
+const LINK_KIND = {
+  doc: {
+    field: "doc_url",
+    title: "Link alla documentazione",
+    source: "contact.url",
+    placeholder: "https://pagopa.atlassian.net/wiki/spaces/…",
+  },
+  slack: {
+    field: "slack_url",
+    title: "Canale Slack",
+    source: "contact.slack-channel",
+    placeholder: "https://pagopaspa.slack.com/archives/…",
+  },
+} as const;
+
+export type EaLinkKind = keyof typeof LINK_KIND;
+
+export function EaLinkDialog({
+  kind,
+  dataset,
+  current,
+  overridden,
+  open,
+  onOpenChange,
+}: {
+  kind: EaLinkKind;
+  dataset: EaNode;
+  current: string | null;
+  overridden: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const cfg = LINK_KIND[kind];
+  const [url, setUrl] = useState(current ?? "");
+  const update = useUpdateEaNode();
+  const done = { onSuccess: () => onOpenChange(false) };
+  const value = url.trim();
+  const valid = /^https?:\/\/\S+$/i.test(value);
+  return (
+    <Shell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={cfg.title}
+      description={`Il link di "${dataset.name}" viene dal campo ${cfg.source} del data contract. Il link corretto qui resta valido anche dopo le sincronizzazioni.`}
+      error={eaErrorMessage(update.error)}
+      footer={
+        <>
+          {overridden && (
+            <button
+              type="button"
+              className={secondaryCls}
+              disabled={update.isPending}
+              onClick={() => update.mutate({ id: dataset.id, [cfg.field]: null }, done)}
+            >
+              Torna al contratto
+            </button>
+          )}
+          <button type="button" className={secondaryCls} onClick={() => onOpenChange(false)}>
+            Annulla
+          </button>
+          <button
+            type="button"
+            className={primaryCls}
+            disabled={update.isPending || !valid}
+            onClick={() => update.mutate({ id: dataset.id, [cfg.field]: value }, done)}
+          >
+            {update.isPending ? "Salvataggio…" : "Salva"}
+          </button>
+        </>
+      }
+    >
+      <label className={labelCls}>
+        Link (https://…)
+        <input
+          className={inputCls}
+          type="url"
+          value={url}
+          placeholder={cfg.placeholder}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+      </label>
+    </Shell>
+  );
+}

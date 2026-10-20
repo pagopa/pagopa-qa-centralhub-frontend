@@ -436,6 +436,19 @@
 .dl { display: flex; flex-direction: column; gap: 14px; }
 .dlView { display: grid; grid-template-columns: minmax(130px, 0.8fr) repeat(3, minmax(160px, 1fr)) minmax(140px, 0.8fr); gap: 40px; position: relative; align-items: start; }
 .dlNode { grid-template-columns: auto 1fr auto; padding: 6px 8px; }
+/* step headers of the Data Lake columns */
+.dlHead { --step: var(--accent); display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--border); border-top: 4px solid var(--step); border-radius: 10px; background: color-mix(in srgb, var(--step) 8%, var(--surface)); box-shadow: 0 1px 2px rgb(0 0 0 / 0.06); }
+.dlHead_sources { --step: #5b7db1; }
+.dlHead_ingestion { --step: #8a6d3b; }
+.dlHead_silver { --step: #8a95a5; }
+.dlHead_gold { --step: #c9a227; }
+.dlHead_consumers { --step: #4f8a5b; }
+.dlStep { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: var(--step); color: #fff; font-size: 12.5px; font-weight: 700; }
+.dlHeadText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.col .dlHead h4 { margin: 0; display: flex; align-items: baseline; gap: 6px; font-size: 14.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); }
+.dlHead small { font-size: 11.5px; line-height: 1.3; color: var(--text-muted); }
+.dlCount { font-family: var(--ea-mono); font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0; }
+.grp > span.dlDomain { align-self: flex-start; font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text-dim); border-bottom: 1px dashed var(--border-strong); padding-bottom: 1px; }
 .dlNode .nm { font-size: 12.5px; }
 .dlNode .rp { font-size: 10.5px; }
 .dlDim { opacity: 0.35; }

@@ -196,7 +196,21 @@ export function EaMapView() {
     },
     [g, navigate, goTo, setExternalId],
   );
-  const routedComponent = route.nodeId && g?.byId.get(route.nodeId)?.type === "component" ? route.nodeId : null;
+  // from the Data Lake view, sources and consumers open their card in place: closing it keeps
+  // the user on the Data Lake instead of moving to the Architecture view
+  const openInDataLake = useCallback(
+    (id: string) => {
+      const n = g?.byId.get(id);
+      if (!n) return;
+      if (n.type === "dataset") openNode(id);
+      else setExternalId(id);
+    },
+    [g, openNode, setExternalId],
+  );
+  // only the Architecture view opens the card of the component in the route: in the Data Lake
+  // view the route node is just the selection
+  const routedComponent =
+    route.view === "map" && route.nodeId && g?.byId.get(route.nodeId)?.type === "component" ? route.nodeId : null;
   const drawerId = externalId ?? routedComponent;
 
   const closeDrawer = useCallback(() => {
@@ -270,7 +284,7 @@ export function EaMapView() {
           g={g}
           selected={route.nodeId}
           onSelect={(id) => navigate({ view: "datalake", nodeId: id })}
-          onOpen={openNode}
+          onOpen={openInDataLake}
         />
       )}
       {route.view === "qa" && <EaQaMatrix g={g} goTo={goTo} openNode={openNode} />}

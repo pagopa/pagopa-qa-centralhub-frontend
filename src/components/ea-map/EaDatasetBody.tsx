@@ -8,7 +8,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { EaGraph } from "@/lib/ea-map/graph";
 import { LAYER_LABEL, domainLabel } from "@/lib/ea-map/datalake";
 import type { EaDataset, EaDqCoverage, EaEdge, EaEdgeDetail, EaNode } from "@/types/ea";
-import { EaDataLinkDialog, EaLayerDialog, EaRemoveEdgeDialog } from "./EaEditDialogs";
+import { EaDataLinkDialog, EaLayerDialog, EaLinkDialog, EaRemoveEdgeDialog } from "./EaEditDialogs";
 import { ORIGIN_LABEL } from "./EaRelations";
 import { cx } from "./shared";
 import s from "./ea-map.module.css";
@@ -120,7 +120,9 @@ export function DatasetBody({ g, d, onOpen }: { g: EaGraph; d: EaDataset; onOpen
   const inEdges = (g.inEdges.get(d.id) ?? []).filter((e) => e.type in EDGE_VERB);
   const outEdges = (g.outEdges.get(d.id) ?? []).filter((e) => e.type in EDGE_VERB);
   const overridden = typeof attrs.layer_override === "string";
-  const [dialog, setDialog] = useState<"producer" | "consumer" | "layer" | null>(null);
+  const [dialog, setDialog] = useState<"producer" | "consumer" | "layer" | "doc" | "slack" | null>(null);
+  const docUrl = d.docUrl ?? contract.contact?.url ?? null;
+  const slackUrl = d.slackUrl ?? contract.contact?.slack ?? null;
   const close = (o: boolean) => !o && setDialog(null);
 
   return (
@@ -135,8 +137,8 @@ export function DatasetBody({ g, d, onOpen }: { g: EaGraph; d: EaDataset; onOpen
         {d.url && (
           <a className={s.btn} href={d.url} target="_blank" rel="noopener noreferrer">Apri il data contract</a>
         )}
-        {contract.contact?.url && (
-          <a className={cx(s.btn, s.btnGhost)} href={contract.contact.url} target="_blank" rel="noopener noreferrer">Documentazione</a>
+        {docUrl && (
+          <a className={cx(s.btn, s.btnGhost)} href={docUrl} target="_blank" rel="noopener noreferrer">Documentazione</a>
         )}
       </div>
 
@@ -153,6 +155,22 @@ export function DatasetBody({ g, d, onOpen }: { g: EaGraph; d: EaDataset; onOpen
               </button>
             </Gate>
           </dd>
+          <dt>Documentazione</dt>
+          <dd>
+            {docUrl ? (
+              <a href={docUrl} target="_blank" rel="noopener noreferrer" className={s.mono} style={{ wordBreak: "break-all" }}>
+                {docUrl.replace(/^https?:\/\//, "").replace(/\?.*$/, "")}
+              </a>
+            ) : (
+              <span className={s.no}>nessun link</span>
+            )}
+            {d.docOverridden && <span className={s.no}> · corretto a mano</span>}
+            <Gate action="edit:ea_map">
+              <button type="button" className={s.linkBtn} style={{ marginLeft: 8 }} onClick={() => setDialog("doc")}>
+                <Pencil size={11} /> {docUrl ? "Correggi" : "Aggiungi"}
+              </button>
+            </Gate>
+          </dd>
           <dt>Dominio</dt><dd>{domainLabel(d.domain)}</dd>
           {d.table && (<><dt>Tabella</dt><dd className={s.mono}>{d.table}</dd></>)}
           {d.topic && (<><dt>Topic</dt><dd className={s.mono}>{d.topic}</dd></>)}
@@ -164,7 +182,20 @@ export function DatasetBody({ g, d, onOpen }: { g: EaGraph; d: EaDataset; onOpen
             <Fragment key={k}><dt>{SLA_LABEL[k] ?? k}</dt><dd>{v}</dd></Fragment>
           ))}
           {contract.contact?.name && (<><dt>Contatto</dt><dd>{contract.contact.name}{contract.contact.email ? ` · ${contract.contact.email}` : ""}</dd></>)}
-          {contract.contact?.slack && (<><dt>Slack</dt><dd><a href={contract.contact.slack} target="_blank" rel="noopener noreferrer">canale</a></dd></>)}
+          <dt>Slack</dt>
+          <dd>
+            {slackUrl ? (
+              <a href={slackUrl} target="_blank" rel="noopener noreferrer">canale</a>
+            ) : (
+              <span className={s.no}>nessun canale</span>
+            )}
+            {d.slackOverridden && <span className={s.no}> · corretto a mano</span>}
+            <Gate action="edit:ea_map">
+              <button type="button" className={s.linkBtn} style={{ marginLeft: 8 }} onClick={() => setDialog("slack")}>
+                <Pencil size={11} /> {slackUrl ? "Correggi" : "Aggiungi"}
+              </button>
+            </Gate>
+          </dd>
         </dl>
       </section>
 
@@ -221,6 +252,12 @@ export function DatasetBody({ g, d, onOpen }: { g: EaGraph; d: EaDataset; onOpen
       </section>
       {(dialog === "producer" || dialog === "consumer") && (
         <EaDataLinkDialog g={g} dataset={d} mode={dialog} open onOpenChange={close} />
+      )}
+      {dialog === "doc" && (
+        <EaLinkDialog kind="doc" dataset={d} current={docUrl} overridden={!!d.docOverridden} open onOpenChange={close} />
+      )}
+      {dialog === "slack" && (
+        <EaLinkDialog kind="slack" dataset={d} current={slackUrl} overridden={!!d.slackOverridden} open onOpenChange={close} />
       )}
       {dialog === "layer" && (
         <EaLayerDialog dataset={d} current={d.layer} overridden={overridden} open onOpenChange={close} />
