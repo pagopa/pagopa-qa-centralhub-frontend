@@ -240,7 +240,7 @@ export function traceBlueprint(g: EaGraph, bp: EaBlueprint, id: string): Trace {
 
 /* ── Hash routing (bare tokens only) ───────────────────────────── */
 
-export type EaView = "blueprint" | "map" | "qa" | "guida" | "review";
+export type EaView = "blueprint" | "map" | "datalake" | "qa" | "guida" | "review";
 
 export interface EaRoute {
   view: EaView;
@@ -248,6 +248,7 @@ export interface EaRoute {
 }
 
 export function encodeRoute(r: EaRoute): string {
+  if (r.view === "datalake") return r.nodeId ? `d-${r.nodeId}` : "datalake";
   if (r.view !== "map") return r.view;
   if (!r.nodeId) return "map";
   if (r.nodeId.startsWith("area:")) return `a-${r.nodeId.slice(5)}`;
@@ -257,7 +258,9 @@ export function encodeRoute(r: EaRoute): string {
 
 export function decodeRoute(hash: string): EaRoute {
   const h = hash.replace(/^#/, "");
-  if (h === "qa" || h === "guida" || h === "blueprint" || h === "map" || h === "review") return { view: h, nodeId: null };
+  if (h === "qa" || h === "guida" || h === "blueprint" || h === "map" || h === "review" || h === "datalake")
+    return { view: h, nodeId: null };
+  if (h.startsWith("d-")) return { view: "datalake", nodeId: decodeURIComponent(h.slice(2)) };
   if (h.startsWith("a-")) return { view: "map", nodeId: `area:${h.slice(2)}` };
   if (h.startsWith("p-")) return { view: "map", nodeId: `prod:${h.slice(2)}` };
   if (h.startsWith("c-")) return { view: "map", nodeId: h.slice(2) };
@@ -270,11 +273,18 @@ export function searchNodes(g: EaGraph, query: string, limit = 12): EaNode[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const terms = q.split(/\s+/);
-  const rank: Record<string, number> = { area: 0, product: 0.1, component: 0.2, external: 0.3 };
+  const rank: Record<string, number> = { area: 0, product: 0.1, component: 0.2, external: 0.3, dataset: 0.35 };
   return g.kb.nodes
     .filter((n) => n.type !== "datastore")
     .map((n) => {
-      const extra = n.type === "component" ? ` ${n.ns ?? ""}` : n.type === "product" ? ` ${n.domain ?? ""}` : "";
+      const extra =
+        n.type === "component"
+          ? ` ${n.ns ?? ""}`
+          : n.type === "product"
+            ? ` ${n.domain ?? ""}`
+            : n.type === "dataset"
+              ? ` ${n.table ?? ""} ${n.topic ?? ""} ${n.domain ?? ""}`
+              : "";
       const hay = `${n.name} ${n.id} ${n.desc ?? ""}${extra}`.toLowerCase();
       return { n, hay };
     })

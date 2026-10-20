@@ -19,6 +19,7 @@ import {
 } from "@/lib/ea-map/graph";
 import { AreaView, PlatformView, ProductView } from "./EaArchitecture";
 import { EaBlueprint } from "./EaBlueprint";
+import { EaDataLake } from "./EaDataLake";
 import { EaGuide } from "./EaGuide";
 import { EaNodeDrawer } from "./EaNodeDrawer";
 import { EaQaMatrix } from "./EaQaMatrix";
@@ -29,6 +30,7 @@ import s from "./ea-map.module.css";
 const TABS: [EaView, string][] = [
   ["blueprint", "Blueprint"],
   ["map", "Architettura"],
+  ["datalake", "Data Lake"],
   ["qa", "Matrice QA"],
   ["guida", "Guida"],
   ["review", "Revisione"],
@@ -71,6 +73,7 @@ function where(g: EaGraph, n: EaNode): string {
   if (n.type === "component") return `${shortName(productOf(g, n).name)} · ${n.id}`;
   if (n.type === "product") return g.byId.get(n.parent)?.name ?? "";
   if (n.type === "area") return "Area";
+  if (n.type === "dataset") return `Data Lake · ${n.table ?? n.topic ?? n.layer}`;
   return "Sistema esterno";
 }
 
@@ -139,7 +142,7 @@ function SearchBox({ g, onPick }: { g: EaGraph; onPick: (n: EaNode) => void }) {
                 className={cx(s.res, i === sel && s.resSel)}
                 onMouseDown={(e) => { e.preventDefault(); pick(i); }}
               >
-                <span className={s.kb}>{n.type === "component" ? KIND_BADGE[n.kind] : n.type === "product" ? "PRD" : n.type === "area" ? "AREA" : "EXT"}</span>
+                <span className={s.kb}>{n.type === "component" ? KIND_BADGE[n.kind] : n.type === "product" ? "PRD" : n.type === "area" ? "AREA" : n.type === "dataset" ? "DATA" : "EXT"}</span>
                 <span className={s.resT}>{n.name}</span>
                 <span className={s.resP}>{where(g, n)}</span>
               </button>
@@ -178,7 +181,10 @@ export function EaMapView() {
       if (!n) return;
       if (n.type === "component") navigate({ view: "map", nodeId: id });
       else if (n.type === "product" || n.type === "area") goTo(id);
-      else setExternalId(id);
+      else if (n.type === "dataset") {
+        navigate({ view: "datalake", nodeId: id });
+        setExternalId(id);
+      } else setExternalId(id);
     },
     [g, navigate, goTo],
   );
@@ -251,6 +257,14 @@ export function EaMapView() {
 
       {route.view === "blueprint" && <EaBlueprint g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "map" && mapContent()}
+      {route.view === "datalake" && (
+        <EaDataLake
+          g={g}
+          selected={route.nodeId}
+          onSelect={(id) => navigate({ view: "datalake", nodeId: id })}
+          onOpen={openNode}
+        />
+      )}
       {route.view === "qa" && <EaQaMatrix g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "guida" && <EaGuide g={g} goTo={goTo} />}
       {route.view === "review" && <EaReview g={g} goTo={goTo} onOpen={openNode} />}

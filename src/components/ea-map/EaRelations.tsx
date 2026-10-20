@@ -15,12 +15,16 @@ export const ORIGIN_LABEL: Record<string, string> = {
   infra_rule: "da regola",
   curated: "curato",
   manual: "manuale",
+  contract: "dal contratto",
+  contract_rule: "proposto da regola",
 };
 const ORIGIN_HINT: Record<string, string> = {
   helm: "Ricavato dalla configurazione Helm/App Settings del repository",
   infra_rule: "Dedotto da una regola sull'infrastruttura (es. namespace, storage condiviso)",
   curated: "Inserito nella ricognizione iniziale a partire dalla documentazione",
   manual: "Aggiunto a mano da una persona dalla EA Map",
+  contract: "Dichiarato in un data contract del Data Lake",
+  contract_rule: "Proposto dalla sincronizzazione confrontando topic e componenti",
 };
 const TECH_TYPES = new Set(Object.keys(EDGE_TYPE_LABEL));
 const VISIBLE = new Set(["active", "verified"]);

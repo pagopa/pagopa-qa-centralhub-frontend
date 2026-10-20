@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pencil } from "lucide-react";
 import type { EaArea, EaComponent, EaNode } from "@/types/ea";
+import { DataLakeFeeds, DatasetBody } from "./EaDatasetBody";
 import { Gate } from "@/lib/permissions";
 import { productOf, shortName, type EaGraph } from "@/lib/ea-map/graph";
 import { EaNodeDialog, EaQaDialog } from "./EaEditDialogs";
@@ -138,6 +139,7 @@ function OtherBody({ g, n, onOpen }: { g: EaGraph; n: EaNode; onOpen: (id: strin
     <>
       <p style={{ margin: 0 }}>{n.desc}</p>
       <EaRelations g={g} node={n} onOpen={onOpen} />
+      <DataLakeFeeds g={g} n={n} onOpen={onOpen} />
     </>
   );
 }
@@ -165,7 +167,15 @@ export function EaNodeDrawer({
 
   const [editOpen, setEditOpen] = useState(false);
   const isComp = node.type === "component";
-  const typeLabel = isComp ? node.kindLabel : node.type === "datastore" ? "Datastore" : node.type === "product" ? "Prodotto" : "Sistema esterno";
+  const typeLabel = isComp
+    ? node.kindLabel
+    : node.type === "datastore"
+      ? "Datastore"
+      : node.type === "product"
+        ? "Prodotto"
+        : node.type === "dataset"
+          ? "Dataset del Data Lake"
+          : "Sistema esterno";
   return (
     <>
       <div className={s.scrim} onClick={() => !dialogOpen() && onClose()} aria-hidden="true" />
@@ -178,18 +188,24 @@ export function EaNodeDrawer({
               {isComp && node.ns && <span className={cx(s.pill, s.mono)}>ns {node.ns}</span>}
             </div>
             <h2>{node.name}</h2>
-            {isComp && <div className={s.mono} style={{ color: "var(--text-muted)", marginTop: 2 }}>{node.id}</div>}
-            <Gate action="edit:ea_map">
-              <button type="button" className={s.linkBtn} style={{ marginTop: 6 }} onClick={() => setEditOpen(true)}>
-                <Pencil size={12} /> Modifica scheda
-              </button>
-            </Gate>
+            {(isComp || node.type === "dataset") && (
+              <div className={s.mono} style={{ color: "var(--text-muted)", marginTop: 2 }}>{node.id}</div>
+            )}
+            {node.type !== "dataset" && (
+              <Gate action="edit:ea_map">
+                <button type="button" className={s.linkBtn} style={{ marginTop: 6 }} onClick={() => setEditOpen(true)}>
+                  <Pencil size={12} /> Modifica scheda
+                </button>
+              </Gate>
+            )}
           </div>
           <button ref={closeRef} type="button" className={s.x} aria-label="Chiudi" onClick={onClose}>✕</button>
         </div>
         <div className={s.db}>
           {isComp ? (
             <ComponentBody g={g} c={node} onOpen={onOpen} goTo={goTo} />
+          ) : node.type === "dataset" ? (
+            <DatasetBody g={g} d={node} onOpen={onOpen} />
           ) : (
             <OtherBody g={g} n={node} onOpen={onOpen} />
           )}

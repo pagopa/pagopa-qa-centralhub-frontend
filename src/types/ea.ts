@@ -1,6 +1,9 @@
 export type EaComponentKind = "be" | "fn" | "fe" | "lib" | "infra" | "test" | "mock" | "tool" | "doc";
 export type EaEdgeType = "api" | "soap" | "event" | "data" | "ui";
-export type EaEdgeOrigin = "helm" | "infra_rule" | "curated" | "manual";
+/** Data Lake edges: producer → dataset, dataset → dataset, dataset → consumer. */
+export type EaDataEdgeType = "produces" | "derives" | "feeds";
+export type EaEdgeOrigin = "helm" | "infra_rule" | "curated" | "manual" | "contract" | "contract_rule";
+export type EaDatasetLayer = "ingestion" | "silver" | "gold" | "export";
 
 export interface EaQa {
   unit: number;
@@ -72,13 +75,28 @@ export interface EaExternal extends EaNodeBase {
   type: "external" | "datastore";
 }
 
-export type EaNode = EaArea | EaProduct | EaComponent | EaExternal;
+/** A Data Lake dataset from the data contracts (docs/ea-map/DESIGN-data-lake.md). */
+export interface EaDataset extends EaNodeBase {
+  type: "dataset";
+  layer: EaDatasetLayer;
+  domain: string | null;
+  contracted: boolean;
+  table: string | null;
+  topic: string | null;
+  owner: string | null;
+  version: string | null;
+  url: string | null;
+  fields: number;
+  pii: number;
+  checks: number;
+}
+export type EaNode = EaArea | EaProduct | EaComponent | EaExternal | EaDataset;
 
 export interface EaEdge {
   id?: string;
   from: string;
   to: string;
-  type: EaEdgeType;
+  type: EaEdgeType | EaDataEdgeType;
   label?: string | null;
   origin?: EaEdgeOrigin;
   status?: string;
