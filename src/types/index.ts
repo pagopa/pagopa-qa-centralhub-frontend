@@ -639,3 +639,96 @@ export interface CsvAbsenceImportResult {
   skipped: number
   errors: string[]
 }
+
+// ── Nrts ──────────────────────────────────────────────────
+
+export interface NrtsListObject {
+  test_run: TestRun;
+  test_suite: TestSuite;
+  test_execution: TestExecution[];
+  
+}
+
+// ── Test metrics ────────────────────────────────────────────────────────
+
+export interface TestSuite {
+  id: string;
+  test_object: string;
+  test_type: string;
+  suite_version: string;
+  owner_team: string | null;
+}
+
+export interface TestRun {
+  id: string;
+  suite_id: string;
+  scenario_qty: number | null;
+  passed_scenario: number | null;
+  failed_scenario: number | null;
+  broken_scenario: number | null;
+  skipped_scenario: number | null;
+  timestamp_start: string | null;
+  timestamp_end: string | null;
+  duration_ms: number | null;
+  env: string | null;
+  trigger_type: string | null;
+  test_version: string | null;
+  test_origin: string | null;
+  revisioned?: boolean | null;
+  revision_date?: string | null;
+  revision_result?: string | undefined;
+  revisioned_by?: string | null;
+  allure_url: string | null;
+  product_issue: string | null;
+  product_issue_status: string | null;
+  qa_issue: string | null;
+  qa_issue_status: string | null;
+}
+
+export interface TestExecution {
+  id: string;
+  run_id: string;
+  allure_id: string | null;
+  status: "passed" | "failed" | "broken" | "skipped" | "unknown";
+  scenario_name: string | null;
+  allure_report: Record<string, unknown> | null;
+  duration_ms: number | null;
+  error_message: string | null;
+  retries: number | null;
+  is_flaky?: boolean | undefined;
+  revision_note?: string | null;
+  allure_url: string | null;
+}
+
+
+export interface NrtDetailsObject {
+  test_suite: TestSuite;
+  test_run: TestRun;
+  scenarios: TestExecution[];
+}
+
+export interface UpdateNrtsObject{
+  test_suites: TestSuite[];
+  test_runs: TestRun[];
+  scenarios: TestExecution[];
+}
+
+
+export interface NrtSuite{
+  id: string;
+  test_object: string;
+  test_type: string;
+  suite_version: string;
+  owner_team: string | null;
+}
+
+export interface FlakyScenario {
+  id?: string;
+  suite_id: string;
+  test_object: string;
+  scenario_name: string;
+  suite_version: string;
+  test_version: string;
+  inserted_at: string | null;
+  is_flaky?: boolean | undefined;
+}

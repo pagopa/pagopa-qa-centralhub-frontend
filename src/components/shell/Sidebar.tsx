@@ -46,6 +46,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" },
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
+      { href: "/nrts", label: "NRTS", icon: Radar, action: "view:nrts" },
+      { href: "/tas-nrts", label: "TAS NRTS", icon: Radar, action: "view:tas_nrts" },
     ],
   },
   {

@@ -1,0 +1,96 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useNrts, useNrtDetailsScenarios, useFlakyScenarios } from "@/hooks/useNrts";
+import { useSuites } from "@/hooks/useSuites";
+import NrtsTable from "@/components/nrts/NrtsTable";
+import type { FlakyScenario } from "@/types";
+import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
+
+export default function NrtsPage() {
+  const [page, setPage] = useState(1);
+  const [selectedNrtId, setSelectedNrtId] = useState<string | undefined>();
+  const {
+    data: selectedNrtDetails,
+    isLoading: isDetailsLoading,
+    isError: hasDetailsError,
+  } = useNrtDetailsScenarios(selectedNrtId);
+  const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
+  const { data: nrtsData, isLoading, error } = useNrts({
+        test_object: selectedSuite,
+        page: page
+    });
+  const { data: suitesList, isLoading: isLoadingSuites } = useSuites();
+  const [nrts, setNrts] = useState(nrtsData?.items ?? []);
+  var totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
+  const [modified, setIsModified] = useState(false);
+  const [flakyScenarios, setFlakyScenarios] = useState<FlakyScenario[]>([]);
+  const { data: flakyScenariosData } = useFlakyScenarios();
+
+  useEffect(() => {
+      setNrts(nrtsData?.items ?? []);
+      totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
+  }, [nrtsData]);
+
+  useEffect(() => {
+      setFlakyScenarios(flakyScenariosData ?? []);
+  }, [flakyScenariosData]);
+
+  useEffect(() => {
+      const updatedNrts = nrts.map(nrt => {
+          if (nrt.test_suite.id === selectedNrtId) {
+              return {
+                  ...nrt,
+                  test_execution: selectedNrtDetails ?? []
+              };
+          }
+          return nrt;
+      });
+      setNrts(updatedNrts);
+  }, [selectedNrtDetails]);
+  
+
+  if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
+
+  return (
+    <div className="flex flex-col gap-6"> 
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-semibold text-text">NRTs (No regression tests)</h1>
+        <span className="text-[13px] text-text-muted font-mono">({nrtsData?.total ?? 0} totali)</span>
+      </div>
+      <div className="flex flex-col w-full gap-5">
+          <select
+            className="w-50 rounded-[var(--radius-sm)] border border-border bg-surface text-text text-base px-2 py-1"
+            value={selectedSuite ?? ""}
+            onChange={(e) => {
+              setSelectedSuite(e.target.value || undefined);
+              setPage(1);
+            }}
+          >
+            <option value="">Tutte le suite</option>
+            {suitesList?.map((s) => (
+              <option key={s} value={s}>{s.toUpperCase()}</option>
+            ))}
+          </select>
+    </div>
+    {(error != null ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
+    <NrtsTable
+      runs={nrts} // NRTS
+      onNrtsChange={setNrts} // aggiorna NRTS
+      totalPages={totalPages} // pagine
+      onRowClick={setSelectedNrtId} // seleziona NRT
+      selectedNrt={selectedNrtId} // NRT selezionato
+      selectedNrtDetails={selectedNrtDetails} // dettagli NRT selezionato
+      isDetailsLoading={isDetailsLoading} // caricamento dettagli NRT
+      hasDetailsError={hasDetailsError} // errore caricamento dettagli NRT
+      modified={modified} // stato modificato
+      onModifiedChange={setIsModified} // aggiorna stato modificato
+      flakyScenarios={flakyScenarios}
+      setFlakyScenarios={setFlakyScenarios}
+      page={page}
+      setPage={setPage}
+    />
+    )}
+    </div>
+  );
+}
