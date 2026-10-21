@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useNrts, useNrtDetailsScenarios, useFlakyScenarios } from "@/hooks/useNrts";
+import { useNrts, useNrtDetailsScenarios, useFlakyScenarios, useOrigins } from "@/hooks/useNrts";
 import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
 import type { FlakyScenario } from "@/types";
@@ -10,6 +10,7 @@ import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 export default function TasNrtsPage() {
   const [page, setPage] = useState(1);
   const [selectedNrtId, setSelectedNrtId] = useState<string | undefined>();
+  const { data: originsData } = useOrigins();
   const {
     data: selectedNrtDetails,
     isLoading: isDetailsLoading,
@@ -17,11 +18,11 @@ export default function TasNrtsPage() {
   } = useNrtDetailsScenarios(selectedNrtId);
   const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
   const { data: nrtsData, isLoading, error } = useNrts({
-        trigger: "TAS",
+        origin: "TAS",
         test_object: selectedSuite,
     });
   const { data: suitesList, isLoading: isLoadingSuites } = useSuites(
-    {trigger:"TAS"}
+    {origin:"TAS"}
   );
   const [nrts, setNrts] = useState(nrtsData?.items ?? []);
   const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
@@ -36,7 +37,6 @@ export default function TasNrtsPage() {
   useEffect(() => {
       setFlakyScenarios(flakyScenariosData ?? []);
   }, [flakyScenariosData]);
-
 
   if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
 
@@ -68,7 +68,6 @@ export default function TasNrtsPage() {
       totalPages={totalPages} // pagine
       onRowClick={setSelectedNrtId} // seleziona NRT
       selectedNrt={selectedNrtId} // NRT selezionato
-      selectedNrtDetails={selectedNrtDetails} // dettagli NRT selezionato
       isDetailsLoading={isDetailsLoading} // caricamento dettagli NRT
       hasDetailsError={hasDetailsError} // errore caricamento dettagli NRT
       modified={modified} // stato modificato
@@ -77,6 +76,7 @@ export default function TasNrtsPage() {
       setFlakyScenarios={setFlakyScenarios}
       page={page}
       setPage={setPage}
+      isTasOnly={true}
     />
     )}
     </div>

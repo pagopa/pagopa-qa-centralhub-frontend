@@ -79,7 +79,7 @@ export function buildAiAnalysisUrl(testRun: TestRun, testObject: string): string
 export function buildAllureScenarioUrl(testRun: TestRun, testObject: string, scenarioAllureId: string): string {
     if (testRun.allure_url == null){
         const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-        return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-test/${timestamp}/index.html#suites/${scenarioAllureId}`;
+        return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-test/${timestamp}/index.html#suites/${testRun.id}/${scenarioAllureId}`;
     }
     
     return `${testRun.allure_url}#suites/${scenarioAllureId}`;

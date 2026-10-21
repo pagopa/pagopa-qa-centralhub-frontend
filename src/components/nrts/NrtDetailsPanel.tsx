@@ -1,8 +1,9 @@
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, MouseEvent } from "react";
 import type { NrtDetailsObject, TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/types";
 import NrtSaveButton from "./NrtSaveButton";
+import { RunModal } from "@/components/e2e/RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
-import {useState} from "react"
+import {useState, useEffect} from "react"
 import {
   buildAllureRunUrl,
   buildAllureScenarioUrl,
@@ -24,8 +25,6 @@ export function NrtDetailsPanel({
   modified,
   onModifiedChange,
   onSave,
-  scenarios,
-  setScenarios,
   isSaving,
   hasSaveError,
   modifiedScenarioIds,
@@ -34,6 +33,8 @@ export function NrtDetailsPanel({
   setFlakyScenarios,
   fetchJiraIssue,
   handleIssueInputChange,
+  handleRevisionNoteChange,
+  isTasOnly,
 }: {
   details?: NrtsListObject;
   isLoading: boolean;
@@ -41,8 +42,6 @@ export function NrtDetailsPanel({
   modified: boolean;
   onModifiedChange: (modified: boolean) => void;
   onSave: () => void;
-  scenarios: TestExecution[];
-  setScenarios: (scenarios: TestExecution[]) => void;
   isSaving: boolean;
   hasSaveError: boolean;
   modifiedScenarioIds: Set<string>;
@@ -52,8 +51,18 @@ export function NrtDetailsPanel({
   setFlakyScenarios: (flakyScenarios: FlakyScenario[]) => void;
   fetchJiraIssue: (issueId: string, testRun: TestRun, isQaIssue: boolean) => Promise<boolean>;
   handleIssueInputChange: (event: ChangeEvent<HTMLInputElement>, runId: string, field: "product" | "qa") => void;
+  handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenarios: TestExecution[],updatedScenarioId: string, event: ChangeEvent<HTMLTextAreaElement>) => void;
+  isTasOnly: boolean;
 }) {
   const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, test: false });
+  const [activeReport, setActiveReport] = useState<{ url: string; title: string } | null>(null);
+
+  function openReport(event: MouseEvent<HTMLAnchorElement>, title: string) {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setActiveReport({ url: event.currentTarget.href, title });
+  }
 
   async function checkJiraIssue(issueId: string, isQaIssue: boolean) {
     const field = isQaIssue ? "test" : "product";
@@ -93,7 +102,7 @@ export function NrtDetailsPanel({
     );
   }
 
-  function handleCheckboxChange(updatedScenario: TestExecution, scenarios: TestExecution[]) {
+  function handleCheckboxChange(updatedScenario: TestExecution) {
     setModifiedScenarioIds(new Set([...modifiedScenarioIds, updatedScenario.id ?? ""]));
 
     const updatedFlakyScenario = createFlakyScenario(
@@ -121,15 +130,8 @@ export function NrtDetailsPanel({
     }
   }
 
-
-  function handleRevisionNoteChange(updatedScenario: TestExecution, event: ChangeEvent<HTMLTextAreaElement>, scenarios: TestExecution[]) {
-    const modifiedScenarios = scenarios.map(scenario =>
-      scenario.id === updatedScenario.id ? { ...scenario, revision_note: event.target.value } : scenario
-    );
-    setScenarios(modifiedScenarios);
-    setModifiedScenarioIds(new Set([...modifiedScenarioIds, updatedScenario.id ?? ""]));
-  }
-
+  var scenarios = details?.test_execution ?? [];
+ 
 
   return (
     <div className="flex flex-col ">
@@ -157,6 +159,7 @@ export function NrtDetailsPanel({
               {jiraIssueNotFound.product && <span className="text-danger text-[12px]">Nessuna issue Jira trovata</span>}
             </div>
           </div>
+           {!isTasOnly && (
           <div>
             <dt className="text-text-muted">Ticket fix test:</dt>{" "}
             <div className="flex flex-wrap items-center gap-2">
@@ -170,10 +173,12 @@ export function NrtDetailsPanel({
               {jiraIssueNotFound.test && <span className="text-danger text-[12px]">Nessuna issue Jira trovata</span>}
             </div>
           </div>   
+          )}
           </dl>     
            <div className="flex justify-center space-x-7 px-10 py-3 text-center " onClick={(e) => e.stopPropagation()}>
                     <a
                       href={details.test_run.allure_url == null ? buildAllureRunUrl(details.test_run, suite.test_object) : details.test_run?.allure_url ?? ""}
+                      onClick={(event) => openReport(event, "Allure report")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-accent text-lg hover:underline">
@@ -181,6 +186,7 @@ export function NrtDetailsPanel({
                     </a>
                     <a
                       href={buildAiAnalysisUrl(details.test_run, suite.test_object)}
+                      onClick={(event) => openReport(event, "AI Analysis")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-accent text-lg hover:underline">
@@ -191,9 +197,9 @@ export function NrtDetailsPanel({
 
       <div>
         <h2 className="mb-2 text-[12px] font-semibold uppercase text-text-muted">
-          Scenari <span className="font-mono">({scenarios.length})</span>
+          Scenari <span className="font-mono">({details.test_execution?.length ?? 0})</span>
         </h2>
-        {scenarios.length === 0 ? (
+        {details.test_execution?.length === 0 ? (
           <p className="text-[12px] text-text-muted">Nessuno scenario associato a questa run.</p>
         ) : (
           <div className="max-h-64 overflow-auto rounded-[var(--radius-sm)] border border-border">
@@ -208,10 +214,10 @@ export function NrtDetailsPanel({
                 </tr>
               </thead>
               <tbody>
-                {scenarios.filter((scenario) => scenario.status !== NRT_RUN_STATUSES.passed).map((scenario) => (
+                {details.test_execution?.filter((scenario) => scenario.status !== NRT_RUN_STATUSES.passed).map((scenario) => (
                   <tr key={scenario.id} className="border-b border-border last:border-0">
                     <td className="px-3 py-2 text-text">
-                      <a href={scenario.allure_url == null? buildAllureScenarioUrl(details.test_run, suite.test_object, scenario.allure_id ?? "") : scenario.allure_url ?? ""} target="_blank" rel="noopener noreferrer"><span>{scenario.scenario_name ?? "—"} <ArrowUpRight className="inline" size={20}></ArrowUpRight></span></a></td>
+                      <a href={scenario.allure_url == null? buildAllureScenarioUrl(details.test_run, suite.test_object, scenario.allure_id ?? "") : scenario.allure_url ?? ""} onClick={(event) => openReport(event, scenario.scenario_name ?? "Allure scenario")} target="_blank" rel="noopener noreferrer"><span>{scenario.scenario_name ?? "—"} <ArrowUpRight className="inline" size={20}></ArrowUpRight></span></a></td>
                     <td className="px-3 py-2 font-mono">{scenario.status}</td>
                     <td className="px-3 py-2 font-mono text-text-dim">
                       {scenario.duration_ms == null ? "—" : `${scenario.duration_ms} ms`}
@@ -219,10 +225,10 @@ export function NrtDetailsPanel({
                     <td className="px-3 py-2 font-mono text-text-dim">{scenario.retries ?? "—"}</td>
                     <td className="px-3 py-2 text-danger">{scenario.error_message ?? "—"}</td>
                     <td className="px-3 py-2 font-mono text-text-dim">
-                        <input type="checkbox" checked={isScenarioInFlakyScenarios(scenario, suite, details.test_run?.test_version, flakyScenarios)} onChange={() => { handleCheckboxChange(scenario, scenarios); onModifiedChange(true); }} />
+                        <input type="checkbox" checked={isScenarioInFlakyScenarios(scenario, suite, details.test_run?.test_version, flakyScenarios)} onChange={() => { handleCheckboxChange(scenario); onModifiedChange(true); }} />
                     </td>
                     <td>
-                      <textarea value={scenario.revision_note ?? ""} onChange={(event) => { handleRevisionNoteChange(scenario, event, scenarios); onModifiedChange(true); }} className="w-full rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-2 py-1" />
+                      <textarea value={scenario.revision_note ?? ""} onChange={(event) => { handleRevisionNoteChange(details, scenarios, scenario.id ?? "", event); onModifiedChange(true); }} className="w-full rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-2 py-1" />
                     </td> 
                   </tr>
                 ))}
@@ -230,7 +236,7 @@ export function NrtDetailsPanel({
             </table>
           </div>
         )}
-        {modified && (
+        {modified && !isTasOnly && ((
           <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
            <NrtSaveButton
               hasSaveError={hasSaveError}
@@ -239,8 +245,15 @@ export function NrtDetailsPanel({
               modified={modified}
             />
           </div>
-        )}
+        ))}
       </div>
+      <RunModal
+        run={details}
+        open={activeReport !== null}
+        onClose={() => setActiveReport(null)}
+        reportUrl={activeReport?.url}
+        reportTitle={activeReport?.title}
+      />
     </div>
   );
 }

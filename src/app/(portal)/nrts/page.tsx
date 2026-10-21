@@ -38,7 +38,7 @@ export default function NrtsPage() {
 
   useEffect(() => {
       const updatedNrts = nrts.map(nrt => {
-          if (nrt.test_suite.id === selectedNrtId) {
+          if (nrt.test_run?.id === selectedNrtId) {
               return {
                   ...nrt,
                   test_execution: selectedNrtDetails ?? []
@@ -80,7 +80,6 @@ export default function NrtsPage() {
       totalPages={totalPages} // pagine
       onRowClick={setSelectedNrtId} // seleziona NRT
       selectedNrt={selectedNrtId} // NRT selezionato
-      selectedNrtDetails={selectedNrtDetails} // dettagli NRT selezionato
       isDetailsLoading={isDetailsLoading} // caricamento dettagli NRT
       hasDetailsError={hasDetailsError} // errore caricamento dettagli NRT
       modified={modified} // stato modificato
@@ -89,6 +88,7 @@ export default function NrtsPage() {
       setFlakyScenarios={setFlakyScenarios}
       page={page}
       setPage={setPage}
+      isTasOnly={false}
     />
     )}
     </div>

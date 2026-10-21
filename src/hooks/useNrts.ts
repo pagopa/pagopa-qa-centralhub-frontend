@@ -4,38 +4,27 @@ import type { NrtsListObject, NrtDetailsObject, PaginatedResponse, UpdateNrtsObj
 
 interface UseNrtsParams {
   test_object?: string;
-  trigger?: string;
+  origin?: string;
   page?: number;
   pageSize?: number;
 }
 
 
-export function useNrts({test_object, trigger, page = 1, pageSize = 20}: UseNrtsParams = {}) {
+export function useNrts({test_object, origin, page = 1, pageSize = 20}: UseNrtsParams = {}) {
     const params = new URLSearchParams({
         page: String(page),
         page_size: String(pageSize),
     });
     if (test_object) params.set("test_object", test_object);
-    if (trigger) params.set("trigger", trigger);
-
+    if (origin) params.set("origin", origin);
+    
     return useQuery({
-        queryKey: ["nrts", {test_object, trigger, page, pageSize}],
+        queryKey: ["nrts", {test_object, origin, page, pageSize}],
         staleTime: 1000 * 60 * 60, // 60 minute
         queryFn: () => apiClient<PaginatedResponse<NrtsListObject>>(`/api/v1/test-metrics/nrts?${params}`),
     });
 }
 
-// export function useNrtDetails(id?: string) {
-//     return useQuery({
-//         queryKey: ["nrts", "details", id],
-//         enabled: Boolean(id),
-//         staleTime: 1000 * 60 * 60, // 60 minute
-//         queryFn: () => {
-//             if (!id) throw new Error("An NRT ID is required to load its details");
-//             return apiClient<NrtDetailsObject>(`/api/v1/test-metrics/nrt/${id}`);
-//         },
-//     });
-// }
 
 export function useNrtDetailsScenarios(id?: string) {
     return useQuery({
