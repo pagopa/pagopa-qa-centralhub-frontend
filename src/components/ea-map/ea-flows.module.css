@@ -1,0 +1,77 @@
+/* EA Map — «Flussi»: payment flow player. */
+.wrap { display: grid; grid-template-columns: 280px 1fr; gap: 18px; margin-top: 12px; align-items: start; }
+.list { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 12px; }
+.card { text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.card b { font-size: 14px; }
+.card span { font-size: 12.5px; color: var(--text-dim); }
+.card small { font-size: 12px; color: var(--text-muted); }
+.card:hover { border-color: var(--border-strong); }
+.cardOn { border-color: #ff8a3d; box-shadow: 0 0 0 3px color-mix(in oklab, #ff8a3d 20%, transparent); }
+.draft { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--text-dim); padding: 10px 12px; border-radius: 10px; background: var(--warning-soft); }
+.draft svg { width: 16px; height: 16px; color: var(--warning); flex: none; margin-top: 1px; }
+.dim { font-size: 13px; color: var(--text-dim); }
+.main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.head h3 { font-size: 19px; font-weight: 700; }
+.head a { color: var(--accent); }
+.ghost { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 7px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap; }
+.ghost svg { width: 15px; height: 15px; color: #ff8a3d; }
+.controls { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: #0b1730; color: #f5f3ee; }
+.controls > button { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; border: 0; background: rgba(255, 255, 255, 0.08); color: #f5f3ee; cursor: pointer; }
+.controls > button:disabled { opacity: 0.35; cursor: default; }
+.controls svg { width: 17px; height: 17px; }
+.controls > .play { width: 42px; height: 42px; border-radius: 50%; background: #ff8a3d; color: #1a0e05; }
+.counter { font-size: 13px; color: #b8c4da; margin-left: 6px; white-space: nowrap; }
+.progress { flex: 1; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.progress i { display: block; height: 100%; background: #ff8a3d; transition: width 0.4s ease; }
+.speed { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); }
+.speed button { border: 0; background: transparent; color: #b8c4da; padding: 3px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.speed button[aria-checked="true"] { background: #f5f3ee; color: #0b1730; font-weight: 700; }
+.stage { overflow: auto; max-height: 560px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
+.svg { display: block; }
+.lanesHead {
+  position: sticky; top: 0; z-index: 2; min-width: 100%;
+  background: color-mix(in oklab, var(--surface) 94%, transparent); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border); box-shadow: 0 6px 12px -10px rgba(11, 23, 48, 0.35);
+}
+.lanesHead svg { display: block; }
+.life { stroke: var(--border-strong); stroke-dasharray: 4 5; }
+.laneBox { fill: var(--subtle); stroke: var(--border-strong); transition: fill 0.2s, stroke 0.2s; }
+.laneExt { fill: color-mix(in oklab, #7a5bd0 8%, var(--surface)); }
+.laneOn { fill: color-mix(in oklab, #ff8a3d 14%, var(--surface)); stroke: #ff8a3d; stroke-width: 2; }
+.laneText { display: flex; flex-direction: column; justify-content: center; height: 100%; text-align: center; line-height: 1.2; }
+.laneText b { font-size: 12.5px; color: var(--text); }
+.laneText span { font-size: 11px; color: var(--text-muted); }
+.step { cursor: pointer; }
+.hit { fill: transparent; }
+.step:hover .hit { fill: color-mix(in oklab, var(--accent) 5%, transparent); }
+.label { font-size: 12px; fill: var(--text-dim); }
+.arrow { stroke: var(--text-muted); stroke-width: 1.6; fill: none; }
+.dashed { stroke-dasharray: 6 4; }
+.st_next .arrow { stroke: var(--border-strong); }
+.st_next .label { fill: var(--text-muted); opacity: 0.7; }
+.st_done .arrow { stroke: #1b3a7a; }
+.st_done .label { fill: var(--text); }
+.st_now .arrow { stroke: #ff8a3d; stroke-width: 3; }
+.st_now .label { fill: #c2571a; font-weight: 700; font-size: 13px; }
+.mk_done { fill: #1b3a7a; }
+.mk_now { fill: #ff8a3d; }
+.mk_next { fill: var(--border-strong); }
+.token { fill: #ff8a3d; filter: drop-shadow(0 0 6px rgba(255, 138, 61, 0.9)); }
+.warnDot { fill: #c8483f; }
+.platform .label { font-style: italic; }
+.optional .arrow { stroke-dasharray: 2 4; }
+.plat { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: color-mix(in oklab, #7a5bd0 12%, var(--surface)); color: #5b3fb0; }
+.stepCard { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 8px; animation: fadeIn 0.25s ease-out; }
+.stepHead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.prim { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; font-weight: 700; color: #c2571a; }
+.kind { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--subtle); color: var(--text-dim); }
+.okMap { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--success-soft); color: var(--success); }
+.noMap { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--danger-soft); color: var(--danger); }
+.stepCard p { font-size: 14px; line-height: 1.5; color: var(--text); }
+.who { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--text-muted); }
+.who button { border: 1px solid var(--border); background: var(--subtle); border-radius: 8px; padding: 3px 10px; font-size: 13px; cursor: pointer; color: var(--text); }
+.who button:hover { border-color: #ff8a3d; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (max-width: 1100px) { .wrap { grid-template-columns: 1fr; } .list { position: static; } }
+@media (prefers-reduced-motion: reduce) { .stepCard { animation: none; } .progress i { transition: none; } }

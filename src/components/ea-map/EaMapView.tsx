@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { EyeOff, Search } from "lucide-react";
-import type { EaArea, EaNode, EaProduct } from "@/types/ea";
-import { useEaKb, useEaSyncStatus } from "@/hooks/useEaMap";
+import { EyeOff, Info, Search } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { EaArea, EaLiveEnv, EaNode, EaProduct } from "@/types/ea";
+import { useEaKb, useEaLive, useEaSyncStatus } from "@/hooks/useEaMap";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   KIND_BADGE,
@@ -20,8 +21,11 @@ import {
 import { AreaView, PlatformView, ProductView } from "./EaArchitecture";
 import { EaBlueprint } from "./EaBlueprint";
 import { bestRoute, expandHighlight, highlightCss } from "@/lib/ea-map/assist";
+import { liveCss, liveMarks } from "@/lib/ea-map/live";
 import { EaAssistant } from "./EaAssistant";
+import { EaLivePanel } from "./EaLivePanel";
 import { EaDataLake } from "./EaDataLake";
+import { EaFlows } from "./EaFlows";
 import { EaGuide } from "./EaGuide";
 import { EaImpact } from "./EaImpact";
 import { EaNodeDrawer } from "./EaNodeDrawer";
@@ -35,6 +39,7 @@ const TABS: [EaView, string][] = [
   ["blueprint", "Blueprint"],
   ["map", "Architettura"],
   ["datalake", "Data Lake"],
+  ["flows", "Flussi"],
   ["impact", "Impatto"],
   ["qa", "Matrice QA"],
   ["guida", "Guida"],
@@ -75,6 +80,47 @@ function subscribeHash(cb: () => void) {
   window.addEventListener("hashchange", cb);
   return () => window.removeEventListener("hashchange", cb);
 }
+
+/** A small (i) next to a switch that explains how to read it, on hover or keyboard focus. */
+function InfoTip({ label, title, lines }: { label: string; title: string; lines: string[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger
+        render={(
+          <button
+            type="button"
+            aria-label={label}
+            className={s.infoTip}
+            onPointerEnter={() => setOpen(true)}
+            onPointerLeave={() => setOpen(false)}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+          >
+            <Info aria-hidden="true" />
+          </button>
+        )}
+      />
+      <TooltipContent side="bottom" className="max-w-sm flex-col items-start gap-1 text-left leading-relaxed">
+        <b>{title}</b>
+        {lines.map((l) => <span key={l}>{l}</span>)}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+const LENS_HELP = [
+  "Colora componenti, prodotti e aree in base alla maturità dei test, da 0 a 5.",
+  "Un punto per ogni livello trovato: unit test, integration test, suite centrali o BDD del Nodo, performance, regressione notturna (NRT).",
+  "Dal rosso (0) al verde scuro (5). Prodotti, processi e applicazioni del Blueprint mostrano la media dei loro componenti.",
+  "Misura la presenza dei test, non il loro esito: per gli esiti usa Live.",
+];
+const LIVE_HELP = [
+  "Mostra l'esito delle ultime run automatiche (NRT, TAS, CI) degli ultimi 7 giorni, nell'ambiente scelto nel riquadro in basso a sinistra.",
+  "Anello verde: ultima run passata. Ambra: parziale. Rosso: fallita, e pulsa se è successo nelle ultime 24 ore.",
+  "Prodotti e aree prendono il colore peggiore dei loro componenti; si aggiorna da solo ogni minuto.",
+  "Le run sono collegate ai componenti tramite le loro suite NRT e centrali.",
+];
 
 function where(g: EaGraph, n: EaNode): string {
   if (n.type === "component") return `${shortName(productOf(g, n).name)} · ${n.id}`;
@@ -195,6 +241,14 @@ export function EaMapView() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [highlight]);
+  // «Live»: outcomes of the automated test runs painted on the map
+  const [liveOn, setLiveOn] = useState(false);
+  const [liveEnv, setLiveEnv] = useState<EaLiveEnv>("DEV");
+  const liveQuery = useEaLive(liveEnv, liveOn);
+  const liveStyle = useMemo(
+    () => (g && liveOn && liveQuery.data ? liveCss(liveMarks(g, liveQuery.data), HL_SCOPE) : ""),
+    [g, liveOn, liveQuery.data],
+  );
   const { can } = usePermissions();
   const canReview = can("review:ea_map");
   const openChanges = useEaSyncStatus().data?.open_changes ?? 0;
@@ -289,7 +343,9 @@ export function EaMapView() {
   };
 
   return (
+    <TooltipProvider>
     <div className={cx(s.root, lens && s.lensOn, HL_SCOPE)}>
+      {liveStyle && <style>{liveStyle}</style>}
       {highlightStyle && <style>{highlightStyle}</style>}
       <div className={s.toolbar}>
         <div className={s.tabs} role="tablist" aria-label="Viste della mappa">
@@ -304,6 +360,13 @@ export function EaMapView() {
         <div className={s.lens}>
           <button id="ea-lens" type="button" role="switch" className={s.switch} aria-checked={lens} aria-label="Lente QA" onClick={toggleLens} />
           <label htmlFor="ea-lens">Lente QA</label>
+          <InfoTip label="Come funziona la Lente QA" title="Lente QA" lines={LENS_HELP} />
+        </div>
+        <div className={s.lens}>
+          <button id="ea-live" type="button" role="switch" className={s.switch} aria-checked={liveOn} aria-label="Live"
+            onClick={() => setLiveOn((v) => !v)} />
+          <label htmlFor="ea-live">Live</label>
+          <InfoTip label="Come funziona Live" title="Live" lines={LIVE_HELP} />
         </div>
         <SearchBox g={g} onPick={(n) => openNode(n.id)} />
       </div>
@@ -317,6 +380,15 @@ export function EaMapView() {
           selected={route.nodeId}
           onSelect={(id) => navigate({ view: "datalake", nodeId: id })}
           onOpen={openInDataLake}
+        />
+      )}
+      {route.view === "flows" && (
+        <EaFlows
+          g={g}
+          flowId={route.nodeId}
+          onSelect={(id) => navigate({ view: "flows", nodeId: id })}
+          openNode={openNode}
+          onShow={showOnMap}
         />
       )}
       {route.view === "impact" && <EaImpact g={g} openNode={openNode} onShow={showOnMap} />}
@@ -336,6 +408,17 @@ export function EaMapView() {
           </button>
         </div>
       )}
+      {liveOn && (
+        <EaLivePanel
+          g={g}
+          env={liveEnv}
+          onEnv={setLiveEnv}
+          data={liveQuery.data}
+          loading={liveQuery.isLoading}
+          error={liveQuery.isError}
+          onShow={showOnMap}
+        />
+      )}
       <EaAssistant
         g={g}
         route={route}
@@ -345,5 +428,6 @@ export function EaMapView() {
         openNode={openNode}
       />
     </div>
+    </TooltipProvider>
   );
 }

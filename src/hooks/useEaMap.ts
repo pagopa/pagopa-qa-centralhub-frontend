@@ -11,8 +11,11 @@ import type {
   EaEdgeCreate,
   EaEdgeDetail,
   EaEdgeUpdate,
+  EaFlow,
   EaHistoryItem,
   EaKb,
+  EaLive,
+  EaLiveEnv,
   EaNodeDetail,
   EaNodeUpdate,
   EaQaUpdate,
@@ -187,5 +190,27 @@ export function useEaAssistant() {
     { messages: EaChatMessage[]; context: { view: string; node_id: string | null } | null }
   >({
     mutationFn: (body) => apiClient("/api/v1/ea/assistant/chat", { method: "POST", body: JSON.stringify(body) }),
+  });
+}
+
+
+/** Recent outcomes of the automated test runs on the map; refreshed every minute while on. */
+export function useEaLive(env: EaLiveEnv, enabled: boolean) {
+  return useQuery<EaLive>({
+    queryKey: [...eaMapQueryKey, "live", env],
+    queryFn: () => apiClient(`/api/v1/ea/live?env=${env}&days=7`),
+    enabled,
+    refetchInterval: enabled ? 60_000 : false,
+    staleTime: 30_000,
+  });
+}
+
+
+/** Curated payment flows (SANP) on the map nodes. */
+export function useEaFlows() {
+  return useQuery<EaFlow[]>({
+    queryKey: [...eaMapQueryKey, "flows"],
+    queryFn: () => apiClient("/api/v1/ea/flows"),
+    staleTime: 5 * 60 * 1000,
   });
 }

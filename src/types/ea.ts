@@ -376,3 +376,66 @@ export interface EaAssistantReply {
   labels: Record<string, string>;
   steps: { tool: string; label: string }[];
 }
+
+/* ── Live: recent outcomes of the automated test runs ─────────── */
+
+export type EaLiveStatus = "passed" | "partial" | "failed" | "none";
+export type EaLiveEnv = "DEV" | "UAT" | "PROD";
+
+export interface EaLiveObject {
+  test_object: string;
+  test_type: string | null;
+  trigger: string | null;
+  status: EaLiveStatus;
+  at: string | null;
+  fresh_failure: boolean;
+  runs: number;
+  pass_rate: number;
+  history: EaLiveStatus[];
+  last: { total: number; passed: number; failed: number; broken: number; skipped: number; duration_ms: number | null; allure_url: string | null };
+  nodes: string[];
+}
+
+export interface EaLive {
+  env: EaLiveEnv;
+  days: number;
+  generated_at: string;
+  objects: EaLiveObject[];
+  nodes: Record<string, { status: EaLiveStatus; fresh_failure: boolean; at: string | null; objects: string[] }>;
+  unmapped: string[];
+  feed: { test_object: string; status: EaLiveStatus; trigger: string | null; at: string | null; failed: number; total: number; allure_url: string | null; nodes: string[] }[];
+  counts: { passed: number; partial: number; failed: number };
+}
+
+/* ── Flows: curated payment flows, step by step ───────────────── */
+
+export interface EaFlowStep {
+  index: number;
+  from: string;
+  to: string;
+  kind: "user" | "sync" | "async" | "self";
+  primitive: string;
+  text: string;
+  /** optional in the SANP use case (e.g. verifyPaymentNotice) */
+  optional?: boolean;
+  /** "sanp": in the SANP use case; "piattaforma": internal detail of the platform */
+  layer?: "sanp" | "piattaforma";
+  /** null when there is nothing to check (a person acting, a node working alone) */
+  on_map: boolean | null;
+  edge: { type: string; origin: string | null; reverse: boolean } | null;
+}
+
+export interface EaFlow {
+  id: string;
+  name: string;
+  subtitle: string;
+  process: string;
+  process_name: string;
+  services: { id: string; name: string }[];
+  lanes: { id: string; name: string; type: string; product: string | null }[];
+  steps: EaFlowStep[];
+  missing: string[];
+  validated: boolean;
+  sanp_url?: string | null;
+  source: string;
+}
