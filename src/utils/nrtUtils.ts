@@ -66,6 +66,14 @@ export function formatNrtTimestamp(value: string | null | undefined): string | n
     return value ? new Date(value).toLocaleString("it-IT") : null;
 }
 
+export function formatNrtDuration(value: number | null | undefined): string | null {
+    if (value == null) return null;
+    const seconds = Math.floor(value / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+}
+
 export function buildAllureRunUrl(testRun: TestRun, testObject: string): string {
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
     return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-test/${timestamp}/index.html`;

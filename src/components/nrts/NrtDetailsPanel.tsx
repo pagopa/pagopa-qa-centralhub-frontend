@@ -1,9 +1,9 @@
 import type { ChangeEvent, MouseEvent } from "react";
-import type { NrtDetailsObject, TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/types";
+import type {  TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/types";
 import NrtSaveButton from "./NrtSaveButton";
 import { RunModal } from "@/components/e2e/RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
-import {useState, useEffect} from "react"
+import {useState} from "react"
 import {
   buildAllureRunUrl,
   buildAllureScenarioUrl,
@@ -12,6 +12,7 @@ import {
   formatNrtTimestamp,
   isFlakyScenarioEqual,
   isScenarioInFlakyScenarios,
+  formatNrtDuration,
 } from "@/utils/nrtUtils";
 import {
   NRT_RUN_STATUSES,
@@ -146,6 +147,7 @@ export function NrtDetailsPanel({
           <DetailField label="Origine" value={details.test_run?.test_origin} />
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
           <DetailField label="Fine" value={formatNrtTimestamp(details.test_run?.timestamp_end ?? null)} />
+          <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
           <div>
             <dt className="text-text-muted">Ticket fix prodotto:</dt>{" "}
             <div className="flex flex-wrap items-center gap-2">
