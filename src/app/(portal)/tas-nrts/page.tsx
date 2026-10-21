@@ -10,7 +10,6 @@ import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 export default function TasNrtsPage() {
   const [page, setPage] = useState(1);
   const [selectedNrtId, setSelectedNrtId] = useState<string | undefined>();
-  const { data: originsData } = useOrigins();
   const {
     data: selectedNrtDetails,
     isLoading: isDetailsLoading,
@@ -20,23 +19,38 @@ export default function TasNrtsPage() {
   const { data: nrtsData, isLoading, error } = useNrts({
         origin: "TAS",
         test_object: selectedSuite,
+        page: page
     });
   const { data: suitesList, isLoading: isLoadingSuites } = useSuites(
     {origin:"TAS"}
   );
   const [nrts, setNrts] = useState(nrtsData?.items ?? []);
-  const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
+  var totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
   const [flakyScenarios, setFlakyScenarios] = useState<FlakyScenario[]>([]);
   const { data: flakyScenariosData } = useFlakyScenarios();
 
   useEffect(() => {
       setNrts(nrtsData?.items ?? []);
+      totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   }, [nrtsData]);
 
   useEffect(() => {
       setFlakyScenarios(flakyScenariosData ?? []);
   }, [flakyScenariosData]);
+
+  useEffect(() => {
+      const updatedNrts = nrts.map(nrt => {
+          if (nrt.test_run?.id === selectedNrtId) {
+              return {
+                  ...nrt,
+                  test_execution: selectedNrtDetails ?? []
+              };
+          }
+          return nrt;
+      });
+      setNrts(updatedNrts);
+  }, [selectedNrtDetails]);
 
   if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
 
@@ -63,15 +77,15 @@ export default function TasNrtsPage() {
     </div>
     {(error != null ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
     <NrtsTable
-      runs={nrts} // NRTS
-      onNrtsChange={setNrts} // aggiorna NRTS
-      totalPages={totalPages} // pagine
-      onRowClick={setSelectedNrtId} // seleziona NRT
-      selectedNrt={selectedNrtId} // NRT selezionato
-      isDetailsLoading={isDetailsLoading} // caricamento dettagli NRT
-      hasDetailsError={hasDetailsError} // errore caricamento dettagli NRT
-      modified={modified} // stato modificato
-      onModifiedChange={setIsModified} // aggiorna stato modificato
+      runs={nrts} 
+      onNrtsChange={setNrts}
+      totalPages={totalPages} 
+      onRowClick={setSelectedNrtId} 
+      selectedNrt={selectedNrtId} 
+      isDetailsLoading={isDetailsLoading} 
+      hasDetailsError={hasDetailsError} 
+      modified={modified} 
+      onModifiedChange={setIsModified} 
       flakyScenarios={flakyScenarios}
       setFlakyScenarios={setFlakyScenarios}
       page={page}
