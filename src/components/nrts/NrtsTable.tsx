@@ -89,8 +89,8 @@ const visibleColumns = NRT_TABLE_HEADERS.filter((column) => !isTasOnly || column
 const visibleColumnIds = new Set<string>(visibleColumns.map((column) => column.id));
 const { data: session } = useSession();
 const email = session?.user?.email ?? "";
+const [modifiedScenarios, setModifiedScenarios] = useState<TestExecution[]>([]);
 const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
-const [modifiedScenarioIds, setModifiedScenarioIds] = useState(new Set<string>());
 
   function handleTestRunRevisionResultChange(modifiedTestRun: TestRun | undefined, event: ChangeEvent<HTMLSelectElement>) {
     const modifiedRuns = runs.map((nrt) =>
@@ -105,9 +105,7 @@ const [modifiedScenarioIds, setModifiedScenarioIds] = useState(new Set<string>()
 
 
   function handleSave() {
-    const scenarios = runs.find(nrt => nrt.test_run?.id === selectedNrt)?.test_execution ?? [];
     var modifiedTestRuns = runs.filter(nrt => modifiedRunIds.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
-    const modifiedScenarios = scenarios.filter(scenario => modifiedScenarioIds.has(scenario.id ?? ""));
     if (modifiedTestRuns.length === 0 && modifiedScenarios.length === 0 && flakyScenarios.length === 0) return;
     
     if (modifiedTestRuns.length > 0 || modifiedScenarios.length > 0){
@@ -175,15 +173,36 @@ const [modifiedScenarioIds, setModifiedScenarioIds] = useState(new Set<string>()
     onNrtsChange(details);
   }
 
-  function handleScenarioRevisionNoteChange(updatedNrt: NrtsListObject,scenarios: TestExecution[], modifiedScenarioId: string, event: ChangeEvent<HTMLTextAreaElement>) {
-    const updatedScenarios = scenarios.map(scenario =>
-      scenario.id === modifiedScenarioId ? { ...scenario, revision_note: event.target.value } : scenario
+  function handleScenarioRevisionNoteChange(updatedNrt: NrtsListObject,modifiedScenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) {
+    var newUpdatedScenarios: TestExecution[] = []
+    var found = false;
+    if (modifiedScenarios.length === 0) {
+        newUpdatedScenarios.push(modifiedScenario); // modifiedScenario
+    } else {
+       newUpdatedScenarios = modifiedScenarios.map(scenario =>{
+        if(scenario.id === modifiedScenario.id) {
+          found = true;
+          return { ...scenario, revision_note: event.target.value };
+        }
+        return scenario;
+       });
+       if(!found) {
+         modifiedScenario.revision_note = event.target.value;
+         newUpdatedScenarios.push(modifiedScenario);
+       }
+    }
+
+    const nrtUpdatedScenarios = scenarios.map(scenario =>
+      scenario.id === modifiedScenario.id ? { ...scenario, revision_note: event.target.value } : scenario
     );
     
     const newNrts = runs.map(run => 
-      run.test_run.id == updatedNrt.test_run.id? { ...run, test_execution: updatedScenarios} : run )
+      run.test_run.id == updatedNrt.test_run.id? { ...run, test_execution: nrtUpdatedScenarios} : run )
 
-    setModifiedScenarioIds(new Set([...modifiedScenarioIds, modifiedScenarioId]));
+    setModifiedScenarios(newUpdatedScenarios);
+
+        console.log(modifiedScenarios)
+
     onNrtsChange(newNrts);
   }
 
@@ -279,8 +298,6 @@ const [modifiedScenarioIds, setModifiedScenarioIds] = useState(new Set<string>()
                             onSave={handleSave}
                             isSaving={updateNrt.isPending}
                             hasSaveError={updateNrt.isError}
-                            modifiedScenarioIds={modifiedScenarioIds}
-                            setModifiedScenarioIds={setModifiedScenarioIds}
                             modifiedRunIds={modifiedRunIds}
                             flakyScenarios={flakyScenarios}
                             setFlakyScenarios={setFlakyScenarios}
@@ -288,6 +305,8 @@ const [modifiedScenarioIds, setModifiedScenarioIds] = useState(new Set<string>()
                             handleIssueInputChange={handleIssueInputChange}
                             handleRevisionNoteChange={handleScenarioRevisionNoteChange}
                             isTasOnly={isTasOnly}
+                            modifiedScenarios={modifiedScenarios}
+                            setModifiedScenarios={setModifiedScenarios}
                           />
                         </td>
                       </tr>

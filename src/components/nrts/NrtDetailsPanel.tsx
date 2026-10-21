@@ -28,14 +28,14 @@ export function NrtDetailsPanel({
   onSave,
   isSaving,
   hasSaveError,
-  modifiedScenarioIds,
-  setModifiedScenarioIds,
   flakyScenarios,
   setFlakyScenarios,
   fetchJiraIssue,
   handleIssueInputChange,
   handleRevisionNoteChange,
   isTasOnly,
+  modifiedScenarios,
+  setModifiedScenarios,
 }: {
   details?: NrtsListObject;
   isLoading: boolean;
@@ -45,14 +45,14 @@ export function NrtDetailsPanel({
   onSave: () => void;
   isSaving: boolean;
   hasSaveError: boolean;
-  modifiedScenarioIds: Set<string>;
-  setModifiedScenarioIds: (modifiedScenarioIds: Set<string>) => void;
+  modifiedScenarios: TestExecution[];
+  setModifiedScenarios: (modifiedScenarios: TestExecution[]) => void;
   modifiedRunIds: Set<string>;
   flakyScenarios: FlakyScenario[];
   setFlakyScenarios: (flakyScenarios: FlakyScenario[]) => void;
   fetchJiraIssue: (issueId: string, testRun: TestRun, isQaIssue: boolean) => Promise<boolean>;
   handleIssueInputChange: (event: ChangeEvent<HTMLInputElement>, runId: string, field: "product" | "qa") => void;
-  handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenarios: TestExecution[],updatedScenarioId: string, event: ChangeEvent<HTMLTextAreaElement>) => void;
+  handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) => void;
   isTasOnly: boolean;
 }) {
   const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, test: false });
@@ -104,8 +104,6 @@ export function NrtDetailsPanel({
   }
 
   function handleCheckboxChange(updatedScenario: TestExecution) {
-    setModifiedScenarioIds(new Set([...modifiedScenarioIds, updatedScenario.id ?? ""]));
-
     const updatedFlakyScenario = createFlakyScenario(
       updatedScenario,
       suite,
@@ -230,7 +228,7 @@ export function NrtDetailsPanel({
                         <input type="checkbox" checked={isScenarioInFlakyScenarios(scenario, suite, details.test_run?.test_version, flakyScenarios)} onChange={() => { handleCheckboxChange(scenario); onModifiedChange(true); }} />
                     </td>
                     <td>
-                      <textarea value={scenario.revision_note ?? ""} onChange={(event) => { handleRevisionNoteChange(details, scenarios, scenario.id ?? "", event); onModifiedChange(true); }} className="w-full rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-2 py-1" />
+                      <textarea value={scenario.revision_note ?? ""} onChange={(event) => { handleRevisionNoteChange(details, scenario, details.test_execution ?? [], event); onModifiedChange(true); }} className="w-full rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-2 py-1" />
                     </td> 
                   </tr>
                 ))}
