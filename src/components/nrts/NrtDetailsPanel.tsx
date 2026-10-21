@@ -146,7 +146,7 @@ export function NrtDetailsPanel({
           <DetailField label="Fine" value={formatNrtTimestamp(details.test_run?.timestamp_end ?? null)} />
           <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
           <div>
-            <dt className="text-text-muted">Ticket fix prodotto:</dt>{" "}
+            <dt className="text-text-muted">Ticket prodotto:</dt>{" "}
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="text"
@@ -160,7 +160,7 @@ export function NrtDetailsPanel({
           </div>
            {!isTasOnly && (
           <div>
-            <dt className="text-text-muted">Ticket fix test:</dt>{" "}
+            <dt className="text-text-muted">Ticket QA:</dt>{" "}
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="text"
