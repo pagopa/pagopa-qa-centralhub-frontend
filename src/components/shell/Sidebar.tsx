@@ -17,6 +17,8 @@ import {
   TestTube2,
   Users,
   Wallet,
+  ClipboardCheck,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -46,8 +48,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" },
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
-      { href: "/nrts", label: "NRTS", icon: Radar, action: "view:nrts" },
-      { href: "/tas-nrts", label: "TAS NRTS", icon: Radar, action: "view:tas_nrts" },
+      { href: "/nrts", label: "Non-Regression Tests (NRT)", icon: ClipboardCheck, action: "view:nrts" },
+      { href: "/tas-nrts", label: "Test automation service (TAS)", icon: Workflow, action: "view:tas_nrts" },
     ],
   },
   {
@@ -169,7 +171,7 @@ export function Sidebar() {
                       className={linkClassName}
                       style={linkStyle}
                     >
-                      <Icon size={15} strokeWidth={1.6} />
+                      <Icon size={15} strokeWidth={1.6} className="shrink-0" />
                       {item.label}
                     </a>
                   );
@@ -182,7 +184,7 @@ export function Sidebar() {
                     className={linkClassName}
                     style={linkStyle}
                   >
-                    <Icon size={15} strokeWidth={1.6} />
+                    <Icon size={15} strokeWidth={1.6} className="shrink-0" />
                     {item.label}
                   </Link>
                 );

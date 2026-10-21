@@ -55,7 +55,7 @@ export default function NrtsPage() {
   return (
     <div className="flex flex-col gap-6"> 
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold text-text">NRTs (No regression tests)</h1>
+        <h1 className="text-xl font-semibold text-text">NRTs (Non-Regression Test)</h1>
         <span className="text-[13px] text-text-muted font-mono">({nrtsData?.total ?? 0} totali)</span>
       </div>
       <div className="flex flex-col w-full gap-5">
