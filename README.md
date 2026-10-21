@@ -89,6 +89,48 @@ La route `/sanp-health` apre l'ultimo report completo disponibile e permette di 
 
 I run parziali restano consultabili nello storico senza sostituire il report completo predefinito. Gli avvisi segnalano dati non aggiornati o report incompleti. Il pulsante **Sincronizza ora** è disponibile agli utenti con permesso `sync:trigger`; l'accesso alla route richiede `view:sanp_health`.
 
+## NRT Metrics
+
+La voce **NRT Metrics** in **Test Results** (feature `nrt_metrics`, permesso
+`view:nrt_metrics`) apre direttamente la dashboard Grafana in una nuova scheda,
+senza pagina intermedia o iframe. L'icona di link esterno e il tooltip indicano
+l'apertura in una nuova scheda anche con il menu ridotto.
+L'autenticazione Microsoft avviene direttamente su Grafana.
+
+Se `NEXT_PUBLIC_NRT_METRICS_URL` non e' impostata, e' vuota o contiene solo spazi,
+viene utilizzata la dashboard Grafana di DEV riportata sotto.
+Per sovrascriverla, impostare la variabile con l'URL completo della dashboard nella
+configurazione locale (`.env.local`), ad esempio:
+
+```dotenv
+NEXT_PUBLIC_NRT_METRICS_URL="https://pagopa-d-weu-grafana-emfwascrf8c4fyce.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&kiosk"
+```
+
+Riavviare `pnpm dev` dopo la modifica. Se il valore esplicitamente impostato non e' un URL HTTP/HTTPS
+valido, la voce resta disabilitata e il tooltip segnala l'errore di configurazione.
+La variabile e' pubblica: non deve contenere token o credenziali.
+
+In Azure DevOps e' possibile configurare `DEV_NEXT_PUBLIC_NRT_METRICS_URL`,
+`UAT_NEXT_PUBLIC_NRT_METRICS_URL` e `PROD_NEXT_PUBLIC_NRT_METRICS_URL` nelle variabili
+della pipeline (o nella definizione Terraform che le gestisce).
+Questi override sono opzionali: le espressioni runtime della pipeline risolvono
+le variabili assenti in stringhe vuote, consentendo l'uso del default del frontend
+senza passare macro Azure DevOps non risolte alla build.
+La pipeline passa il valore selezionato al build argument Docker
+`NEXT_PUBLIC_NRT_METRICS_URL`. Next.js lo incorpora durante la build:
+cambiare solo l'ambiente del container in esecuzione non basta; occorre ricostruire
+e distribuire l'immagine.
+
+## EA Map
+
+La route `/ea-map` (`view:ea_map`) mostra la mappa di Enterprise Architecture della piattaforma pagoPA. Le viste sono tab con deep link nell'hash: Blueprint, Architettura (`#a-…`, `#p-…`, `#c-…`), **Data Lake** (`#datalake`, `#d-<id>`), Matrice QA, Guida e Revisione (`review:ea_map`). Codice in `src/components/ea-map/` e `src/lib/ea-map/` (funzioni pure, testate).
+
+**Vista Data Lake** (`EaDataLake.tsx`, `lib/ea-map/datalake.ts`): cinque colonne numerate (Sorgenti → Ingestion → Silver → Gold ed export → Consumer) con i dataset raggruppati per dominio e i fili SVG dei legami `produces` / `derives` / `feeds`. Cliccando un elemento si evidenzia la catena a monte e a valle; "Apri la scheda" apre il drawer senza lasciare la vista. Filtri per dominio, "Solo senza contratto", "Ingestion senza produttore" e "Senza controlli DQ"; badge ⚠ (senza contratto), PII, ✓ (check nel contratto) e "DQ attivi/totale".
+
+**Scheda del dataset** (`EaDatasetBody.tsx`): livello, tabella o topic, owner, SLA, server, link al contratto, documentazione e canale Slack; "Da dove arriva" (produttori e lineage), "Dove va" (consumer), copertura Data Quality e contratti che la citano. Con `edit:ea_map` si collegano o rimuovono produttori e consumer e si correggono livello, link alla documentazione e canale Slack (`EaEditDialogs.tsx`). I produttori proposti dalla sync si approvano in Revisione, gruppo "Produttori del Data Lake".
+
+Le schede di componenti e prodotti mostrano il pannello "Dati nel Data Lake" con i dataset prodotti.
+
 ## Auth & RBAC
 
 Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend chiama `POST /api/v1/users/sync-login` sul backend, che crea/aggiorna l'utente e restituisce `role` + `is_active`.
@@ -97,6 +139,7 @@ Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend ch
 - **`usePermissions()`**: hook che espone `{ role, roleLabel, can, isLoading }`, basato sulla matrice ruolo→permessi (`GET /api/v1/roles`, cache 5 minuti).
 - **`<Gate action="...">`**: nasconde i figli se `can(action)` è `false` (es. pulsanti "Sync" dietro `sync:trigger`).
 - **`<RouteGuard action="...">`**: redirige a `/` se l'utente non ha il permesso `view:*` / `manage:*` per la pagina (usato in layout/pagine del portale).
-- **`/settings/users`**: pagina riservata a `superadmin` (controllo client-side dedicato, non basato su `ACTION_CATALOG`), con due tab:
+- **`/settings/users`**: pagina riservata a `superadmin` (controllo client-side dedicato, non basato su `ACTION_CATALOG`), con tre tab:
   - **Utenti**: lista utenti, modifica ruolo e stato attivo/disattivo (`PATCH /api/v1/users/{id}`).
   - **Ruoli & Permessi**: matrice permessi per categoria, modificabile per i ruoli non di sistema (`PATCH /api/v1/roles/{role}`).
+  - **Funzionalità**: toggle globali per pagina (`GET/PATCH /api/v1/features`), inclusi Settings E2E e Settings Gherkin; una pagina è visibile solo se abilitata e permessa dal ruolo. I valori mancanti sono abilitati di default. Il controllo è client-side come l'RBAC corrente; l'URL Swagger diretto resta accessibile.

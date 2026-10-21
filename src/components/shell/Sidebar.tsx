@@ -1,14 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
   BookOpen,
   CreditCard,
   Database,
+  ExternalLink,
   FileText,
   Home,
   LayoutGrid,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Network,
   Radar,
   Receipt,
   Settings,
@@ -22,8 +28,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
+import { useStoredFlag } from "@/lib/stored-flag";
+
+const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const DEFAULT_NRT_METRICS_URL =
+  "https://pagopa-u-weu-grafana-cpavbjb0axhrdcg3.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&var-test_object=fdr3&editIndex=0&tab=transformations&kiosk";
 
 interface NavItem {
   href: string;
@@ -32,16 +44,21 @@ interface NavItem {
   external?: boolean;
   action?: string;
   requiresSuperadmin?: boolean;
+  featureKey?: string;
 }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Workspace",
-    items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview" }],
+    items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" }],
+  },
+  {
+    label: "Architettura",
+    items: [{ href: "/ea-map", label: "EA Map", icon: Network, action: "view:ea_map", featureKey: "ea_map" }],
   },
   {
     label: "BDD",
-    items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd" }],
+    items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd", featureKey: "bdd" }],
   },
   {
     label: "Test Results",
@@ -50,58 +67,78 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
       { href: "/nrts", label: "Non-Regression Tests (NRT)", icon: ClipboardCheck, action: "view:nrts" },
       { href: "/tas-nrts", label: "Test automation service (TAS)", icon: Workflow, action: "view:tas_nrts" },
+      { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },
     ],
   },
   {
     label: "Project Tracking",
-    items: [{ href: "/jira", label: "KPI Jira", icon: LayoutGrid, action: "view:jira" }],
+    items: [{ href: "/jira", label: "KPI Jira", icon: LayoutGrid, action: "view:jira", featureKey: "jira" }],
   },
   {
     label: "Data Hub",
     items: [
-      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub" },
-      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub" },
+      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub", featureKey: "psp_fees" },
+      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub", featureKey: "gpd_positions" },
     ],
   },
   {
     label: "Data Quality",
     items: [
-      { href: "/data-quality/catalog", label: "Catalogo Controlli", icon: ShieldCheck, action: "view:data_quality" },
-      { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality" },
+      { href: "/data-quality/catalog", label: "Catalogo Controlli", icon: ShieldCheck, action: "view:data_quality", featureKey: "dq_catalog" },
+      { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality", featureKey: "dq_domains" },
     ],
   },
   {
     label: "Knowledge Base",
-    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs" }],
+    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs", featureKey: "docs" }],
   },
   {
     label: "Amministrazione",
     items: [
-      { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations" },
-      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd" },
+      { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations", featureKey: "settings_e2e" },
+      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd", featureKey: "settings_gherkin" },
       { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
       { href: "/settings/tm-resources", label: "Risorse T&M", icon: Receipt, requiresSuperadmin: true },
-      { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs" },
+      { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs", featureKey: "api_docs" },
     ],
   },
 ];
 
 export function Sidebar() {
+  const configuredDashboardUrl = process.env.NEXT_PUBLIC_NRT_METRICS_URL?.trim() || DEFAULT_NRT_METRICS_URL;
+  const dashboardUrl = configuredDashboardUrl
+    && URL.canParse(configuredDashboardUrl)
+    && ["https:", "http:"].includes(new URL(configuredDashboardUrl).protocol)
+    ? configuredDashboardUrl
+    : "";
   const pathname = usePathname();
   const { can, role, isLoading } = usePermissions();
+  const featuresQuery = useFeatureVisibility();
+  const [collapsed, setCollapsed] = useStoredFlag(COLLAPSED_KEY);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (collapsed) root.setAttribute("data-sidebar", "collapsed");
+    else root.removeAttribute("data-sidebar");
+  }, [collapsed]);
 
   function isVisible(item: NavItem): boolean {
     if (isLoading) return false;
     if (item.requiresSuperadmin) return role === "superadmin";
+    if (item.featureKey && (featuresQuery.isLoading || featuresQuery.isError)) return false;
+    if (item.featureKey && !featuresQuery.data?.items.some(
+      (feature) => feature.key === item.featureKey && feature.enabled,
+    )) return false;
     if (item.action) return can(item.action);
     return true;
   }
 
   return (
     <aside className="flex flex-col h-screen border-r border-border bg-surface">
+      <span id="sidebar-new-tab" className="sr-only">Si apre in una nuova scheda</span>
       {/* Brand */}
       <div
-        className="flex items-center gap-[10px] px-4 border-b border-border"
+        className={`flex items-center gap-[10px] border-b border-border ${collapsed ? "justify-center px-2" : "px-4"}`}
         style={{ minHeight: "var(--topbar-h)" }}
       >
         <div
@@ -110,7 +147,7 @@ export function Sidebar() {
         >
           QA
         </div>
-        <div className="flex-1">
+        <div className={collapsed ? "hidden" : "flex-1"}>
           <div className="font-semibold text-[14px] text-text" style={{ letterSpacing: "-0.01em" }}>
             QA Hub
           </div>
@@ -121,7 +158,7 @@ export function Sidebar() {
         <svg
           viewBox="0 0 35 23"
           fill="currentColor"
-          className="text-text-dim shrink-0"
+          className={collapsed ? "hidden" : "text-text-dim shrink-0"}
           style={{ height: 25, width: "auto" }}
           aria-label="pagoPA"
         >
@@ -142,13 +179,18 @@ export function Sidebar() {
 
           return (
             <div key={group.label} className="px-2 py-1">
-              <div
-                className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
-                style={{ fontSize: 10, letterSpacing: ".08em" }}
-              >
-                {group.label}
-              </div>
+              {collapsed ? (
+                <div className="mx-2 my-[6px] border-t border-border" aria-hidden="true" />
+              ) : (
+                <div
+                  className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
+                  style={{ fontSize: 10, letterSpacing: ".08em" }}
+                >
+                  {group.label}
+                </div>
+              )}
               {items.map((item) => {
+                const href = item.featureKey === "nrt_metrics" ? dashboardUrl : item.href;
                 const isActive =
                   !item.external &&
                   (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
@@ -158,21 +200,43 @@ export function Sidebar() {
                   background: isActive ? "var(--accent-soft)" : "transparent",
                   fontWeight: isActive ? 500 : 450,
                 };
-                const linkClassName =
-                  "flex items-center gap-[10px] px-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px]";
+                const linkClassName = `flex items-center gap-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px] ${
+                  collapsed ? "justify-center px-0" : "px-[10px]"
+                }`;
+                const label = collapsed ? <span className="sr-only">{item.label}</span> : item.label;
 
                 if (item.external) {
+                  if (!href) {
+                    return (
+                      <span
+                        key={item.featureKey}
+                        aria-disabled="true"
+                        className={`${linkClassName} cursor-not-allowed opacity-50`}
+                        style={linkStyle}
+                        title={`${item.label}: configurare NEXT_PUBLIC_NRT_METRICS_URL con un URL HTTP o HTTPS valido`}
+                      >
+                        <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} aria-hidden="true" />
+                        {label}
+                      </span>
+                    );
+                  }
                   return (
                     <a
-                      key={item.href}
-                      href={item.href}
+                      key={href}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={linkClassName}
                       style={linkStyle}
+                      title={`${item.label} (si apre in una nuova scheda)`}
+                      aria-describedby="sidebar-new-tab"
                     >
-                      <Icon size={15} strokeWidth={1.6} className="shrink-0" />
-                      {item.label}
+                      <span className="relative shrink-0">
+                        <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} aria-hidden="true" />
+                        {collapsed && <ExternalLink size={9} className="absolute -right-1 -bottom-1 bg-surface" aria-hidden="true" />}
+                      </span>
+                      {label}
+                      {!collapsed && <ExternalLink size={12} className="ml-auto shrink-0" aria-hidden="true" />}
                     </a>
                   );
                 }
@@ -183,9 +247,10 @@ export function Sidebar() {
                     href={item.href}
                     className={linkClassName}
                     style={linkStyle}
+                    title={collapsed ? item.label : undefined}
                   >
-                    <Icon size={15} strokeWidth={1.6} className="shrink-0" />
-                    {item.label}
+                    <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} className="shrink-0" />
+                    {label}
                   </Link>
                 );
               })}
@@ -194,6 +259,20 @@ export function Sidebar() {
         })}
       </nav>
 
+      <div className={`border-t border-border p-2 ${collapsed ? "flex justify-center" : ""}`}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Espandi menu" : "Riduci menu"}
+          title={collapsed ? "Espandi menu" : "Riduci menu"}
+          className="flex w-full items-center gap-[10px] rounded-[var(--radius-sm)] px-[10px] py-[7px] text-[13px] text-text-dim transition-colors hover:bg-hover"
+          style={collapsed ? { justifyContent: "center", paddingInline: 0 } : undefined}
+        >
+          {collapsed ? <PanelLeftOpen size={17} strokeWidth={1.6} /> : <PanelLeftClose size={15} strokeWidth={1.6} />}
+          {!collapsed && "Riduci menu"}
+        </button>
+      </div>
     </aside>
   );
 }
