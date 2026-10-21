@@ -235,7 +235,7 @@ export function NrtDetailsPanel({
             </table>
           </div>
         )}
-        {modified && !isTasOnly && ((
+        {modified && ((
           <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
            <NrtSaveButton
               hasSaveError={hasSaveError}

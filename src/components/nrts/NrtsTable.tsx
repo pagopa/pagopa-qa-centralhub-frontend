@@ -210,15 +210,12 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
         <>
            <div className="mt-3 flex w-full items-end justify-between gap-3">
                     <span className="text-[13px] text-text-muted font-mono">({runs?.length ?? 0} totali)</span>
-                  {!isTasOnly && (
                     <NrtSaveButton
                     hasSaveError={updateNrt.isError}
                     onSave={handleSave}
                     isSaving={updateNrt.isPending}
                     modified={modified}
-                  />
-                  )}
-                  
+                  />     
           </div>
           <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
           <div className="rounded-[var(--radius)] border border-border overflow-x-auto bg-surface">
