@@ -89,12 +89,23 @@ export function useDeleteTmAbsence() {
   });
 }
 
+export function useDeleteAllTmAbsences() {
+  const qc = useQueryClient();
+  return useMutation<{ deleted: number }, Error, void>({
+    mutationFn: () => apiClient("/api/v1/tm/absences?confirm=true", { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tm", "absences"] }),
+  });
+}
+
 export function useSyncConfluenceAbsences() {
   const qc = useQueryClient();
-  return useMutation<TmSyncResult, Error, { year: number; month: number }>({
-    mutationFn: ({ year, month }) =>
+  // no year/month → the backend syncs the whole window (last year → next year)
+  return useMutation<TmSyncResult, Error, { year: number; month: number } | void>({
+    mutationFn: (period) =>
       apiClient(
-        `/api/v1/tm/absences/sync-confluence?year=${year}&month=${month}`,
+        period
+          ? `/api/v1/tm/absences/sync-confluence?year=${period.year}&month=${period.month}`
+          : "/api/v1/tm/absences/sync-confluence",
         { method: "POST" },
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tm", "absences"] }),

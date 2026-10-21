@@ -104,6 +104,8 @@
   --shadow-lg: 0 12px 32px rgba(0,0,0,.6);
 }
 
+[data-sidebar="collapsed"] { --sidebar-w: 64px; }
+
 [data-density="compact"] { --gap: 10px; --pad: 14px; }
 [data-density="comfy"]   { --gap: 22px; --pad: 28px; }
 
