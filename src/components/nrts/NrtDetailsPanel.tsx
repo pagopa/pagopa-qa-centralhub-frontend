@@ -142,7 +142,6 @@ export function NrtDetailsPanel({
           <DetailField label="Team owner" value={suite.owner_team} />
           <DetailField label="Ambiente" value={details.test_run?.env} />
           <DetailField label="Versione test" value={details.test_run?.test_version} />
-          <DetailField label="Origine" value={details.test_run?.test_origin} />
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
           <DetailField label="Fine" value={formatNrtTimestamp(details.test_run?.timestamp_end ?? null)} />
           <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
