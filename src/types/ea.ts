@@ -302,3 +302,77 @@ export interface EaChangeDecision {
   ctype?: EaComponentKind;
   name?: string;
 }
+
+/* ── Release impact and map assistant ─────────────────────────── */
+
+export type EaRisk = "alto" | "medio" | "basso" | "nessuno";
+
+export interface EaImpactedNode {
+  id: string;
+  name: string;
+  type: string;
+  product: string | null;
+  relation: "chiamante" | "dipendenza" | "dato a valle";
+  /** every way the node is reached (it can both call the changed component and be called by it) */
+  relations?: string[];
+  depth: number;
+  via: string;
+  path: string[];
+  risk: EaRisk;
+  reason: string;
+  qa_score: number | null;
+}
+
+export interface EaSuggestedSuite {
+  name: string;
+  kind: string;
+  covers: string[];
+  /** 0 = covers the changed component, 1 = high/medium impact, 2 = low impact */
+  priority: number;
+}
+
+export interface EaReleaseImpact {
+  change: {
+    repo: string;
+    title: string;
+    url: string;
+    ref: string;
+    state: string | null;
+    files: number;
+    additions: number;
+    deletions: number;
+  };
+  component: { id: string; name: string; product: string | null; qa_score: number };
+  risk: EaRisk;
+  categories: { key: string; label: string; weight: number; files: number; examples: string[] }[];
+  impacted: EaImpactedNode[];
+  suites: EaSuggestedSuite[];
+  gaps: { id: string; name: string; qa_score: number; reason: string }[];
+  processes: {
+    id: string;
+    name: string;
+    services: string[];
+    ref: { space?: string; title?: string; url?: string } | null;
+    via: string[];
+  }[];
+  highlight: string[];
+}
+
+export interface EaReleaseImpactRequest {
+  url?: string;
+  repo?: string;
+  base?: string;
+  head?: string;
+}
+
+export interface EaChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface EaAssistantReply {
+  answer: string;
+  highlight: string[];
+  labels: Record<string, string>;
+  steps: { tool: string; label: string }[];
+}

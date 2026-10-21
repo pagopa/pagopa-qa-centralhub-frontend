@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Search } from "lucide-react";
+import { EyeOff, Search } from "lucide-react";
 import type { EaArea, EaNode, EaProduct } from "@/types/ea";
 import { useEaKb, useEaSyncStatus } from "@/hooks/useEaMap";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -19,23 +19,30 @@ import {
 } from "@/lib/ea-map/graph";
 import { AreaView, PlatformView, ProductView } from "./EaArchitecture";
 import { EaBlueprint } from "./EaBlueprint";
+import { bestRoute, expandHighlight, highlightCss } from "@/lib/ea-map/assist";
+import { EaAssistant } from "./EaAssistant";
 import { EaDataLake } from "./EaDataLake";
 import { EaGuide } from "./EaGuide";
+import { EaImpact } from "./EaImpact";
 import { EaNodeDrawer } from "./EaNodeDrawer";
 import { EaQaMatrix } from "./EaQaMatrix";
 import { EaReview, EaSyncBar } from "./EaReview";
 import { cx } from "./shared";
 import s from "./ea-map.module.css";
+import sa from "./ea-assist.module.css";
 
 const TABS: [EaView, string][] = [
   ["blueprint", "Blueprint"],
   ["map", "Architettura"],
   ["datalake", "Data Lake"],
+  ["impact", "Impatto"],
   ["qa", "Matrice QA"],
   ["guida", "Guida"],
   ["review", "Revisione"],
 ];
 const LENS_KEY = "ea-map-lens";
+/** Global class (not a CSS module class) that scopes the highlight rules to the map. */
+const HL_SCOPE = "ea-hl-scope";
 const LENS_EVENT = "ea-map-lens-change";
 
 function subscribeLens(cb: () => void) {
@@ -173,6 +180,21 @@ export function EaMapView() {
       setExternal(id ? { id, hash: onHash ?? window.location.hash.replace(/^#/, "") } : null),
     [],
   );
+  // nodes lit up on every view by the assistant or the release impact
+  const [highlight, setHighlight] = useState<string[] | null>(null);
+  const highlightStyle = useMemo(
+    () => (g && highlight ? highlightCss(expandHighlight(g, highlight), HL_SCOPE) : ""),
+    [g, highlight],
+  );
+  // Esc turns the highlight off, unless a panel or drawer is open (Esc closes that first)
+  useEffect(() => {
+    if (!highlight) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.querySelector('[role="dialog"]')) setHighlight(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [highlight]);
   const { can } = usePermissions();
   const canReview = can("review:ea_map");
   const openChanges = useEaSyncStatus().data?.open_changes ?? 0;
@@ -222,6 +244,15 @@ export function EaMapView() {
     if (n && n.type === "component") goTo(n.parent);
   }, [externalId, routedComponent, g, goTo, setExternalId]);
 
+  const showOnMap = useCallback(
+    (ids: string[]) => {
+      if (!g || !ids.length) return;
+      setHighlight(ids);
+      navigate(bestRoute(g, ids));
+    },
+    [g, navigate],
+  );
+
   const toggleLens = () => {
     const next = !lens;
     setLensSession(next);
@@ -258,7 +289,8 @@ export function EaMapView() {
   };
 
   return (
-    <div className={cx(s.root, lens && s.lensOn)}>
+    <div className={cx(s.root, lens && s.lensOn, HL_SCOPE)}>
+      {highlightStyle && <style>{highlightStyle}</style>}
       <div className={s.toolbar}>
         <div className={s.tabs} role="tablist" aria-label="Viste della mappa">
           {TABS.filter(([v]) => v !== "review" || canReview).map(([v, l]) => (
@@ -287,11 +319,31 @@ export function EaMapView() {
           onOpen={openInDataLake}
         />
       )}
+      {route.view === "impact" && <EaImpact g={g} openNode={openNode} onShow={showOnMap} />}
       {route.view === "qa" && <EaQaMatrix g={g} goTo={goTo} openNode={openNode} />}
       {route.view === "guida" && <EaGuide g={g} goTo={goTo} />}
       {route.view === "review" && <EaReview g={g} goTo={goTo} onOpen={openNode} />}
 
       {drawerNode && <EaNodeDrawer g={g} node={drawerNode} onClose={closeDrawer} onOpen={openNode} goTo={goTo} />}
+      {highlight && (
+        <div className={sa.hlBar} role="status">
+          <span className={sa.hlDot} aria-hidden="true" />
+          <span>
+            {highlight.length} {highlight.length === 1 ? "elemento evidenziato" : "elementi evidenziati"} sulla mappa
+          </span>
+          <button type="button" onClick={() => setHighlight(null)}>
+            <EyeOff aria-hidden="true" /> Spegni <kbd>Esc</kbd>
+          </button>
+        </div>
+      )}
+      <EaAssistant
+        g={g}
+        route={route}
+        highlightOn={highlight !== null}
+        onHighlight={setHighlight}
+        onShow={showOnMap}
+        openNode={openNode}
+      />
     </div>
   );
 }

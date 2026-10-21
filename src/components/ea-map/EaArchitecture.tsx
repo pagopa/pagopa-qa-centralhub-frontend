@@ -68,7 +68,7 @@ export function PlatformView({ g, goTo, openNode }: NavProps) {
         <Layer name="Attori" d="Chi usa la piattaforma" color="--ea-l-ext">
           <div className={s.actors}>
             {TOP_ACTORS.map((id) => g.byId.get(id)).filter(Boolean).map((a) => (
-              <div key={a!.id} className={s.actor}><b>{a!.name}</b><span>{a!.desc}</span></div>
+              <div key={a!.id} className={s.actor} data-nid={a!.id}><b>{a!.name}</b><span>{a!.desc}</span></div>
             ))}
           </div>
         </Layer>
@@ -79,7 +79,7 @@ export function PlatformView({ g, goTo, openNode }: NavProps) {
                 const st = areaStats(g, a!.id);
                 return (
                   <div key={a!.id} className={s.area}>
-                    <button type="button" className={s.areaH} onClick={() => goTo(a!.id)}>
+                    <button type="button" className={s.areaH} data-nid={a!.id} onClick={() => goTo(a!.id)}>
                       <b>{a!.name}</b>
                       <span>{st.p} prodotti · {st.n} comp.</span>
                     </button>
@@ -87,7 +87,7 @@ export function PlatformView({ g, goTo, openNode }: NavProps) {
                       {kidsOf<EaProduct>(g, a!.id).map((p) => {
                         const ps = productStats(g, p.id);
                         return (
-                          <button key={p.id} type="button" className={s.chip} title={p.desc} onClick={() => goTo(p.id)}
+                          <button key={p.id} type="button" className={s.chip} data-nid={p.id} title={p.desc} onClick={() => goTo(p.id)}
                             style={{ "--qc": qc(ps.avg) } as CSSProperties}>
                             <span className={s.dot} style={{ background: qc(ps.avg) }} />
                             {shortName(p.name)}
@@ -105,7 +105,7 @@ export function PlatformView({ g, goTo, openNode }: NavProps) {
         <Layer name="Sistemi esterni" d="Dipendenze fuori perimetro" color="--ea-l-ext">
           <div className={s.actors}>
             {externals.filter((n) => !TOP_ACTORS.includes(n.id)).map((a) => (
-              <button key={a.id} type="button" className={s.actor} onClick={() => openNode(a.id)} style={{ cursor: "pointer" }}>
+              <button key={a.id} type="button" className={s.actor} data-nid={a.id} onClick={() => openNode(a.id)} style={{ cursor: "pointer" }}>
                 <b>{a.name}</b>
                 <span>{(g.inEdges.get(a.id) ?? []).length} componenti collegati</span>
               </button>
@@ -130,7 +130,7 @@ export function AreaView({ g, goTo, area }: NavProps & { area: EaArea }) {
           const st = productStats(g, p.id);
           const pages = p.conf.reduce((x, c) => x + c.pages, 0);
           return (
-            <button key={p.id} type="button" className={s.card} onClick={() => goTo(p.id)}>
+            <button key={p.id} type="button" className={s.card} data-nid={p.id} onClick={() => goTo(p.id)}>
               <div className={s.meta}>
                 <span className={s.pill}>{st.n} componenti</span>
                 {p.domain && <span className={cx(s.pill, s.mono)}>ns {p.domain}</span>}
