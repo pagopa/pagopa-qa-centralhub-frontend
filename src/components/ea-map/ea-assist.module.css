@@ -1,87 +1,101 @@
 /* EA Map — assistant overlay and release impact tab. Colors come from the QA Hub tokens;
    the orange is the highlight color used on the map (#ff8a3d). */
 
-/* ── Floating assistant ─────────────────────────────────────────── */
-.fab {
-  position: fixed; right: 28px; bottom: 28px; z-index: 60;
-  display: inline-flex; align-items: center; gap: 10px;
-  padding: 12px 20px 12px 16px; border-radius: 999px; border: 0; cursor: pointer;
-  color: #fff; font-weight: 600; font-size: 14px;
-  background: linear-gradient(135deg, #0b1730 0%, #1f4fb8 70%, #3d7fe0 100%);
-  box-shadow: 0 10px 30px rgba(31, 79, 184, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+/* ── Floating assistant: Pagoda ─────────────────────────────────
+   Selectors are qualified (".dock button.fab", ".panel button.icon"...) so that the map's
+   ".root button { color: inherit }" cannot turn white text dark on the blue surfaces. */
+.dock { position: fixed; right: 28px; bottom: 28px; z-index: 60; }
+.dock button.fab {
+  display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 6px 18px 6px 6px; border-radius: 999px; border: 0;
+  color: #fff; text-align: left;
+  background: linear-gradient(135deg, #0a4fc4 0%, #1f6fe5 60%, #3d8bff 100%);
+  box-shadow: 0 12px 30px rgba(10, 79, 196, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.fab:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(31, 79, 184, 0.45); }
-.fab svg { width: 18px; height: 18px; color: #ffc59e; }
-.fabGlow {
-  position: absolute; inset: -3px; border-radius: inherit; z-index: -1;
-  background: conic-gradient(from 0deg, #ff8a3d, #3d7fe0, #ff8a3d);
-  filter: blur(10px); opacity: 0.55; animation: spin 6s linear infinite;
-}
+.dock button.fab:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(10, 79, 196, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.dock button.fab:hover .pagodaEyes { transform: translateY(-1px); }
+.fabAvatar { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: #fff; box-shadow: 0 2px 6px rgba(8, 19, 48, 0.25); flex: none; }
+.fabText { display: flex; flex-direction: column; line-height: 1.15; }
+.fabText b { font-size: 14.5px; font-weight: 700; color: #fff; }
+.fabText small { font-size: 11.5px; color: #d6e5ff; }
+
+.pagoda { display: block; flex: none; overflow: visible; }
+.pagodaEyes { transition: transform 0.2s ease; transform-box: fill-box; transform-origin: center; animation: blink 5s ease-in-out infinite; }
+.pagodaThinking .pagodaBulb { animation: bulb 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 
 .panel {
   position: fixed; right: 24px; bottom: 24px; z-index: 60;
   width: min(460px, calc(100vw - 32px)); height: min(700px, calc(100vh - 110px));
   display: flex; flex-direction: column; overflow: hidden;
-  border-radius: 18px; border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--surface) 90%, transparent);
+  border-radius: 20px; border: 1px solid color-mix(in oklab, #1f6fe5 25%, var(--border));
+  background: color-mix(in oklab, var(--surface) 94%, transparent);
   backdrop-filter: blur(14px) saturate(1.2);
-  box-shadow: 0 24px 64px rgba(11, 23, 48, 0.28);
+  box-shadow: 0 24px 64px rgba(10, 40, 100, 0.3);
   animation: rise 0.18s ease-out;
 }
 .head {
-  display: flex; align-items: center; gap: 12px; padding: 14px 14px 12px 16px;
-  background: linear-gradient(135deg, #0b1730, #1b3a7a); color: #f5f3ee;
+  display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px;
+  background: linear-gradient(120deg, #0a4fc4 0%, #1f6fe5 65%, #3d8bff 100%); color: #fff;
 }
-.orb {
-  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none;
-  background: radial-gradient(circle at 30% 30%, #ffc59e, #ff8a3d 45%, #c2571a);
-  box-shadow: 0 0 18px rgba(255, 138, 61, 0.6); animation: breathe 3s ease-in-out infinite;
-}
-.orb svg { width: 18px; height: 18px; color: #fff; }
+.headAvatar { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: #fff; flex: none; box-shadow: 0 3px 10px rgba(8, 19, 48, 0.3); }
 .headT { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.headT b { font-size: 15px; }
-.headT span { font-size: 12px; color: #b8c4da; }
-.icon { background: transparent; border: 0; color: #b8c4da; padding: 6px; border-radius: 8px; cursor: pointer; }
-.icon:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.headT b { font-size: 17px; font-weight: 750; letter-spacing: -0.01em; color: #fff; }
+.headT span { font-size: 12px; color: #d6e5ff; }
+.panel button.icon { background: transparent; border: 0; color: #d6e5ff; padding: 6px; border-radius: 8px; cursor: pointer; }
+.panel button.icon:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
 .icon svg { width: 18px; height: 18px; }
 
-.body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.hello { display: flex; align-items: flex-start; gap: 12px; }
+.helloAvatar { filter: drop-shadow(0 6px 10px rgba(10, 79, 196, 0.25)); }
+.bubble {
+  position: relative; flex: 1; display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px; border-radius: 18px;
+  background: linear-gradient(135deg, #0a4fc4, #1f6fe5); color: #fff;
+  box-shadow: 0 10px 24px rgba(10, 79, 196, 0.28);
+}
+.bubble::before { content: ""; position: absolute; left: -7px; top: 22px; width: 16px; height: 16px; background: #0a4fc4; transform: rotate(45deg); border-radius: 3px; }
+.bubble b { font-size: 15px; line-height: 1.35; font-weight: 700; color: #fff; }
+.bubble span { font-size: 13px; line-height: 1.45; color: #e1ecff; }
 .empty p { color: var(--text-dim); font-size: 14px; line-height: 1.5; }
-.sugg { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.sugg button {
-  text-align: left; font-size: 13.5px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
-  border: 1px solid var(--border); background: var(--surface); color: var(--text);
-  transition: border-color 0.15s, background 0.15s;
+.sugg { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.panel .sugg button {
+  text-align: left; font-size: 13.5px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid color-mix(in oklab, #1f6fe5 22%, var(--border)); background: var(--surface); color: var(--text);
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
 }
-.sugg button:hover { border-color: #ff8a3d; background: color-mix(in oklab, #ff8a3d 8%, var(--surface)); }
+.panel .sugg button:hover { border-color: #1f6fe5; background: color-mix(in oklab, #1f6fe5 8%, var(--surface)); transform: translateX(2px); }
 .user {
-  align-self: flex-end; max-width: 85%; padding: 9px 13px; border-radius: 14px 14px 4px 14px;
-  background: #1f4fb8; color: #fff; font-size: 14px; line-height: 1.45; white-space: pre-wrap;
+  align-self: flex-end; max-width: 85%; padding: 9px 13px; border-radius: 16px 16px 4px 16px;
+  background: linear-gradient(135deg, #0a4fc4, #1f6fe5); color: #fff; font-size: 14px; line-height: 1.45; white-space: pre-wrap;
 }
-.bot { align-self: stretch; font-size: 14px; line-height: 1.55; color: var(--text); }
+.bot { align-self: stretch; display: flex; align-items: flex-start; gap: 8px; font-size: 14px; line-height: 1.55; color: var(--text); }
+.botAvatar { margin-top: 1px; }
+.botBody { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 4px 16px 16px 16px; background: var(--subtle); border: 1px solid var(--border); }
 .botErr .answer { color: var(--danger); }
 .answer p { margin: 0 0 8px; }
+.answer p:last-child { margin-bottom: 0; }
 .answer ul { margin: 0 0 8px; padding-left: 18px; list-style: disc; }
 .answer li { margin: 3px 0; }
-.ref {
+.panel button.ref {
   display: inline; padding: 1px 8px; margin: 0 1px; border-radius: 999px; font-size: 13px; font-weight: 600;
   border: 1px solid color-mix(in oklab, #ff8a3d 55%, transparent); color: #c2571a;
   background: color-mix(in oklab, #ff8a3d 10%, var(--surface)); cursor: pointer;
 }
-.ref:hover:not(:disabled) { background: #ff8a3d; color: #fff; }
-.ref:disabled { cursor: default; }
+.panel button.ref:hover:not(:disabled) { background: #ff8a3d; color: #fff; }
+.panel button.ref:disabled { cursor: default; }
 .steps { margin-bottom: 6px; font-size: 12.5px; color: var(--text-muted); }
 .steps summary { cursor: pointer; list-style: none; }
 .steps summary::before { content: "▸ "; }
 .steps[open] summary::before { content: "▾ "; }
 .steps ol { margin: 6px 0 0; padding-left: 20px; list-style: decimal; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.actions button {
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.panel .actions button {
   display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 5px 10px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--subtle); color: var(--text-dim); cursor: pointer;
+  border: 1px solid color-mix(in oklab, #1f6fe5 30%, var(--border)); background: var(--surface); color: #1f5fcf; cursor: pointer;
 }
-.actions button:hover { color: var(--text); border-color: var(--border-strong); }
+.panel .actions button:hover { background: #1f6fe5; color: #fff; border-color: #1f6fe5; }
 .actions svg { width: 14px; height: 14px; }
 .thinking { display: flex; align-items: center; gap: 8px; color: var(--text-dim); }
 .thinking span {
@@ -93,20 +107,20 @@
 
 .foot { border-top: 1px solid var(--border); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
 .ctx {
-  align-self: flex-start; font-size: 12px; color: var(--text-dim); padding: 2px 8px; border-radius: 999px;
-  background: var(--subtle); border: 1px solid var(--border);
+  align-self: flex-start; font-size: 12px; color: #1f5fcf; padding: 2px 9px; border-radius: 999px;
+  background: color-mix(in oklab, #1f6fe5 10%, var(--surface)); border: 1px solid color-mix(in oklab, #1f6fe5 25%, var(--border));
 }
 .input { display: flex; align-items: flex-end; gap: 8px; }
 .input textarea {
   flex: 1; resize: none; min-height: 40px; max-height: 120px; padding: 10px 12px; border-radius: 12px;
   border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 14px;
 }
-.input textarea:focus { outline: 2px solid color-mix(in oklab, #3d7fe0 50%, transparent); outline-offset: 0; }
-.send {
+.input textarea:focus { outline: 2px solid color-mix(in oklab, #1f6fe5 50%, transparent); outline-offset: 0; }
+.panel button.send {
   width: 40px; height: 40px; border-radius: 12px; border: 0; display: grid; place-items: center; cursor: pointer;
-  background: #ff8a3d; color: #fff;
+  background: linear-gradient(135deg, #0a4fc4, #1f6fe5); color: #fff;
 }
-.send:disabled { opacity: 0.4; cursor: default; }
+.panel button.send:disabled { opacity: 0.4; cursor: default; }
 .send svg { width: 18px; height: 18px; }
 
 /* ── Highlight bar (visible whenever nodes are lit up) ─────────── */
@@ -117,7 +131,7 @@
   animation: rise 0.18s ease-out;
 }
 .hlDot { width: 10px; height: 10px; border-radius: 50%; background: #ff8a3d; animation: breathe 2s ease-in-out infinite; }
-.hlBar button {
+div.hlBar button {
   display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; cursor: pointer;
   padding: 6px 12px; background: #ff8a3d; color: #1a0e05; font-weight: 700; font-size: 13px;
 }
@@ -252,7 +266,10 @@
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes breathe { 0%, 100% { box-shadow: 0 0 12px rgba(255, 138, 61, 0.45); } 50% { box-shadow: 0 0 24px rgba(255, 138, 61, 0.8); } }
 @keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.2); } }
+@keyframes bulb { 0%, 100% { filter: none; transform: scale(1); } 50% { filter: drop-shadow(0 0 4px #45d6ff); transform: scale(1.18); } }
 @media (prefers-reduced-motion: reduce) {
-  .fabGlow, .orb, .spin, .thinking span, .liveDot, .hlDot { animation: none; }
+  .spin, .thinking span, .liveDot, .hlDot, .pagodaEyes, .pagodaThinking .pagodaBulb { animation: none; }
+  .dock button.fab, .panel .sugg button { transition: none; }
   .panel, .result { animation: none; }
 }

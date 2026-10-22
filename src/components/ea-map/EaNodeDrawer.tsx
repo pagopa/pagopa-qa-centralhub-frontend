@@ -5,6 +5,8 @@ import { Pencil } from "lucide-react";
 import type { EaArea, EaComponent, EaNode } from "@/types/ea";
 import { DataLakeFeeds, DataLakeProduced, DatasetBody } from "./EaDatasetBody";
 import { Gate } from "@/lib/permissions";
+import { useEaNodeDetail } from "@/hooks/useEaMap";
+import { infraType } from "@/lib/ea-map/infraIcons";
 import { productOf, shortName, type EaGraph } from "@/lib/ea-map/graph";
 import { EaNodeDialog, EaQaDialog } from "./EaEditDialogs";
 import { EaHistory, EaRelations } from "./EaRelations";
@@ -135,11 +137,37 @@ function ComponentBody({ g, c, onOpen, goTo }: { g: EaGraph; c: EaComponent; onO
   );
 }
 
-function OtherBody({ g, n, onOpen }: { g: EaGraph; n: EaNode; onOpen: (id: string) => void }) {
+/** Infrastructure resources linked to the node: opens them in the Infrastruttura view. */
+function InfraLinks({ nodeId, onInfra }: { nodeId: string; onInfra?: (id: string) => void }) {
+  const { data } = useEaNodeDetail(nodeId);
+  const items = data?.infra ?? [];
+  if (!onInfra || items.length === 0) return null;
+  return (
+    <section className={s.dbSec}>
+      <h4>Infrastruttura</h4>
+      <div className={s.meta}>
+        {items.slice(0, 40).map((r) => {
+          const t = infraType(r.ltype);
+          const Icon = t.icon;
+          return (
+            <button key={r.id} type="button" className={cx(s.btn, s.btnGhost)} title={`${t.label} · ${r.envs.join(", ")}`}
+              onClick={() => onInfra(r.id)}>
+              <Icon size={14} aria-hidden="true" /> {r.label}
+            </button>
+          );
+        })}
+        {items.length > 40 && <span className={s.no}>e altre {items.length - 40}</span>}
+      </div>
+    </section>
+  );
+}
+
+function OtherBody({ g, n, onOpen, onInfra }: { g: EaGraph; n: EaNode; onOpen: (id: string) => void; onInfra?: (id: string) => void }) {
   return (
     <>
       <p style={{ margin: 0 }}>{n.desc}</p>
       <EaRelations g={g} node={n} onOpen={onOpen} />
+      <InfraLinks nodeId={n.id} onInfra={onInfra} />
       <DataLakeFeeds g={g} n={n} onOpen={onOpen} />
     </>
   );
@@ -151,12 +179,15 @@ export function EaNodeDrawer({
   onClose,
   onOpen,
   goTo,
+  onInfra,
 }: {
   g: EaGraph;
   node: EaNode;
   onClose: () => void;
   onOpen: (id: string) => void;
   goTo: (id: string) => void;
+  /** opens an infrastructure resource in the Infrastruttura view */
+  onInfra?: (id: string) => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -204,11 +235,14 @@ export function EaNodeDrawer({
         </div>
         <div className={s.db}>
           {isComp ? (
-            <ComponentBody g={g} c={node} onOpen={onOpen} goTo={goTo} />
+            <>
+              <ComponentBody g={g} c={node} onOpen={onOpen} goTo={goTo} />
+              <InfraLinks nodeId={node.id} onInfra={onInfra} />
+            </>
           ) : node.type === "dataset" ? (
             <DatasetBody g={g} d={node} onOpen={onOpen} />
           ) : (
-            <OtherBody g={g} n={node} onOpen={onOpen} />
+            <OtherBody g={g} n={node} onOpen={onOpen} onInfra={onInfra} />
           )}
           <EaHistory g={g} nodeId={node.id} />
         </div>

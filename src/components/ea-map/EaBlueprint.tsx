@@ -217,7 +217,8 @@ export function EaBlueprint({ g, goTo, openNode }: { g: EaGraph; goTo: (id: stri
                       const sc = processScore(g, p.prod);
                       return (
                         <button key={p.id} type="button" data-bp={p.id} className={cx(s.proc, selClass(p.id))} onClick={pick(p.id)}
-                          style={{ "--qc": qc(sc) } as CSSProperties} title={`Maturità media ${sc.toFixed(1)}/5`}>
+                          style={{ "--qc": qc(sc) } as CSSProperties} title={`Maturità media ${sc.toFixed(1)}/5`}
+                          data-score={sc.toFixed(1)}>
                           {p.name}
                           {p.suites.length > 0 && <span className={s.bdg}>{p.suites.map((x) => <i key={x}>{x}</i>)}</span>}
                         </button>
@@ -243,7 +244,8 @@ export function EaBlueprint({ g, goTo, openNode }: { g: EaGraph; goTo: (id: stri
                     const r = bp.risk[p.id.slice(5)];
                     return (
                       <button key={p.id} type="button" data-bp={p.id} className={cx(s.app, selClass(p.id))} onClick={pick(p.id)}
-                        style={{ "--qc": qc(sc) } as CSSProperties}>
+                        style={{ "--qc": qc(sc) } as CSSProperties} title={`Maturità media ${sc.toFixed(1)}/5`}
+                        data-score={sc.toFixed(1)}>
                         <span>{shortName(p.name).replace(/ \(.*\)$/, "")}</span>
                         {r && <span className={riskClass(r)}>{r}</span>}
                       </button>

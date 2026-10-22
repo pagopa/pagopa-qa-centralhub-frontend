@@ -13,6 +13,9 @@ import type {
   EaEdgeUpdate,
   EaFlow,
   EaHistoryItem,
+  EaInfraEnv,
+  EaInfraResourceDetail,
+  EaInfraView,
   EaKb,
   EaLive,
   EaLiveEnv,
@@ -205,6 +208,23 @@ export function useEaLive(env: EaLiveEnv, enabled: boolean) {
   });
 }
 
+/** Infrastructure of one environment, from the Terraform of the platform. */
+export function useEaInfra(env: EaInfraEnv, enabled = true) {
+  return useQuery<EaInfraView>({
+    queryKey: [...eaMapQueryKey, "infra", env],
+    queryFn: () => apiClient(`/api/v1/ea/infra?env=${env}`),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useEaInfraResource(resourceId: string | null) {
+  return useQuery<EaInfraResourceDetail>({
+    queryKey: [...eaMapQueryKey, "infra-resource", resourceId],
+    queryFn: () => apiClient(`/api/v1/ea/infra/resources/${encodeURIComponent(resourceId ?? "")}`),
+    enabled: !!resourceId,
+  });
+}
 
 /** Curated payment flows (SANP) on the map nodes. */
 export function useEaFlows() {

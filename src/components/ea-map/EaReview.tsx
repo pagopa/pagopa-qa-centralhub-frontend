@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useEaMap";
 import { KIND_GROUP, KIND_ORDER, type EaGraph } from "@/lib/ea-map/graph";
 import type { EaChange, EaComponentKind, EaSyncRun } from "@/types/ea";
+import { infraType } from "@/lib/ea-map/infraIcons";
 import { DATA_EDGE_LABEL, EDGE_TYPE_LABEL } from "./EaEditDialogs";
 import { Crumbs, cx } from "./shared";
 import s from "./ea-map.module.css";
@@ -71,12 +72,13 @@ export function EaSyncBar({ onReview }: { onReview: () => void }) {
 
 /* ── Review queue ─────────────────────────────────────────────── */
 
-type Group = "new" | "archived" | "producer" | "edge_add" | "edge_remove" | "conflict";
+type Group = "new" | "archived" | "producer" | "infra" | "edge_add" | "edge_remove" | "conflict";
 
 const GROUPS: [Group, string, string][] = [
   ["new", "Nuovi repository", "Repository dell'organizzazione con un owner già presente nella mappa. Scegli il prodotto e il tipo, oppure ignorali: non verranno riproposti."],
   ["archived", "Repository e contratti archiviati", "Componenti il cui repository è archiviato o non esiste più, e dataset il cui data contract è stato tolto. Archiviandoli spariscono dalla mappa insieme ai loro legami."],
   ["producer", "Produttori del Data Lake", "Chi invia i dati di un'ingestion al Data Lake, proposto confrontando il topic del data contract con i componenti della mappa. Confermandoli compaiono nella vista Data Lake; rifiutandoli non vengono riproposti."],
+  ["infra", "Risorse infrastrutturali da collegare", "Namespace AKS, API e Function del Terraform il cui nome corrisponde a un nodo della mappa. Confermandoli, la risorsa si apre dalla scheda del nodo e viceversa; rifiutandoli non vengono riproposti."],
   ["edge_add", "Nuove dipendenze", "Legami trovati nella configurazione Helm di produzione. Confermandoli diventano verificati; rifiutandoli non vengono riproposti."],
   ["edge_remove", "Dipendenze sparite", "Legami rilevati in passato dal codice che oggi non compaiono più nella configurazione."],
   ["conflict", "Conflitti", "Legami confermati da una persona che la configurazione non riporta più: decidi tu se esistono ancora."],
@@ -85,6 +87,7 @@ const GROUPS: [Group, string, string][] = [
 function groupOf(c: EaChange): Group {
   if (c.status === "conflict") return "conflict";
   if (c.entity === "node") return c.op === "add" ? "new" : "archived";
+  if (c.entity === "infra") return "infra";
   if (c.op === "add" && c.target_id.endsWith(":produces")) return "producer";
   return c.op === "add" ? "edge_add" : "edge_remove";
 }
@@ -200,6 +203,41 @@ function NewRepoCard({ g, change }: { g: EaGraph; change: EaChange }) {
   );
 }
 
+function InfraLinkCard({ g, change, onOpen }: { g: EaGraph; change: EaChange; onOpen: (id: string) => void }) {
+  const a = (change.after ?? {}) as {
+    node_id?: string;
+    label?: string;
+    ltype?: string;
+    rule?: string;
+    evidence?: { repo?: string; file?: string };
+  };
+  const node = a.node_id ? g.byId.get(a.node_id) : undefined;
+  const t = infraType(a.ltype ?? "");
+  return (
+    <li className={s.revItem}>
+      <div className={s.revHead}>
+        <span className={s.pill}>{t.label}</span>
+        <b>{a.label ?? change.target_id}</b>
+        <span className={s.no}>→</span>
+        {node ? (
+          <button type="button" className={s.relName} onClick={() => onOpen(node.id)}>{node.name}</button>
+        ) : (
+          <span className={s.relName}>{a.node_id}</span>
+        )}
+        <span className={s.pill}>{a.rule === "namespace" ? "namespace" : "nome"}</span>
+      </div>
+      {a.evidence?.file && (
+        <p className={cx(s.relNote, s.mono)}>
+          {a.evidence.repo}/{a.evidence.file}
+        </p>
+      )}
+      <Gate action="review:ea_map">
+        <Decision change={change} approveLabel="Collega" rejectLabel="Rifiuta" />
+      </Gate>
+    </li>
+  );
+}
+
 function ChangeCard({ g, change, onOpen }: { g: EaGraph; change: EaChange; onOpen: (id: string) => void }) {
   const name = (id: string) => g.byId.get(id)?.name ?? id;
   const link = (id: string) =>
@@ -209,6 +247,7 @@ function ChangeCard({ g, change, onOpen }: { g: EaGraph; change: EaChange; onOpe
       <span className={s.relName}>{id}</span>
     );
   const group = groupOf(change);
+  if (group === "infra") return <InfraLinkCard g={g} change={change} onOpen={onOpen} />;
   if (group === "archived") {
     const reason = String((change.after ?? {}).reason ?? "");
     return (
@@ -262,12 +301,12 @@ function AutoApplied({ run }: { run: EaSyncRun | null | undefined }) {
           {open ? "Nascondi" : `Mostra (${run.stats.auto_applied ?? 0})`}
         </button>
       </div>
-      <p className={s.no}>Metadati dei repository, segnali QA e link Confluence: dati osservati che non richiedono una decisione.</p>
+      <p className={s.no}>Metadati dei repository, segnali QA, link Confluence e riepiloghi dell&apos;infrastruttura: dati osservati che non richiedono una decisione.</p>
       {open && data && (
         <ul className={s.autoList}>
           {data.map((c) => (
             <li key={c.id}>
-              <span className={s.kb}>{c.entity === "qa" ? "QA" : c.entity === "doc" ? "DOC" : "META"}</span>{" "}
+              <span className={s.kb}>{c.entity === "qa" ? "QA" : c.entity === "doc" ? "DOC" : c.entity === "infra" ? "INFRA" : "META"}</span>{" "}
               <b>{c.target_id}</b>: {Object.keys(c.after ?? {}).join(", ")}
             </li>
           ))}
