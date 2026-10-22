@@ -42,7 +42,7 @@ export function useNrtDetailsScenarios(id?: string) {
 export function useUpdateNrt() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (updatedNrt: UpdateNrtsObject) => apiClient<UpdateNrtsObject>(`/api/v1/test-metrics/nrts/update/`, {
+        mutationFn: (updatedNrt: UpdateNrtsObject) => apiClient<UpdateNrtsObject>(`/api/v1/test-metrics/nrts/update`, {
             method: "PUT",
             body: JSON.stringify(updatedNrt),
         }),
@@ -55,7 +55,7 @@ export function useUpdateNrt() {
 export function useSaveFlakyScenarios() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (flakyScenarios: FlakyScenario[]) => apiClient<FlakyScenario[]>(`/api/v1/test-metrics/flaky-scenarios/save/`, {
+        mutationFn: (flakyScenarios: FlakyScenario[]) => apiClient<FlakyScenario[]>(`/api/v1/test-metrics/flaky-scenarios/save`, {
             method: "POST",
             body: JSON.stringify(flakyScenarios),
         }),
@@ -76,10 +76,3 @@ export function useFlakyScenarios({test_object}: {test_object?: string} = {}) {
     });
 }
 
-export function useOrigins(){
-    return useQuery({
-        queryKey: ["origins"],
-        staleTime: 1000 * 60 * 60, // 60 minute
-        queryFn: () => apiClient<string[]>(`/api/v1/test-metrics/origins`),
-    });
-}

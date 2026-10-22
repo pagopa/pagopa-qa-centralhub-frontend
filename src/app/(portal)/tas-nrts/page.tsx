@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useNrts, useNrtDetailsScenarios, useFlakyScenarios, useOrigins } from "@/hooks/useNrts";
+import { useNrts, useNrtDetailsScenarios, useFlakyScenarios } from "@/hooks/useNrts";
 import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
 import type { FlakyScenario } from "@/types";
