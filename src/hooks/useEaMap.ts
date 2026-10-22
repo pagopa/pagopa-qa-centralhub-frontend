@@ -3,17 +3,24 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type {
+  EaAssistantReply,
   EaChange,
+  EaChatMessage,
   EaChangeDecision,
   EaChangeStatus,
   EaEdgeCreate,
   EaEdgeDetail,
   EaEdgeUpdate,
+  EaFlow,
   EaHistoryItem,
   EaKb,
+  EaLive,
+  EaLiveEnv,
   EaNodeDetail,
   EaNodeUpdate,
   EaQaUpdate,
+  EaReleaseImpact,
+  EaReleaseImpactRequest,
   EaSyncRun,
   EaSyncStatus,
 } from "@/types/ea";
@@ -165,4 +172,45 @@ export function useBulkDecideEaChanges() {
         json("POST", { ids, decision: approve ? "approve" : "reject", note: note ?? null, actor }),
       ),
   );
+}
+
+
+/** Impact of a pull request or comparison on the platform (read-only, computed on demand). */
+export function useEaReleaseImpact() {
+  return useMutation<EaReleaseImpact, Error, EaReleaseImpactRequest>({
+    mutationFn: (body) => apiClient("/api/v1/ea/impact/release", { method: "POST", body: JSON.stringify(body) }),
+  });
+}
+
+/** One turn of the map assistant: the whole conversation goes in, the answer comes back. */
+export function useEaAssistant() {
+  return useMutation<
+    EaAssistantReply,
+    Error,
+    { messages: EaChatMessage[]; context: { view: string; node_id: string | null } | null }
+  >({
+    mutationFn: (body) => apiClient("/api/v1/ea/assistant/chat", { method: "POST", body: JSON.stringify(body) }),
+  });
+}
+
+
+/** Recent outcomes of the automated test runs on the map; refreshed every minute while on. */
+export function useEaLive(env: EaLiveEnv, enabled: boolean) {
+  return useQuery<EaLive>({
+    queryKey: [...eaMapQueryKey, "live", env],
+    queryFn: () => apiClient(`/api/v1/ea/live?env=${env}&days=7`),
+    enabled,
+    refetchInterval: enabled ? 60_000 : false,
+    staleTime: 30_000,
+  });
+}
+
+
+/** Curated payment flows (SANP) on the map nodes. */
+export function useEaFlows() {
+  return useQuery<EaFlow[]>({
+    queryKey: [...eaMapQueryKey, "flows"],
+    queryFn: () => apiClient("/api/v1/ea/flows"),
+    staleTime: 5 * 60 * 1000,
+  });
 }

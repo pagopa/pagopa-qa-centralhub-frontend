@@ -302,3 +302,140 @@ export interface EaChangeDecision {
   ctype?: EaComponentKind;
   name?: string;
 }
+
+/* ── Release impact and map assistant ─────────────────────────── */
+
+export type EaRisk = "alto" | "medio" | "basso" | "nessuno";
+
+export interface EaImpactedNode {
+  id: string;
+  name: string;
+  type: string;
+  product: string | null;
+  relation: "chiamante" | "dipendenza" | "dato a valle";
+  /** every way the node is reached (it can both call the changed component and be called by it) */
+  relations?: string[];
+  depth: number;
+  via: string;
+  path: string[];
+  risk: EaRisk;
+  reason: string;
+  qa_score: number | null;
+}
+
+export interface EaSuggestedSuite {
+  name: string;
+  kind: string;
+  covers: string[];
+  /** 0 = covers the changed component, 1 = high/medium impact, 2 = low impact */
+  priority: number;
+}
+
+export interface EaReleaseImpact {
+  change: {
+    repo: string;
+    title: string;
+    url: string;
+    ref: string;
+    state: string | null;
+    files: number;
+    additions: number;
+    deletions: number;
+  };
+  component: { id: string; name: string; product: string | null; qa_score: number };
+  risk: EaRisk;
+  categories: { key: string; label: string; weight: number; files: number; examples: string[] }[];
+  impacted: EaImpactedNode[];
+  suites: EaSuggestedSuite[];
+  gaps: { id: string; name: string; qa_score: number; reason: string }[];
+  processes: {
+    id: string;
+    name: string;
+    services: string[];
+    ref: { space?: string; title?: string; url?: string } | null;
+    via: string[];
+  }[];
+  highlight: string[];
+}
+
+export interface EaReleaseImpactRequest {
+  url?: string;
+  repo?: string;
+  base?: string;
+  head?: string;
+}
+
+export interface EaChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface EaAssistantReply {
+  answer: string;
+  highlight: string[];
+  labels: Record<string, string>;
+  steps: { tool: string; label: string }[];
+}
+
+/* ── Live: recent outcomes of the automated test runs ─────────── */
+
+export type EaLiveStatus = "passed" | "partial" | "failed" | "none";
+export type EaLiveEnv = "DEV" | "UAT" | "PROD";
+
+export interface EaLiveObject {
+  test_object: string;
+  test_type: string | null;
+  trigger: string | null;
+  status: EaLiveStatus;
+  at: string | null;
+  fresh_failure: boolean;
+  runs: number;
+  pass_rate: number;
+  history: EaLiveStatus[];
+  last: { total: number; passed: number; failed: number; broken: number; skipped: number; duration_ms: number | null; allure_url: string | null };
+  nodes: string[];
+}
+
+export interface EaLive {
+  env: EaLiveEnv;
+  days: number;
+  generated_at: string;
+  objects: EaLiveObject[];
+  nodes: Record<string, { status: EaLiveStatus; fresh_failure: boolean; at: string | null; objects: string[] }>;
+  unmapped: string[];
+  feed: { test_object: string; status: EaLiveStatus; trigger: string | null; at: string | null; failed: number; total: number; allure_url: string | null; nodes: string[] }[];
+  counts: { passed: number; partial: number; failed: number };
+}
+
+/* ── Flows: curated payment flows, step by step ───────────────── */
+
+export interface EaFlowStep {
+  index: number;
+  from: string;
+  to: string;
+  kind: "user" | "sync" | "async" | "self";
+  primitive: string;
+  text: string;
+  /** optional in the SANP use case (e.g. verifyPaymentNotice) */
+  optional?: boolean;
+  /** "sanp": in the SANP use case; "piattaforma": internal detail of the platform */
+  layer?: "sanp" | "piattaforma";
+  /** null when there is nothing to check (a person acting, a node working alone) */
+  on_map: boolean | null;
+  edge: { type: string; origin: string | null; reverse: boolean } | null;
+}
+
+export interface EaFlow {
+  id: string;
+  name: string;
+  subtitle: string;
+  process: string;
+  process_name: string;
+  services: { id: string; name: string }[];
+  lanes: { id: string; name: string; type: string; product: string | null }[];
+  steps: EaFlowStep[];
+  missing: string[];
+  validated: boolean;
+  sanp_url?: string | null;
+  source: string;
+}

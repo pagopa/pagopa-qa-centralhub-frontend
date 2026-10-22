@@ -240,7 +240,7 @@ export function traceBlueprint(g: EaGraph, bp: EaBlueprint, id: string): Trace {
 
 /* ── Hash routing (bare tokens only) ───────────────────────────── */
 
-export type EaView = "blueprint" | "map" | "datalake" | "qa" | "guida" | "review";
+export type EaView = "blueprint" | "map" | "datalake" | "flows" | "impact" | "qa" | "guida" | "review";
 
 export interface EaRoute {
   view: EaView;
@@ -249,6 +249,7 @@ export interface EaRoute {
 
 export function encodeRoute(r: EaRoute): string {
   if (r.view === "datalake") return r.nodeId ? `d-${r.nodeId}` : "datalake";
+  if (r.view === "flows") return r.nodeId ? `f-${r.nodeId}` : "flows";
   if (r.view !== "map") return r.view;
   if (!r.nodeId) return "map";
   if (r.nodeId.startsWith("area:")) return `a-${r.nodeId.slice(5)}`;
@@ -258,9 +259,10 @@ export function encodeRoute(r: EaRoute): string {
 
 export function decodeRoute(hash: string): EaRoute {
   const h = hash.replace(/^#/, "");
-  if (h === "qa" || h === "guida" || h === "blueprint" || h === "map" || h === "review" || h === "datalake")
+  if (h === "qa" || h === "guida" || h === "blueprint" || h === "map" || h === "review" || h === "datalake" || h === "impact" || h === "flows")
     return { view: h, nodeId: null };
   if (h.startsWith("d-")) return { view: "datalake", nodeId: decodeURIComponent(h.slice(2)) };
+  if (h.startsWith("f-")) return { view: "flows", nodeId: decodeURIComponent(h.slice(2)) };
   if (h.startsWith("a-")) return { view: "map", nodeId: `area:${h.slice(2)}` };
   if (h.startsWith("p-")) return { view: "map", nodeId: `prod:${h.slice(2)}` };
   if (h.startsWith("c-")) return { view: "map", nodeId: h.slice(2) };

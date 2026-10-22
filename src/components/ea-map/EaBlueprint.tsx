@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PanelRight, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { EaArea, EaComponent, EaProduct } from "@/types/ea";
+import { useEaFlows } from "@/hooks/useEaMap";
 import { useStoredFlag } from "@/lib/stored-flag";
 import {
   blueprintIndex,
@@ -354,6 +355,20 @@ function InfraRow({
   );
 }
 
+/** «Guarda il flusso» for a process or service that has a curated flow. */
+function FlowLinks({ sel }: { sel: string }) {
+  const flows = useEaFlows().data ?? [];
+  const hits = flows.filter((f) => f.process === sel || f.services.some((x) => x.id === sel));
+  if (!hits.length) return null;
+  return (
+    <p className={s.flowLinks}>
+      {hits.map((f) => (
+        <a key={f.id} href={`#f-${f.id}`}>▶ Guarda il flusso: {f.name}</a>
+      ))}
+    </p>
+  );
+}
+
 function ImpactPanel({
   g,
   sel,
@@ -397,6 +412,7 @@ function ImpactPanel({
     <div className={cx(s.bpBox, s.imp, strip && s.impStrip)}>
       <h4>Impatto · {name}</h4>
       {proc?.ref && <p style={{ fontSize: 12.5 }}><a href={proc.ref.url} target="_blank" rel="noopener noreferrer">{proc.ref.title}</a></p>}
+      <FlowLinks sel={sel} />
       <div className={s.kfig}>
         <b>{services.length}</b><span>servizi</span>
         <b>{processes.length}</b><span>processi</span>

@@ -8,6 +8,7 @@ import s from "./ea-map.module.css";
 const TOC: [string, string][] = [
   ["uso", "Come si usa"],
   ["viste", "Le viste"],
+  ["analisi", "Funzioni di analisi"],
   ["modello", "Il modello dei dati"],
   ["fonti", "Fonti e acquisizione"],
   ["relazioni", "Come nascono i legami"],
@@ -90,6 +91,10 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
               <li><b>Per un&apos;analisi d&apos;impatto</b> clicca un elemento del Blueprint: si evidenzia tutta la catena verticale e il pannello <b>Impatto</b> riassume servizi, processi, prodotti e risorse coinvolti, con la loro copertura di test. Un secondo clic deseleziona.</li>
               <li><b>Per scendere nel dettaglio</b> usa <b>Architettura</b>: area → prodotto → componente. Nella scheda del componente trovi stack, namespace AKS, API, owner, pipeline, documentazione e il link al repository.</li>
               <li><b>Per la QA</b> attiva la <b>Lente QA</b> (colora gli elementi per maturità) o apri la <b>Matrice QA</b> per filtrare e ordinare tutti i componenti.</li>
+              <li><b>Per una domanda in linguaggio naturale</b> apri <b>Chiedi alla mappa</b>, in basso a destra: l’assistente risponde dai dati della mappa e accende gli elementi di cui parla.</li>
+              <li><b>Prima di un rilascio</b> apri <b>Impatto</b> e incolla il link di una pull request (o scegli repository e due tag): ottieni chi può rompersi, cosa testare e quali processi SANP sono coinvolti.</li>
+              <li><b>Per vedere come stanno andando i test</b> accendi <b>Live</b>: la mappa si colora con gli esiti delle ultime run.</li>
+              <li><b>Per capire un pagamento passo per passo</b> apri <b>Flussi</b> e avvia il player di un caso d’uso SANP.</li>
               <li><b>Per trovare qualcosa</b> premi <span className={s.kbd}>/</span> e cerca per nome, repository, namespace o descrizione. Ogni prodotto e componente ha un indirizzo proprio che puoi condividere.</li>
             </ul>
           </Sec>
@@ -100,8 +105,65 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
               <div><h3>Architettura</h3><p>Navigazione a zoom. La vista prodotto è un diagramma a tre colonne: a sinistra chi usa il prodotto, al centro i suoi componenti per tipo, a destra le sue dipendenze. Passando sopra un componente si evidenziano i suoi legami.</p></div>
               <div><h3>Data Lake</h3><p>Il percorso dei dati nel Data Lake aziendale, dai data contract: sorgenti, ingestion (topic Event Hub), tabelle silver e gold, consumer (BI, MEF, Banca d&apos;Italia). Cliccando un elemento si evidenzia la sua catena a monte e a valle; la scheda del dataset mostra contratto, server, owner, SLA, campi con dati personali e check di qualità. Il simbolo ⚠ segnala tabelle citate nei contratti ma senza un contratto proprio. I produttori (chi invia i dati di un&apos;ingestion) sono proposti dalla sincronizzazione confrontando il topic del contratto con i componenti e si confermano in Revisione; il badge <b>DQ attivi/censiti</b> conta i controlli del DQ Framework del Hub sulle tabelle del dataset, confrontati nella scheda con i check del contratto.</p></div>
               <div><h3>Matrice QA</h3><p>Una riga per componente con unit test, feature di integrazione, copertura TAS, NRT, performance e maturità. Filtri rapidi per trovare i buchi (es. &quot;Senza integrazione&quot;).</p></div>
+              <div><h3>Impatto</h3><p>Impatto di un rilascio: da una pull request o da due tag di un repository ricava i componenti che possono rompersi, le suite da eseguire e i processi SANP coinvolti. Vedi <b>Funzioni di analisi</b>.</p></div>
+              <div><h3>Flussi</h3><p>I casi d&apos;uso SANP animati passo per passo sulle corsie dei componenti, con il controllo dei legami presenti sulla mappa. Vedi <b>Funzioni di analisi</b>.</p></div>
+              <div><h3>Live</h3><p>Interruttore in alto. Colora la mappa con l&apos;esito dell&apos;ultima run di test di ogni componente, per ambiente. Vedi <b>Funzioni di analisi</b>.</p></div>
               <div><h3>Lente QA</h3><p>Interruttore in alto. Non cambia i dati: colora prodotti, componenti e processi in base alla maturità dei test, dal rosso (0) al verde scuro (5).</p></div>
             </div>
+          </Sec>
+
+          <Sec id="analisi" title="Funzioni di analisi">
+            <p>Quattro funzioni usano lo stesso grafo per rispondere a domande concrete. Sono tutte di <b>sola lettura</b>: calcolano la risposta al momento e non modificano la mappa.</p>
+
+            <h3>Chiedi alla mappa (assistente)</h3>
+            <p>Un assistente basato su Gemini a cui scrivere in italiano, da qualsiasi vista. Il modello <b>non vede il database</b>: ha a disposizione solo sei strumenti di lettura sul grafo e decide quali chiamare. Il backend li esegue e gli restituisce i risultati, e lui scrive la risposta usando solo quelli.</p>
+            <table className={s.gTbl}>
+              <thead><tr><th>Strumento</th><th>Cosa fa</th></tr></thead>
+              <tbody>
+                <tr><td><span className={s.mono}>cerca_nodi</span></td><td>Cerca un elemento per nome, repository o alias. L’assistente parte sempre da qui: gli id non si indovinano</td></tr>
+                <tr><td><span className={s.mono}>scheda_nodo</span></td><td>Legge la scheda: attributi, segnali QA, legami, processi</td></tr>
+                <tr><td><span className={s.mono}>impatto</span></td><td>Percorre i legami verso chi chiama l’elemento («chi si rompe se cambio X») o verso le sue dipendenze, più i dataset a valle</td></tr>
+                <tr><td><span className={s.mono}>lacune_qa</span></td><td>Elenca i componenti senza test, dal più scoperto, anche filtrati per prodotto o area</td></tr>
+                <tr><td><span className={s.mono}>impatto_rilascio</span></td><td>La stessa analisi della vista Impatto, a partire da un link GitHub</td></tr>
+                <tr><td><span className={s.mono}>evidenzia</span></td><td>Accende sulla mappa gli elementi rilevanti (al massimo 25)</td></tr>
+              </tbody>
+            </table>
+            <p>Come si svolge una domanda:</p>
+            <ul>
+              <li>il pannello invia gli ultimi messaggi della conversazione e il contesto (vista aperta ed elemento selezionato);</li>
+              <li>il modello chiama uno strumento alla volta, al massimo otto passaggi, poi scrive la risposta;</li>
+              <li>ogni elemento citato è scritto con il suo id: il backend controlla che esista davvero nel grafo. Se esiste diventa un collegamento cliccabile e si accende sulla mappa, se non esiste resta testo semplice;</li>
+              <li>sotto la risposta si vedono i passaggi fatti (cosa ha cercato, quali schede ha letto).</li>
+            </ul>
+            <p>Per spegnere l’evidenziazione usa <b>Spegni</b> o <span className={s.kbd}>Esc</span>. Non c’è memoria tra una conversazione e l’altra, e la risposta è buona quanto la mappa: un legame che manca nella mappa manca anche nella risposta.</p>
+
+            <h3>Impatto di un rilascio</h3>
+            <p>Dalla vista <b>Impatto</b> si incolla il link di una pull request o di un confronto GitHub, oppure si sceglie un repository e due tag. Il repository deve essere un componente della mappa.</p>
+            <ul>
+              <li><b>File cambiati</b>: letti da GitHub e classificati in contratto API (OpenAPI, WSDL, proto…), dati e schema (migration, SQL), configurazione e deploy (Helm, Terraform, Dockerfile), codice, pipeline, test e documentazione.</li>
+              <li><b>Rischio della modifica</b>: alto se cambia un contratto o uno schema, medio per codice o configurazione, basso per le sole pipeline, nessuno per test e documentazione.</li>
+              <li><b>Chi può rompersi</b>: i componenti che chiamano quello modificato. Il rischio è pieno per i chiamanti diretti e scende di un livello a ogni passaggio; i dataset alimentati dal componente sono a rischio alto se cambia il contratto.</li>
+              <li><b>Cosa testare</b>: le suite centrali, NRT e i test nei repository che coprono i componenti coinvolti, più i test di performance se il rischio è medio o alto. Gli elementi senza test di integrazione sono segnalati come lacune.</li>
+              <li><b>Processi e servizi</b>: i processi del Blueprint e i servizi coinvolti, con il link alla pagina SANP.</li>
+            </ul>
+
+            <h3>Live</h3>
+            <p>L’interruttore <b>Live</b> colora la mappa con gli esiti delle run di test che il QA Hub già raccoglie (regressione notturna, suite centrali TAS, pipeline). Si sceglie l’ambiente (di default DEV); vengono considerate le run degli ultimi 7 giorni.</p>
+            <ul>
+              <li>Ogni run ha un oggetto di test (es. <span className={s.mono}>checkout</span>, <span className={s.mono}>wisp</span>): la mappa lo collega ai componenti tramite le suite NRT e centrali che conosce già, oppure al componente o prodotto con lo stesso nome.</li>
+              <li>Conta l’<b>ultima run</b>: verde se è passata, arancione se parziale, rosso se ha scenari falliti o in errore. Un fallimento delle ultime 24 ore pulsa.</li>
+              <li>Il pannello elenca le run con la storia recente; il segnaposto porta al componente sulla mappa. Gli oggetti che non trovano un componente sono mostrati a parte, così si vede subito quale collegamento manca.</li>
+            </ul>
+            <p>Live mostra l’esito, la maturità mostra la presenza dei test: sono due indicatori diversi e si leggono insieme.</p>
+
+            <h3>Flussi</h3>
+            <p>La vista <b>Flussi</b> anima i casi d’uso delle <b>SANP 3.12.0</b>: pagamento di un avviso presso PSP, pagamento dal frontend dell’Ente, Checkout, App IO e rendicontazione. Ogni corsia è un elemento della mappa e ogni passo è una primitiva o un messaggio delle specifiche (es. <span className={s.mono}>activatePaymentNotice</span>, <span className={s.mono}>paGetPayment</span>, <span className={s.mono}>sendPaymentOutcome</span>).</p>
+            <ul>
+              <li>Il player va avanti in automatico o passo per passo. Ogni passo dice se è un’azione di una persona, una chiamata, un evento o un’elaborazione interna; quelli marcati «opz.» sono facoltativi.</li>
+              <li>I passi in corsivo, etichettati «dettaglio di piattaforma», sono interni alla piattaforma e non compaiono nelle SANP: vanno validati con i team.</li>
+              <li>Ogni passo dice se la mappa ha già il legame tra i due elementi («✓ sulla mappa»); se manca, il passo ha un punto di avviso ed è un legame da aggiungere.</li>
+              <li><b>Mostra sulla mappa</b> evidenzia gli stessi elementi nell’Architettura; nel Blueprint, selezionando un processo o un servizio, il pannello Impatto propone «Guarda il flusso».</li>
+            </ul>
           </Sec>
 
           <Sec id="modello" title="Il modello dei dati">
@@ -219,6 +281,8 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
               <li>La maturità conta file e configurazioni: un test presente ma spento o fallito vale come presente.</li>
               <li>&quot;Sotto QA&quot; e &quot;Pipeline invoca TAS&quot; sono da compilare a cura del team QA.</li>
               <li>Le pagine Confluence sono collegate per titolo: alcune associazioni possono mancare o essere imprecise.</li>
+              <li>L’assistente può sbagliare l’interpretazione di una domanda: i passaggi mostrati sotto la risposta e i collegamenti agli elementi servono a verificarla.</li>
+              <li>Live vede solo le run salvate nel QA Hub e solo gli oggetti di test che riesce a collegare a un componente.</li>
             </ul>
           </Sec>
 
