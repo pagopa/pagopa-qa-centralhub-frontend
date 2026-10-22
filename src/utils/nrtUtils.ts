@@ -74,19 +74,28 @@ export function formatNrtDuration(value: number | null | undefined): string | nu
     return `${minutes}m ${remainingSeconds}s`;
 }
 
+function formatAllureTimestampMinusTwoHours(timestamp: string | null): string | undefined {
+    if (!timestamp) return undefined;
+    return new Date(new Date(timestamp))
+        .toISOString()
+        .replace("T", " ")
+        .replace(" ", "_")
+        .split(".")[0];
+}
+
 export function buildAllureRunUrl(testRun: TestRun, testObject: string): string {
-    const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
+    const timestamp = formatAllureTimestampMinusTwoHours(testRun.timestamp_start);
     return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-tests/${timestamp}/index.html`;
 }
 
 export function buildAiAnalysisUrl(testRun: TestRun, testObject: string): string {
-    const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
+    const timestamp = formatAllureTimestampMinusTwoHours(testRun.timestamp_start);
     return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-tests/${timestamp}/analysis/index.html`;
 }
 
 export function buildAllureScenarioUrl(testRun: TestRun, testObject: string, scenarioAllureId: string): string {
     if (testRun.allure_url == null){
-        const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
+        const timestamp = formatAllureTimestampMinusTwoHours(testRun.timestamp_start);
         return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-tests/${timestamp}/index.html#suites/${testRun.id}/${scenarioAllureId}`;
     }
     
