@@ -55,6 +55,12 @@ export const NRT_SCENARIO_STAT_BACKGROUND_COLORS = {
 export const NRT_ALLURE_REPORT_BASE_URL =
   "https://pagopa.github.io/pagopa-platform-integration-test";
 
+export const NRT_ALLURE_SUBFOLDER_BY_TEST_OBJECT: Record<string, string> = {
+  wisp: "wisp-tests",
+  checkout: "checkout-e2e-tests",
+  fdr3: "fdr3-tests",
+};
+
 export type TicketStatusStyle = {
   color: string;
   bg: string;

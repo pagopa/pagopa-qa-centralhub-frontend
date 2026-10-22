@@ -3,7 +3,7 @@ import type {  TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/t
 import NrtSaveButton from "./NrtSaveButton";
 import { RunModal } from "@/components/e2e/RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
-import {useState} from "react"
+import {useEffect, useState} from "react"
 import {
   buildAllureRunUrl,
   buildAllureScenarioUrl,
@@ -128,8 +128,7 @@ export function NrtDetailsPanel({
       ]);
     }
   }
-
-  var scenarios = details?.test_execution ?? [];
+ 
  
 
   return (
