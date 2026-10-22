@@ -5,18 +5,62 @@ Next.js 14+ App Router frontend for QA Hub — internal portal for Testing & Dat
 ## Prerequisites
 
 - Node.js 20+
-- pnpm (`npm i -g pnpm`)
+- pnpm 9 (`npm i -g pnpm@9`, coerente con il Dockerfile)
 - Backend running at `http://localhost:8000` (see `../qa-hub-backend/`)
 
 ## Setup
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 cp .env.example .env.local   # fill in GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 pnpm dev
 ```
 
 Open http://localhost:3000. Unauthenticated users are redirected to `/login` (Google sign-in).
+
+## Gestione dipendenze, npm e lockfile
+
+Il package manager del progetto e' **pnpm**. Usare npm solo per installare pnpm
+come indicato nei prerequisiti: non usare `npm install`, `npm update` o `npm ci`
+per gestire le dipendenze del repository e non introdurre `package-lock.json`
+o `yarn.lock` accanto a `pnpm-lock.yaml`.
+
+`package.json` dichiara le dipendenze e gli intervalli di versione ammessi;
+`pnpm-lock.yaml` registra le versioni esatte risolte, incluse le dipendenze
+transitive e gli hash di integrita'. Il lockfile va sempre versionato in Git.
+
+### Workflow locale
+
+- Dopo un clone o un pull, eseguire `pnpm install --frozen-lockfile`: installa
+  le dipendenze senza modificare il lockfile e fallisce se e' invalido o non
+  allineato al manifest.
+- Per aggiungere, rimuovere o aggiornare una dipendenza, usare rispettivamente
+  `pnpm add <pacchetto>`, `pnpm remove <pacchetto>` o `pnpm update <pacchetto>`;
+  per aggiungere una dipendenza di sviluppo usare `pnpm add -D <pacchetto>`.
+- Committare insieme le modifiche a `package.json` e `pnpm-lock.yaml`, controllando
+  che la diff non contenga aggiornamenti estranei alla modifica richiesta.
+- Non modificare manualmente il lockfile e non cancellarlo come soluzione
+  abituale: rigenerarlo da zero puo' aggiornare molte dipendenze transitive.
+- In caso di conflitto di merge, risolvere prima `package.json`. Ripartire da
+  un lockfile valido di uno dei due rami, eseguire `pnpm install` per riconciliarlo
+  e controllare che siano conservati gli aggiornamenti voluti di entrambi i rami.
+  Non concatenare le due versioni del file: si possono introdurre chiavi YAML
+  duplicate. Verificare infine con `pnpm install --frozen-lockfile`.
+
+### Repository e CI/CD
+
+Il Dockerfile usa gia' pnpm 9 e `pnpm install --frozen-lockfile`. Mantenere questo
+controllo: la CI deve consumare il lockfile versionato, non rigenerarlo o aggirare
+gli errori rimuovendo `--frozen-lockfile`.
+
+Per prevenire regressioni, eseguire lo stesso controllo anche nella pipeline
+delle pull request e renderne obbligatorio il superamento tramite le policy del
+branch prima del merge.
+
+La versione esatta di pnpm non e' ancora fissata: `pnpm@9` seleziona solo la major
+e `package.json` non contiene il campo `packageManager`. Come ulteriore misura,
+scegliere una versione esatta condivisa, dichiararla in `packageManager` e
+allineare installazioni locali, Dockerfile e pipeline alla stessa versione.
 
 ## Build
 
