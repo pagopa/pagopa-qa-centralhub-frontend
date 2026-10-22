@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type { JiraOverview, JiraTrend, JiraEstimateDrift } from "@/types/index";
 
@@ -71,5 +71,25 @@ export function useJiraDataEstimateDrift() {
     queryKey: ["jira", "data", "estimate-drift"],
     queryFn: () => apiClient("/api/v1/jira/data/estimate-drift"),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+type JiraIssueResponse = {
+  [key: string]: unknown;
+  fields: {
+    [key: string]: unknown;
+    status: {
+      [key: string]: unknown;
+      name: string;
+    };
+  };
+};
+
+export function useJiraIssue() {
+  return useMutation<JiraIssueResponse, Error, string>({
+    mutationFn: (issueId) =>
+      apiClient<JiraIssueResponse>(`/api/v1/jira/issue/${issueId}`, {
+        method: "GET",
+      }),
   });
 }

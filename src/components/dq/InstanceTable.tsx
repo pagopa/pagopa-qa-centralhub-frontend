@@ -60,6 +60,7 @@ export function InstanceTable({ domainId, category }: { domainId: string; catego
               {tables?.map((table) => <option key={table} value={table}>{table}</option>)}
             </select>
           </label>
+          <span className="text-[13px] text-text-muted font-mono">({instances?.length ?? 0} totali)</span>
         </div>
         <Gate action="manage:data_quality">
           <button
