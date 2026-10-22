@@ -36,18 +36,13 @@ export default function NrtsPage() {
       setFlakyScenarios(flakyScenariosData ?? []);
   }, [flakyScenariosData]);
 
-  useEffect(() => {
-      const updatedNrts = nrts.map(nrt => {
-          if (nrt.test_run?.id === selectedNrtId) {
-              return {
-                  ...nrt,
-                  test_execution: selectedNrtDetails ?? []
-              };
-          }
-          return nrt;
-      });
-      setNrts(updatedNrts);
-  }, [selectedNrtDetails]);
+    const nrtsWithSelectedDetails = selectedNrtDetails === undefined
+    ? nrts
+    : nrts.map((nrt) =>
+      nrt.test_run.id === selectedNrtId
+        ? { ...nrt, test_execution: selectedNrtDetails }
+        : nrt,
+      );
   
 
   if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
@@ -75,7 +70,7 @@ export default function NrtsPage() {
     </div>
     {(error != null ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
     <NrtsTable
-      runs={nrts} // NRTS
+      runs={nrtsWithSelectedDetails} // NRTS
       onNrtsChange={setNrts} // aggiorna NRTS
       totalPages={totalPages} // pagine
       onRowClick={setSelectedNrtId} // seleziona NRT
