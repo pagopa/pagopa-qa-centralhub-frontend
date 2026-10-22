@@ -76,18 +76,18 @@ export function formatNrtDuration(value: number | null | undefined): string | nu
 
 export function buildAllureRunUrl(testRun: TestRun, testObject: string): string {
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-    return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-test/${timestamp}/index.html`;
+    return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-tests/${timestamp}/index.html`;
 }
 
 export function buildAiAnalysisUrl(testRun: TestRun, testObject: string): string {
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-    return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-test/${timestamp}/analysis/index.html`;
+    return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-tests/${timestamp}/analysis/index.html`;
 }
 
 export function buildAllureScenarioUrl(testRun: TestRun, testObject: string, scenarioAllureId: string): string {
     if (testRun.allure_url == null){
         const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-        return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-test/${timestamp}/index.html#suites/${testRun.id}/${scenarioAllureId}`;
+        return `${NRT_ALLURE_REPORT_BASE_URL}/${testObject}-tests/${timestamp}/index.html#suites/${testRun.id}/${scenarioAllureId}`;
     }
     
     return `${testRun.allure_url}#suites/${scenarioAllureId}`;

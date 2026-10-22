@@ -145,6 +145,7 @@ export function NrtDetailsPanel({
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
           <DetailField label="Fine" value={formatNrtTimestamp(details.test_run?.timestamp_end ?? null)} />
           <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
+          <DetailField label="Revisore" value={details.test_run.revisioned_by ?? "-"} />
           <div>
             <dt className="text-text-muted">Ticket prodotto:</dt>{" "}
             <div className="flex flex-wrap items-center gap-2">
