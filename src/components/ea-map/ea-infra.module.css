@@ -184,7 +184,10 @@
 .layerCount { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--lc) 16%, transparent); color: color-mix(in srgb, var(--lc) 85%, var(--text)); }
 .layerHead small { display: block; color: var(--text-muted); font-size: 12px; line-height: 1.4; margin-top: 3px; }
 .layerBody { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; align-content: flex-start; min-width: 0; }
-.layerGroup { flex: 1 1 100%; display: flex; flex-direction: column; gap: 7px; }
+/* all domains: the groups sit side by side; one domain: its group and the shared one span the row */
+.layerGroup { flex: 0 1 auto; min-width: 250px; display: flex; flex-direction: column; gap: 7px; }
+.layerGroupWide { flex: 1 1 100%; }
+.layerGroup:not(.layerGroupWide) .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 280px)); }
 .layerShared { padding: 8px; border-radius: 12px; border: 1px dashed var(--border-strong); background: color-mix(in srgb, var(--subtle) 50%, transparent); }
 .groupLabel { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
 .domTile { position: relative; display: flex; flex-direction: column; gap: 8px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 9px 12px 10px; cursor: pointer; min-width: 140px; overflow: hidden;

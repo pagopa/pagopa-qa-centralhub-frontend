@@ -666,7 +666,8 @@ function LayersView({
                       <DomainTile key={gr.domain} domain={gr.domain} items={gr.items} onOpen={() => onDomain(gr.domain)} />
                     ))
                   : l.groups.map((gr) => (
-                      <div key={gr.domain} className={cx(s.layerGroup, gr.domain.startsWith("shared:") && s.layerShared)}>
+                      <div key={gr.domain}
+                        className={cx(s.layerGroup, domain && s.layerGroupWide, gr.domain.startsWith("shared:") && s.layerShared)}>
                         {(gr.domain.startsWith("shared:") || !domain) && (
                           <span className={s.groupLabel}>
                             {gr.domain.startsWith("shared:") ? `Condivise · ${domainLabel(gr.domain.slice(7))}` : domainLabel(gr.domain)}
