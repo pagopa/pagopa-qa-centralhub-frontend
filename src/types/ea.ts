@@ -377,6 +377,20 @@ export interface EaAssistantReply {
   highlight: string[];
   labels: Record<string, string>;
   steps: { tool: string; label: string }[];
+  provider: "gemini" | "groq";
+  model: string;
+  fallback_used: boolean;
+}
+
+export interface EaAssistantConfig {
+  provider: "gemini" | "groq";
+  gemini_model: string;
+  groq_model: string;
+  fallback_enabled: boolean;
+}
+
+export interface EaAssistantSettings extends EaAssistantConfig {
+  configured: Record<"gemini" | "groq", boolean>;
 }
 
 /* ── Live: recent outcomes of the automated test runs ─────────── */

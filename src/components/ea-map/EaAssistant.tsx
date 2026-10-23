@@ -1,7 +1,7 @@
 "use client";
 
 /* «Pagoda» (formerly «Chiedi alla mappa»): an assistant that floats over every view of the EA Map. It answers
-   from the graph through read-only tools on the backend (Gemini with function calling),
+   from the graph through read-only tools on the backend (configurable AI provider),
    lights up on the map the nodes it talks about and turns [[node-id]] references into
    chips that open the node. */
 
@@ -20,6 +20,9 @@ interface Turn extends EaChatMessage {
   steps?: { tool: string; label: string }[];
   highlight?: string[];
   error?: boolean;
+  provider?: string;
+  model?: string;
+  fallback_used?: boolean;
 }
 
 const SUGGESTIONS = [
@@ -38,7 +41,13 @@ interface Props {
   openNode: (id: string) => void;
 }
 
-function Rich({ text, labels, g, openNode }: { text: string; labels: Record<string, string>; g: EaGraph; openNode: (id: string) => void }) {
+function Rich({ text, labels, highlight, g, openNode }: { text: string; labels: Record<string, string>; highlight: string[]; g: EaGraph; openNode: (id: string) => void }) {
+  const blocks = parseAnswer(text);
+  const cited = new Set(blocks.flatMap((block) =>
+    (block.t === "p" ? block.inl : block.items.flat())
+      .flatMap((item) => item.t === "ref" ? [item.id] : []),
+  ));
+  const extra = [...new Set(highlight)].filter((id) => g.byId.has(id) && !cited.has(id));
   const run = (inl: Inline[]) =>
     inl.map((x, i) => {
       if (x.t === "bold") return <b key={i}>{x.v}</b>;
@@ -54,8 +63,16 @@ function Rich({ text, labels, g, openNode }: { text: string; labels: Record<stri
     });
   return (
     <>
-      {parseAnswer(text).map((b, i) =>
+      {blocks.map((b, i) =>
         b.t === "p" ? <p key={i}>{run(b.inl)}</p> : <ul key={i}>{b.items.map((it, j) => <li key={j}>{run(it)}</li>)}</ul>,
+      )}
+      {extra.length > 0 && (
+        <div role="group" aria-label="Elementi evidenziati sulla mappa" className="mt-3">
+          <p className="mb-1 text-xs text-text-muted">Elementi evidenziati sulla mappa</p>
+          <div className="flex flex-wrap gap-1">
+            {run(extra.map((id) => ({ t: "ref", id })))}
+          </div>
+        </div>
       )}
     </>
   );
@@ -104,7 +121,7 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
       },
       {
         onSuccess: (r) => {
-          setTurns((t) => [...t, { role: "assistant", content: r.answer, labels: r.labels, steps: r.steps, highlight: r.highlight }]);
+          setTurns((t) => [...t, { role: "assistant", content: r.answer, labels: r.labels, steps: r.steps, highlight: r.highlight, provider: r.provider, model: r.model, fallback_used: r.fallback_used }]);
           onHighlight(r.highlight.length ? r.highlight : null);
         },
         onError: (err) =>
@@ -182,6 +199,12 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
             <div key={i} className={cx(s.bot, t.error && s.botErr)}>
               <PagodaAvatar size={26} className={s.botAvatar} />
               <div className={s.botBody}>
+              {t.provider && (
+                <p className="mb-2 text-xs text-text-muted">
+                  {t.provider === "groq" ? "Groq" : "Gemini"} · {t.model}
+                  {t.fallback_used ? " · fallback automatico" : ""}
+                </p>
+              )}
               {t.steps && t.steps.length > 0 && (
                 <details className={s.steps}>
                   <summary>Come ho risposto · {t.steps.length} passaggi</summary>
@@ -189,7 +212,7 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
                 </details>
               )}
               <div className={s.answer}>
-                <Rich text={t.content} labels={t.labels ?? {}} g={g} openNode={openNode} />
+                <Rich text={t.content} labels={t.labels ?? {}} highlight={t.highlight ?? []} g={g} openNode={openNode} />
               </div>
               {t.highlight && t.highlight.length > 0 && (
                 <div className={s.actions}>

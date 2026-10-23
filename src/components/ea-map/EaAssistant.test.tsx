@@ -84,4 +84,46 @@ describe("EaAssistant", () => {
     fireEvent.keyDown(box, { key: "Enter" });
     await waitFor(() => expect(screen.getByText("Assistente non configurato")).toBeTruthy());
   });
+
+  it("displays the effective provider and automatic fallback on the answer", async () => {
+    mocks.apiClient.mockResolvedValue({
+      answer: "Ecco [[svc-a]].", highlight: [], labels: { "svc-a": "Servizio A" },
+      steps: [], provider: "groq", model: "test-model", fallback_used: true,
+    });
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: /chiedi a pagoda/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Se cambio GPD, chi si rompe?" }));
+    expect(await screen.findByText(/Groq.*test-model.*fallback automatico/i)).toBeInTheDocument();
+  });
+
+  it("keeps verified map elements clickable when the model omits inline references", async () => {
+    mocks.apiClient.mockResolvedValue({
+      answer: "Servizio A dipende da GPD.",
+      highlight: ["svc-a", "prod:gpd", "svc-a", "inventato"],
+      labels: { "svc-a": "Servizio A", "prod:gpd": "GPD", inventato: "Inventato" },
+      steps: [], provider: "groq", model: "test-model", fallback_used: false,
+    });
+    const { openNode } = setup();
+    fireEvent.click(screen.getByRole("button", { name: /chiedi a pagoda/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Se cambio GPD, chi si rompe?" }));
+    const chip = await screen.findByRole("button", { name: "Servizio A" });
+    fireEvent.click(chip);
+    expect(openNode).toHaveBeenCalledWith("svc-a");
+    expect(screen.getAllByRole("button", { name: "Servizio A" })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "GPD" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Inventato" })).not.toBeInTheDocument();
+  });
+
+  it("does not duplicate existing inline chips in the highlighted elements", async () => {
+    mocks.apiClient.mockResolvedValue({
+      answer: "Lo chiama [[svc-a]].", highlight: ["svc-a", "prod:gpd"],
+      labels: { "svc-a": "Servizio A", "prod:gpd": "GPD" }, steps: [],
+    });
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: /chiedi a pagoda/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Se cambio GPD, chi si rompe?" }));
+    await screen.findByRole("button", { name: "Servizio A" });
+    expect(screen.getAllByRole("button", { name: "Servizio A" })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "GPD" })).toBeEnabled();
+  });
 });

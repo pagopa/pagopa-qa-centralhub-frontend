@@ -121,7 +121,7 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
             <p>Quattro funzioni usano lo stesso grafo per rispondere a domande concrete. Sono tutte di <b>sola lettura</b>: calcolano la risposta al momento e non modificano la mappa.</p>
 
             <h3>Pagoda, l&apos;assistente della mappa</h3>
-            <p>Un assistente basato su Gemini a cui scrivere in italiano, da qualsiasi vista. Il modello <b>non vede il database</b>: ha a disposizione solo sei strumenti di lettura sul grafo e decide quali chiamare. Il backend li esegue e gli restituisce i risultati, e lui scrive la risposta usando solo quelli.</p>
+            <p>Un assistente a cui scrivere in italiano, da qualsiasi vista, con motore Gemini o Groq configurabile nei Settings Pagoda dagli amministratori. Il modello <b>non vede il database</b>: ha a disposizione solo sei strumenti di lettura sul grafo e decide quali chiamare. Il backend li esegue e gli restituisce i risultati, e lui scrive la risposta usando solo quelli. Il fallback verso l’altro motore è opzionale: quando avviene, la risposta lo indica insieme al modello usato.</p>
             <table className={s.gTbl}>
               <thead><tr><th>Strumento</th><th>Cosa fa</th></tr></thead>
               <tbody>
@@ -392,4 +392,3 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
     </>
   );
 }
-

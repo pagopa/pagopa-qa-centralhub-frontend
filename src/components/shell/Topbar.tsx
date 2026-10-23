@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings/team": "Settings · Team",
   "/settings/notifications": "Settings · Notifications",
   "/settings/general": "Settings · General",
+  "/settings/ea-assistant": "Settings · Assistente EA Map",
   "/settings/users": "Settings · Utenti",
   "/settings/tm-resources": "Settings · Risorse T&M",
 };

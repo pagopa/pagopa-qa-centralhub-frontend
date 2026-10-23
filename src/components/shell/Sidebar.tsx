@@ -98,6 +98,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations", featureKey: "settings_e2e" },
       { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd", featureKey: "settings_gherkin" },
       { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
+      { href: "/settings/ea-assistant", label: "Settings Pagoda", icon: Sparkles, requiresSuperadmin: true },
       { href: "/settings/tm-resources", label: "Risorse T&M", icon: Receipt, requiresSuperadmin: true },
       { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs", featureKey: "api_docs" },
     ],
