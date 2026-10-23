@@ -3,7 +3,7 @@ import type {  TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/t
 import NrtSaveButton from "./NrtSaveButton";
 import { RunModal } from "@/components/e2e/RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
-import {useEffect, useState} from "react"
+import {useState} from "react"
 import {
   buildAllureRunUrl,
   buildAllureScenarioUrl,
@@ -18,6 +18,7 @@ import {
   NRT_RUN_STATUSES,
   NRT_SCENARIO_TABLE_HEADERS,
 } from "@/utils/nrtsCostants";
+import {DetailField} from "./DetailField";
 
 export function NrtDetailsPanel({
   details,
@@ -96,15 +97,6 @@ export function NrtDetailsPanel({
   );
   const visibleScenarioColumnIds = new Set(visibleScenarioColumns.map((column) => column.id));
 
-    
-  function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
-    return (
-      <div>
-        <dt className="text-text-muted">{label}</dt>
-        <dd className="text-text">{value || "—"}</dd>
-      </div>
-    );
-  }
 
   function handleCheckboxChange(updatedScenario: TestExecution) {
     const updatedFlakyScenario = createFlakyScenario(
