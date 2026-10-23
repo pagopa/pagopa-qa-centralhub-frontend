@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ExternalLink,
   FileText,
@@ -14,10 +14,12 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Play,
 } from "lucide-react";
 import { useDocItems, useCreateDocItem, useUpdateDocItem, useDeleteDocItem } from "@/hooks/useDocs";
 import type { DocItem, DocIcon, DocType } from "@/types/index";
 import { RouteGuard } from "@/components/auth/RouteGuard";
+import { videoSource } from "@/lib/video";
 
 const ICONS: Record<DocIcon, React.ElementType> = {
   confluence: BookOpen,
@@ -163,7 +165,12 @@ export default function DocsPage() {
         ))}
       </div>
 
-      {viewer && <EmbedModal item={viewer} onClose={() => setViewer(null)} />}
+      {viewer &&
+        (videoSource(normalizeLegacyOpenApiUrl(viewer.url)) ? (
+          <VideoModal item={viewer} onClose={() => setViewer(null)} />
+        ) : (
+          <EmbedModal item={viewer} onClose={() => setViewer(null)} />
+        ))}
 
       {formOpen && (
         <ItemFormModal
@@ -197,8 +204,10 @@ function TileCard({
   onDelete: (i: DocItem) => void;
 }) {
   const Icon = ICONS[item.icon] ?? FileText;
-  const isEmbedded = item.type === "embedded";
   const targetUrl = normalizeLegacyOpenApiUrl(item.url);
+  const video = videoSource(targetUrl);
+  // a video always plays inside the portal, whatever the type of the card
+  const isEmbedded = item.type === "embedded" || video !== null;
   const favicon = faviconUrl(targetUrl);
 
   const handleClick = () => {
@@ -228,12 +237,23 @@ function TileCard({
       <button onClick={handleClick} className="text-left flex flex-col flex-1 transition-colors hover:bg-hover">
         {/* Cover */}
         {item.thumbnail_url ? (
-          <div className="w-full shrink-0 overflow-hidden" style={{ height: 110 }}>
+          <div className="relative w-full shrink-0 overflow-hidden" style={{ height: 110 }}>
             <img
               src={item.thumbnail_url}
               alt=""
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             />
+            {video && <PlayBadge />}
+          </div>
+        ) : video ? (
+          <div
+            className="relative w-full shrink-0 flex items-center justify-center"
+            style={{
+              height: 110,
+              background: "linear-gradient(135deg, color-mix(in oklch, var(--accent) 22%, var(--surface)), color-mix(in oklch, var(--accent) 6%, var(--surface)))",
+            }}
+          >
+            <PlayBadge />
           </div>
         ) : (
           <div
@@ -281,7 +301,7 @@ function TileCard({
                   : "transparent",
               }}
             >
-              {isEmbedded ? "inline" : "link"}
+              {video ? "video" : isEmbedded ? "inline" : "link"}
             </span>
           </div>
 
@@ -296,7 +316,11 @@ function TileCard({
             className="flex items-center gap-1 text-[12px] font-medium"
             style={{ color: "var(--text-muted)" }}
           >
-            {isEmbedded ? (
+            {video ? (
+              <>
+                Guarda nel portale <Play size={11} />
+              </>
+            ) : isEmbedded ? (
               <>
                 Apri nel portale{" "}
                 <ArrowUpRight size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -307,6 +331,90 @@ function TileCard({
           </div>
         </div>
       </button>
+    </div>
+  );
+}
+
+function PlayBadge() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute inset-0 m-auto grid place-items-center w-12 h-12 rounded-full transition-transform duration-200 group-hover:scale-110"
+      style={{ background: "rgba(0,0,0,0.55)", color: "#fff", boxShadow: "0 4px 14px rgba(0,0,0,0.3)" }}
+    >
+      <Play size={20} fill="currentColor" style={{ marginLeft: 3 }} />
+    </span>
+  );
+}
+
+// ── Video modal ───────────────────────────────────────────────────────────────
+
+function VideoModal({ item, onClose }: { item: DocItem; onClose: () => void }) {
+  const targetUrl = normalizeLegacyOpenApiUrl(item.url);
+  const video = videoSource(targetUrl);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#0b0d12" }} role="dialog" aria-label={item.title}>
+      <div
+        className="flex items-center gap-3 px-4 border-b border-border shrink-0"
+        style={{ height: "var(--topbar-h)", background: "var(--surface)" }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Chiudi"
+          className="grid place-items-center rounded-[var(--radius-sm)] border border-border w-7 h-7 text-text-muted hover:text-text hover:bg-hover transition-colors"
+        >
+          <X size={14} />
+        </button>
+        <span className="text-[13px] font-semibold text-text flex-1">{item.title}</span>
+        <a
+          href={targetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-[12px] text-text-muted hover:text-text transition-colors no-underline"
+        >
+          <ExternalLink size={12} />
+          Apri in nuova tab
+        </a>
+      </div>
+      <div className="flex-1 min-h-0 flex items-center justify-center p-4">
+        {video?.kind === "embed" ? (
+          <iframe
+            src={video.src}
+            title={item.title}
+            className="w-full h-full max-w-[1280px] border-0 rounded-[var(--radius)]"
+            style={{ aspectRatio: "16 / 9", maxHeight: "100%" }}
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+          />
+        ) : video && !failed ? (
+          <video
+            src={video.src}
+            controls
+            autoPlay
+            playsInline
+            preload="metadata"
+            className="max-w-full max-h-full rounded-[var(--radius)]"
+            style={{ background: "#000" }}
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div role="alert" className="max-w-md text-center text-[13px] flex flex-col gap-2" style={{ color: "#d6dbe4" }}>
+            <p className="font-semibold">Il video non si riesce a riprodurre qui.</p>
+            <p>
+              Succede se il file è in un repository privato o se il formato non è supportato dal browser (meglio MP4
+              H.264 o WebM). Puoi aprirlo con &quot;Apri in nuova tab&quot;.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -433,6 +541,11 @@ function ItemFormModal({
               className={inputCls}
               placeholder="https://..."
             />
+            {videoSource(form.url) && (
+              <p className="text-[11.5px] mt-1" style={{ color: "var(--accent)" }}>
+                Video riconosciuto: si guarderà direttamente nel portale.
+              </p>
+            )}
           </Field>
 
           <div className="grid grid-cols-2 gap-3">

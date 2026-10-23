@@ -9,6 +9,7 @@ const TOC: [string, string][] = [
   ["uso", "Come si usa"],
   ["viste", "Le viste"],
   ["analisi", "Funzioni di analisi"],
+  ["infra", "Infrastruttura"],
   ["modello", "Il modello dei dati"],
   ["fonti", "Fonti e acquisizione"],
   ["relazioni", "Come nascono i legami"],
@@ -44,6 +45,8 @@ const GLOSSARY: [string, string][] = [
   ["TAS", "Test Automation Service: workflow riusabile che esegue le suite centrali"],
   ["NRT", "Non Regression Test, suite eseguite ogni giorno in UAT"],
   ["TA / TM", "Test automatici / test manuali"],
+  ["Stack Terraform", "Una cartella di Terraform applicata insieme (es. src/domains/gps-app), con i suoi tfvars per ambiente"],
+  ["Action group", "Destinatari di un alert su Azure: email, canale Slack, Opsgenie"],
   ["CoE QA", "Centro di Competenza QA del Dipartimento Pagamenti"],
   ["AKS", "Azure Kubernetes Service; ogni dominio ha un proprio namespace"],
   ["APIM", "Azure API Management, il gateway delle API"],
@@ -87,11 +90,12 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
 
           <Sec id="uso" title="Come si usa">
             <ul>
+              <li><b>Per capire dove gira qualcosa</b> apri <b>Infrastruttura</b>, scegli il dominio (nodo, gps, checkout…) e scendi dai frontend ai dati; dalla scheda di un componente la sezione &quot;Infrastruttura&quot; porta alle sue risorse.</li>
               <li><b>Per capire il perimetro</b> parti dal <b>Blueprint</b>: i quattro livelli (Contesto, Processi, Applicazioni, Infrastruttura) danno la vista d&apos;insieme.</li>
               <li><b>Per un&apos;analisi d&apos;impatto</b> clicca un elemento del Blueprint: si evidenzia tutta la catena verticale e il pannello <b>Impatto</b> riassume servizi, processi, prodotti e risorse coinvolti, con la loro copertura di test. Un secondo clic deseleziona.</li>
               <li><b>Per scendere nel dettaglio</b> usa <b>Architettura</b>: area → prodotto → componente. Nella scheda del componente trovi stack, namespace AKS, API, owner, pipeline, documentazione e il link al repository.</li>
               <li><b>Per la QA</b> attiva la <b>Lente QA</b> (colora gli elementi per maturità) o apri la <b>Matrice QA</b> per filtrare e ordinare tutti i componenti.</li>
-              <li><b>Per una domanda in linguaggio naturale</b> apri <b>Chiedi alla mappa</b>, in basso a destra: l’assistente risponde dai dati della mappa e accende gli elementi di cui parla.</li>
+              <li><b>Per una domanda in linguaggio naturale</b> apri <b>Pagoda</b>, l’assistente in basso a destra: risponde dai dati della mappa e accende gli elementi di cui parla.</li>
               <li><b>Prima di un rilascio</b> apri <b>Impatto</b> e incolla il link di una pull request (o scegli repository e due tag): ottieni chi può rompersi, cosa testare e quali processi SANP sono coinvolti.</li>
               <li><b>Per vedere come stanno andando i test</b> accendi <b>Live</b>: la mappa si colora con gli esiti delle ultime run.</li>
               <li><b>Per capire un pagamento passo per passo</b> apri <b>Flussi</b> e avvia il player di un caso d’uso SANP.</li>
@@ -104,6 +108,7 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
               <div><h3>Blueprint</h3><p>Ispirata al Pagoda Blueprint. Quattro piani sovrapposti: chi usa la piattaforma e i servizi offerti; le funzioni di business con i processi SANP; i prodotti raggruppati per area; le risorse cloud e i namespace AKS. Ai lati missione, stakeholder, iniziative, principi, criticità e numeri chiave.</p></div>
               <div><h3>Architettura</h3><p>Navigazione a zoom. La vista prodotto è un diagramma a tre colonne: a sinistra chi usa il prodotto, al centro i suoi componenti per tipo, a destra le sue dipendenze. Passando sopra un componente si evidenziano i suoi legami.</p></div>
               <div><h3>Data Lake</h3><p>Il percorso dei dati nel Data Lake aziendale, dai data contract: sorgenti, ingestion (topic Event Hub), tabelle silver e gold, consumer (BI, MEF, Banca d&apos;Italia). Cliccando un elemento si evidenzia la sua catena a monte e a valle; la scheda del dataset mostra contratto, server, owner, SLA, campi con dati personali e check di qualità. Il simbolo ⚠ segnala tabelle citate nei contratti ma senza un contratto proprio. I produttori (chi invia i dati di un&apos;ingestion) sono proposti dalla sincronizzazione confrontando il topic del contratto con i componenti e si confermano in Revisione; il badge <b>DQ attivi/censiti</b> conta i controlli del DQ Framework del Hub sulle tabelle del dataset, confrontati nella scheda con i check del contratto.</p></div>
+              <div><h3>Infrastruttura</h3><p>L&apos;infrastruttura della piattaforma ricostruita dal Terraform di <span className={s.mono}>pagopa-infra</span>, <span className={s.mono}>pagopa-infra-core</span> e <span className={s.mono}>pagopa-aws-infra</span>, per ambiente (prod di default). Due modi di guardarla. <b>Per livelli</b> (predefinita), dall&apos;alto verso il basso: frontend web (le app nel browser, con il loro indirizzo pubblico), ingresso (DNS, Application Gateway, API Management), API, calcolo (AKS e namespace, App Service, Function), messaggi ed eventi, dati, servizi trasversali; scegliendo un dominio (nodo, gps, checkout…) si vede la sua fetta verticale con le risorse condivise che usa, e cliccando una risorsa si evidenziano quelle collegate. <b>Per stack Terraform</b>: ogni risorsa del codice, con i riquadri dei contenitori (resource group, VNet e subnet, cluster AKS e namespace). Frecce piene: riferimenti espliciti nel Terraform; tratteggiate: dedotte, cioè la stessa risorsa riconosciuta per nome in stack diversi. In basso la fascia <b>Monitoring &amp; Alerting</b>: risorsa monitorata → regola → action group → canale (email, Slack, Opsgenie). Dalla scheda di una risorsa si apre il nodo della mappa collegato e il file Terraform; dalla scheda di un componente si arriva alle sue risorse. Subscription, IP e indirizzi non vengono importati.</p></div>
               <div><h3>Matrice QA</h3><p>Una riga per componente con unit test, feature di integrazione, copertura TAS, NRT, performance e maturità. Filtri rapidi per trovare i buchi (es. &quot;Senza integrazione&quot;).</p></div>
               <div><h3>Impatto</h3><p>Impatto di un rilascio: da una pull request o da due tag di un repository ricava i componenti che possono rompersi, le suite da eseguire e i processi SANP coinvolti. Vedi <b>Funzioni di analisi</b>.</p></div>
               <div><h3>Flussi</h3><p>I casi d&apos;uso SANP animati passo per passo sulle corsie dei componenti, con il controllo dei legami presenti sulla mappa. Vedi <b>Funzioni di analisi</b>.</p></div>
@@ -115,7 +120,7 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
           <Sec id="analisi" title="Funzioni di analisi">
             <p>Quattro funzioni usano lo stesso grafo per rispondere a domande concrete. Sono tutte di <b>sola lettura</b>: calcolano la risposta al momento e non modificano la mappa.</p>
 
-            <h3>Chiedi alla mappa (assistente)</h3>
+            <h3>Pagoda, l&apos;assistente della mappa</h3>
             <p>Un assistente basato su Gemini a cui scrivere in italiano, da qualsiasi vista. Il modello <b>non vede il database</b>: ha a disposizione solo sei strumenti di lettura sul grafo e decide quali chiamare. Il backend li esegue e gli restituisce i risultati, e lui scrive la risposta usando solo quelli.</p>
             <table className={s.gTbl}>
               <thead><tr><th>Strumento</th><th>Cosa fa</th></tr></thead>
@@ -166,6 +171,62 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
             </ul>
           </Sec>
 
+          <Sec id="infra" title="Infrastruttura">
+            <p>La vista <b>Infrastruttura</b> mostra le risorse cloud della piattaforma come le descrive il Terraform di{" "}
+              <span className={s.mono}>pagopa-infra</span>, <span className={s.mono}>pagopa-infra-core</span> e{" "}
+              <span className={s.mono}>pagopa-aws-infra</span>. Si aggiorna con la sincronizzazione della mappa. In alto si
+              sceglie l&apos;ambiente (prod, uat, dev): una risorsa creata solo in prod, come molti alert, non compare negli altri.</p>
+
+            <h3>Per livelli, dall&apos;alto verso il basso</h3>
+            <p>È la vista predefinita. Sotto chi usa la piattaforma (cittadini, App IO, PSP, enti) ci sono sette livelli:</p>
+            <table className={s.gTbl}>
+              <thead><tr><th>Livello</th><th>Cosa contiene</th></tr></thead>
+              <tbody>
+                <tr><td><b>1 · Frontend web</b></td><td>Le applicazioni che si aprono nel browser, con il loro indirizzo pubblico: Front Door e CDN che servono i file statici, Static Web App, App Service con un frontend Next.js o React (riconosciuti dalle impostazioni dell&apos;app)</td></tr>
+                <tr><td><b>2 · Ingresso</b></td><td>DNS pubblici, Application Gateway, API Management</td></tr>
+                <tr><td><b>3 · API</b></td><td>Le API pubblicate su API Management</td></tr>
+                <tr><td><b>4 · Calcolo</b></td><td>Cluster AKS e namespace dei domini, App Service, Function, Container App, Lambda</td></tr>
+                <tr><td><b>5 · Messaggi ed eventi</b></td><td>Event Hub, Service Bus, Event Grid, SES e SNS</td></tr>
+                <tr><td><b>6 · Dati</b></td><td>Cosmos, Postgres, Redis, storage, Data Explorer, Data Factory, S3</td></tr>
+                <tr><td><b>7 · Trasversali</b></td><td>Key Vault, rete, identità, registry, Application Insights e Log Analytics</td></tr>
+              </tbody>
+            </table>
+            <p>Con &quot;Tutti i domini&quot; i livelli più affollati mostrano un riquadro per dominio con il numero di risorse per tipo.
+              Scegliendo un <b>dominio</b>, dai pulsanti in alto o da un riquadro, si vede la sua fetta verticale e, in fondo a ogni livello,
+              le <b>risorse condivise</b> che usa (per esempio API Management e i cluster AKS del core). Cliccando una risorsa si accendono
+              quelle collegate negli altri livelli e si apre la scheda. I livelli mostrano solo i componenti architetturali: code, container
+              di storage, policy di API Management e subnet sono nella vista per stack.</p>
+
+            <h3>Per stack Terraform</h3>
+            <p>Una tessera per ogni cartella Terraform. Aperto uno stack, i riquadri sono i <b>contenitori</b> (resource group, VNet e subnet,
+              cluster e namespace) con dentro le loro risorse; a destra le risorse di altri stack collegate. I filtri per tipo e la ricerca valgono
+              sia sull&apos;elenco degli stack (restano quelli con risorse corrispondenti) sia dentro lo stack.</p>
+
+            <h3>Frecce e collegamenti</h3>
+            <ul>
+              <li><b>Esplicite</b> (linea piena): un riferimento scritto nel Terraform, per esempio un private endpoint che punta a uno storage.</li>
+              <li><b>Dedotte</b> (linea tratteggiata): uno stack legge una risorsa creata da un altro (blocco <span className={s.mono}>data</span>) e la sync la ritrova cercando stesso tipo, stesso nome e stesso ambiente, anche dentro moduli, cicli <span className={s.mono}>for_each</span> e funzioni come <span className={s.mono}>replace()</span>.</li>
+              <li>Un riferimento a un resource group, una VNet, una subnet o un cluster non diventa una freccia: fa da <b>contenitore</b>.</li>
+              <li><b>Fuori dai repo letti</b>: risorse che il Terraform legge ma che nessuno dei tre repository crea, quindi gestite altrove; la scheda dice il motivo, oppure che il nome non si può calcolare.</li>
+            </ul>
+
+            <h3>Monitoring &amp; Alerting</h3>
+            <p>La fascia in fondo segue la catena di ogni alert: <b>risorsa monitorata → regola → action group → canale</b> (email, Slack, Opsgenie),
+              con la severità. Si filtra sul dominio o sullo stack aperto. È la struttura degli alert, non il loro stato: chi è scattato oggi
+              non si vede ancora.</p>
+
+            <h3>Collegamenti con la mappa</h3>
+            <p>Una risorsa e un nodo della mappa si collegano in due modi. In automatico, per categoria: API Management, CDN, Cosmos, Postgres,
+              Event Hub, storage, Function e AWS rimandano ai nodi infrastrutturali del Blueprint. Su proposta, da confermare in <b>Revisione</b>:
+              namespace AKS → namespace del Blueprint, CDN e App Service → componente frontend (dal dominio o dall&apos;immagine Docker), API e
+              Function → componente con lo stesso nome. Confermato il collegamento, la scheda della risorsa offre &quot;Apri nella mappa&quot;
+              e la scheda del componente elenca le sue risorse.</p>
+
+            <h3>Dati sensibili</h3>
+            <p>Subscription, tenant, GUID e indirizzi IP non vengono salvati: dei tfvars si tengono solo i nomi calcolati e ogni testo passa da
+              un filtro che li maschera. Delle impostazioni delle app si leggono solo i nomi delle chiavi, mai i valori.</p>
+          </Sec>
+
           <Sec id="modello" title="Il modello dei dati">
             <p>Tutto è un grafo di <b>nodi</b> e <b>legami</b> salvato in PostgreSQL. La gerarchia ha quattro livelli:</p>
             <table className={s.gTbl}>
@@ -186,9 +247,10 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
               <thead><tr><th>Fonte</th><th>Cosa ne ricaviamo</th><th>Come</th></tr></thead>
               <tbody>
                 <tr><td><b>Data contract</b></td><td>Dataset del Data Lake della piattaforma: livello, tabella o topic, owner, schema (numero di campi e dati personali), SLA, check SodaCL, da quali tabelle derivano e chi li usa</td><td>Repository <span className={s.mono}>pagopa/pdnd-data-contracts</span>, cartella <span className={s.mono}>src/data/pagopa</span>, letto dalla sincronizzazione settimanale</td></tr>
-                <tr><td><b>GitHub, org pagopa</b></td><td>Elenco dei repository: dei 784 pubblici restano {publicRepos} che riguardano i pagamenti (attivi, non fork, nome <span className={s.mono}>pagopa-*</span> o domini arc, emd, rtp, qe)</td><td>API di GitHub</td></tr>
+                <tr><td><b>GitHub, org pagopa</b></td><td>Elenco dei repository: dei 784 pubblici restano {publicRepos} che riguardano i pagamenti (attivi, non fork, con <span className={s.mono}>pagopa</span> nel nome)</td><td>API di GitHub</td></tr>
                 <tr><td><b>Contenuto dei repo</b></td><td>Linguaggio e framework, namespace AKS e ingress (values Helm), URL dei servizi chiamati (envConfig), contratti OpenAPI, test (unit, feature Gherkin, performance, E2E), workflow GitHub Actions, owner (CODEOWNERS), estratto del README e link a Confluence</td><td>Lettura dei soli file di metadati, senza scaricare tutto il codice</td></tr>
                 <tr><td><b>pagopa-infra</b></td><td>I domini infrastrutturali (namespace AKS) e le API pubblicate su API Management per dominio</td><td>Struttura delle cartelle <span className={s.mono}>src/domains</span></td></tr>
+                <tr><td><b>Terraform della piattaforma</b></td><td>Vista Infrastruttura: risorse cloud per tipo e ambiente, contenitori, riferimenti tra risorse, alert, action group e canali di notifica</td><td>File <span className={s.mono}>.tf</span> e tfvars di <span className={s.mono}>pagopa-infra</span>, <span className={s.mono}>pagopa-infra-core</span>, <span className={s.mono}>pagopa-aws-infra</span>, letti dalla sincronizzazione settimanale; dei tfvars si tengono solo i nomi risolti</td></tr>
                 <tr><td><b>pagopa-platform-integration-test</b></td><td>Suite di integrazione centrali, registro delle NRT e workflow del Test Automation Service</td><td>Lettura di <span className={s.mono}>src/</span>, <span className={s.mono}>.github/nrt-suites.json</span> e dei workflow</td></tr>
                 <tr><td><b>pagopa-nodo-dei-pagamenti-test</b></td><td>Le oltre 1.500 feature BDD sulle primitive del Nodo, raggruppate per modello (Mod1, Mod3, IO, MBD, RT…)</td><td>Conteggio delle feature per cartella</td></tr>
                 <tr><td><b>Confluence</b></td><td>{(src.confluence_pages ?? 0).toLocaleString("it-IT")} titoli di pagina negli spazi {(src.confluence_spaces ?? []).join(", ")}; lettura completa di una ventina di pagine chiave (Componenti e rischio, Censimento repository, Modello Operativo QA, Touchpoint API…)</td><td>API REST di Confluence</td></tr>
@@ -283,6 +345,8 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
               <li>Le pagine Confluence sono collegate per titolo: alcune associazioni possono mancare o essere imprecise.</li>
               <li>L’assistente può sbagliare l’interpretazione di una domanda: i passaggi mostrati sotto la risposta e i collegamenti agli elementi servono a verificarla.</li>
               <li>Live vede solo le run salvate nel QA Hub e solo gli oggetti di test che riesce a collegare a un componente.</li>
+              <li>L&apos;infrastruttura è quella dichiarata nel Terraform dei tre repository, non quella effettivamente presente su Azure e AWS: risorse create a mano o in altri repository compaiono solo se qualcuno le legge, tra quelle &quot;fuori dai repo letti&quot;.</li>
+              <li>I collegamenti dedotti dipendono dai nomi calcolati: un nome costruito con output di altri stack o funzioni non supportate resta senza collegamento.</li>
             </ul>
           </Sec>
 
@@ -301,6 +365,7 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
             <h3>Cosa legge</h3>
             <ul>
               <li><b>GitHub</b>: l&apos;elenco dei repository dell&apos;organizzazione e, solo per quelli modificati dall&apos;ultima volta, l&apos;albero dei file e i file di metadati (Helm, CODEOWNERS, build, OpenAPI, workflow, README). Le regole sono le stesse dell&apos;import: una sync su dati invariati non cambia nulla.</li>
+              <li><b>Terraform</b>: i repository infrastrutturali, solo se modificati dall&apos;ultima volta, per la vista Infrastruttura. Le risorse e i loro collegamenti sono fatti del Terraform e si applicano subito; un collegamento tra una risorsa e un nodo della mappa (namespace, API, Function) è una proposta da confermare in Revisione.</li>
               <li><b>Confluence</b>: i titoli delle pagine dei sette spazi, per aggiornare i link ai prodotti. Usa l&apos;utenza Atlassian già configurata per Jira; se manca, la sync aggiorna comunque GitHub e risulta &quot;parziale&quot;.</li>
             </ul>
             <h3>Cosa applica da sola e cosa chiede</h3>

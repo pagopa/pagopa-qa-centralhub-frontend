@@ -27,6 +27,7 @@ import { EaLivePanel } from "./EaLivePanel";
 import { EaDataLake } from "./EaDataLake";
 import { EaFlows } from "./EaFlows";
 import { EaGuide } from "./EaGuide";
+import { EaInfra } from "./EaInfra";
 import { EaImpact } from "./EaImpact";
 import { EaNodeDrawer } from "./EaNodeDrawer";
 import { EaQaMatrix } from "./EaQaMatrix";
@@ -39,6 +40,7 @@ const TABS: [EaView, string][] = [
   ["blueprint", "Blueprint"],
   ["map", "Architettura"],
   ["datalake", "Data Lake"],
+  ["infra", "Infrastruttura"],
   ["flows", "Flussi"],
   ["impact", "Impatto"],
   ["qa", "Matrice QA"],
@@ -382,6 +384,14 @@ export function EaMapView() {
           onOpen={openInDataLake}
         />
       )}
+      {route.view === "infra" && (
+        <EaInfra
+          g={g}
+          selected={route.nodeId}
+          onSelect={(id) => navigate({ view: "infra", nodeId: id })}
+          openNode={openNode}
+        />
+      )}
       {route.view === "flows" && (
         <EaFlows
           g={g}
@@ -396,7 +406,16 @@ export function EaMapView() {
       {route.view === "guida" && <EaGuide g={g} goTo={goTo} />}
       {route.view === "review" && <EaReview g={g} goTo={goTo} onOpen={openNode} />}
 
-      {drawerNode && <EaNodeDrawer g={g} node={drawerNode} onClose={closeDrawer} onOpen={openNode} goTo={goTo} />}
+      {drawerNode && (
+        <EaNodeDrawer
+          g={g}
+          node={drawerNode}
+          onClose={closeDrawer}
+          onOpen={openNode}
+          goTo={goTo}
+          onInfra={(id) => navigate({ view: "infra", nodeId: id })}
+        />
+      )}
       {highlight && (
         <div className={sa.hlBar} role="status">
           <span className={sa.hlDot} aria-hidden="true" />

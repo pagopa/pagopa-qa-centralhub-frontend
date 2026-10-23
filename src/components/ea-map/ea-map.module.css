@@ -315,7 +315,26 @@
 .on { outline: 2px solid var(--bp-hl); outline-offset: 1px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--bp-hl) 25%, transparent); }
 .focus { outline-width: 3px; }
 .hasSel .selAble:not(.on) { opacity: 0.28; }
-.lensOn .proc, .lensOn .app { border-left: 4px solid var(--qc); }
+/* Lente QA on the Blueprint: the tile takes the maturity colour, with its score */
+.lensOn .proc, .lensOn .app {
+  position: relative;
+  background: color-mix(in srgb, var(--qc) 26%, var(--bp-tile));
+  border: 1.5px solid color-mix(in srgb, var(--qc) 85%, var(--bp-tile-e));
+  border-left: 5px solid var(--qc);
+  font-weight: 650;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--qc) 35%, transparent);
+}
+.lensOn .proc::after, .lensOn .app::after {
+  content: attr(data-score);
+  flex: none; align-self: center;
+  font-family: var(--ea-mono); font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 2px 5px; border-radius: 999px; color: #fff; background: var(--qc);
+}
+.lensOn .proc::after { position: absolute; top: 4px; right: 4px; }
+.lensOn .proc { padding-right: 30px; }
+/* with a selection: the chosen tiles stand out, the others step back */
+.lensOn.hasSel .selAble:not(.on), .lensOn .hasSel .selAble:not(.on) { opacity: 0.18; filter: grayscale(0.6); }
+.lensOn .on { outline-width: 3px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--bp-hl) 30%, transparent), 0 6px 16px -6px rgb(0 0 0 / 0.35); position: relative; z-index: 1; }
 .bpFoot { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .gate { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; counter-reset: g; font-size: 13px; }
 .gate li { counter-increment: g; display: flex; gap: 8px; align-items: baseline; }

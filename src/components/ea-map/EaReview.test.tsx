@@ -138,6 +138,41 @@ describe("EaReview", () => {
     expect(screen.getByText("gpd-ingestion.apd.payment_position")).toBeInTheDocument();
   });
 
+  it("shows links between infrastructure resources and map nodes in their own group", async () => {
+    mocks.apiClient.mockImplementation((path: string) => {
+      if (path.startsWith("/api/v1/ea/changes?"))
+        return Promise.resolve([
+          change({
+            id: "i1",
+            entity: "infra",
+            target_id: "pagopa-infra:src/domains/gps-app:module.api>svc-a",
+            after: {
+              resource_id: "pagopa-infra:src/domains/gps-app:module.api",
+              node_id: "svc-a",
+              label: "pagopa-p-weu-svc-a-api",
+              ltype: "api_gateway",
+              rule: "name-pattern",
+              evidence: { repo: "pagopa-infra", file: "src/domains/gps-app/main.tf" },
+            },
+          }),
+        ]);
+      if (path === "/api/v1/ea/sync-status") return Promise.resolve(STATUS);
+      return Promise.resolve([]);
+    });
+    const onOpen = vi.fn();
+    setup(<EaReview g={buildGraph(KB)} goTo={() => {}} onOpen={onOpen} />);
+    expect(await screen.findByText("Risorse infrastrutturali da collegare")).toBeInTheDocument();
+    expect(screen.queryByText("Nuove dipendenze")).not.toBeInTheDocument();
+    expect(screen.getByText("pagopa-p-weu-svc-a-api")).toBeInTheDocument();
+    expect(screen.getByText("pagopa-infra/src/domains/gps-app/main.tf")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Servizio A" }));
+    expect(onOpen).toHaveBeenCalledWith("svc-a");
+    fireEvent.click(screen.getByRole("button", { name: /Collega/ }));
+    await waitFor(() =>
+      expect(mocks.apiClient).toHaveBeenCalledWith("/api/v1/ea/changes/i1/approve", expect.objectContaining({ method: "POST" })),
+    );
+  });
+
   it("hides decisions without the review permission", async () => {
     mocks.can.mockImplementation((a: string) => a !== "review:ea_map");
     const g = buildGraph(KB);

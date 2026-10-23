@@ -1,17 +1,18 @@
 "use client";
 
-/* «Chiedi alla mappa»: an assistant that floats over every view of the EA Map. It answers
+/* «Pagoda» (formerly «Chiedi alla mappa»): an assistant that floats over every view of the EA Map. It answers
    from the graph through read-only tools on the backend (Gemini with function calling),
    lights up on the map the nodes it talks about and turns [[node-id]] references into
    chips that open the node. */
 
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { CornerDownLeft, EyeOff, Loader2, MapPin, Sparkles, Trash2, X } from "lucide-react";
+import { CornerDownLeft, EyeOff, MapPin, Trash2, X } from "lucide-react";
 import type { EaChatMessage } from "@/types/ea";
 import { useEaAssistant } from "@/hooks/useEaMap";
 import { errorMessage, parseAnswer, type Inline } from "@/lib/ea-map/assist";
 import type { EaGraph, EaRoute } from "@/lib/ea-map/graph";
 import { cx } from "./shared";
+import { PagodaAvatar } from "./EaPagoda";
 import s from "./ea-assist.module.css";
 
 interface Turn extends EaChatMessage {
@@ -124,21 +125,25 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
 
   if (!open) {
     return (
-      <button type="button" className={s.fab} onClick={() => setOpen(true)} aria-label="Chiedi alla mappa (Ctrl+J)">
-        <span className={s.fabGlow} aria-hidden="true" />
-        <Sparkles aria-hidden="true" />
-        <span>Chiedi alla mappa</span>
-      </button>
+      <div className={s.dock}>
+        <button type="button" className={s.fab} onClick={() => setOpen(true)} aria-label="Chiedi a Pagoda (Ctrl+J)">
+          <span className={s.fabAvatar}><PagodaAvatar size={38} /></span>
+          <span className={s.fabText}>
+            <b>Chiedi a Pagoda</b>
+            <small>l&apos;assistente della mappa</small>
+          </span>
+        </button>
+      </div>
     );
   }
 
   return (
-    <section className={s.panel} role="dialog" aria-label="Assistente EA Map">
+    <section className={s.panel} role="dialog" aria-label="Pagoda, assistente della EA Map">
       <header className={s.head}>
-        <span className={s.orb} aria-hidden="true"><Sparkles /></span>
+        <span className={s.headAvatar}><PagodaAvatar size={40} thinking={ask.isPending} /></span>
         <div className={s.headT}>
-          <b>Assistente EA Map</b>
-          <span>Risponde dai dati della mappa, non a memoria</span>
+          <b>Pagoda</b>
+          <span>L&apos;assistente della mappa EA · risponde dai dati, non a memoria</span>
         </div>
         {turns.length > 0 && (
           <button type="button" className={s.icon} onClick={() => { setTurns([]); onHighlight(null); }} title="Nuova conversazione">
@@ -153,7 +158,16 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
       <div className={s.body} ref={listRef}>
         {turns.length === 0 && (
           <div className={s.empty}>
-            <p>Chiedimi qualcosa sulla piattaforma: dipendenze, impatti, copertura dei test, processi SANP. Puoi anche incollare il link di una pull request.</p>
+            <div className={s.hello}>
+              <PagodaAvatar size={72} className={s.helloAvatar} />
+              <div className={s.bubble}>
+                <b>Ciao! Sono Pagoda e posso aiutarti a leggere la mappa EA.</b>
+                <span>
+                  Chiedimi di dipendenze, impatti, copertura dei test o processi SANP, oppure incolla il link di
+                  una pull request.
+                </span>
+              </div>
+            </div>
             <div className={s.sugg}>
               {SUGGESTIONS.map((q) => (
                 <button key={q} type="button" onClick={() => send(q)}>{q}</button>
@@ -166,6 +180,8 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
             <div key={i} className={s.user}>{t.content}</div>
           ) : (
             <div key={i} className={cx(s.bot, t.error && s.botErr)}>
+              <PagodaAvatar size={26} className={s.botAvatar} />
+              <div className={s.botBody}>
               {t.steps && t.steps.length > 0 && (
                 <details className={s.steps}>
                   <summary>Come ho risposto · {t.steps.length} passaggi</summary>
@@ -187,13 +203,14 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
                   )}
                 </div>
               )}
+              </div>
             </div>
           ),
         )}
         {ask.isPending && (
           <div className={cx(s.bot, s.thinking)}>
-            <Loader2 aria-hidden="true" className={s.spin} />
-            <span>Sto consultando la mappa…</span>
+            <PagodaAvatar size={26} thinking className={s.botAvatar} />
+            <span>Pagoda sta consultando la mappa…</span>
           </div>
         )}
       </div>
@@ -207,8 +224,8 @@ export function EaAssistant({ g, route, highlightOn, onHighlight, onShow, openNo
             ref={inputRef}
             rows={1}
             value={draft}
-            placeholder="Fai una domanda o incolla il link di una PR…"
-            aria-label="Domanda per l’assistente"
+            placeholder="Chiedi a Pagoda o incolla il link di una PR…"
+            aria-label="Domanda per Pagoda"
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
           />

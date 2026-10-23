@@ -212,6 +212,8 @@ export interface EaNodeDetail {
   out: EaEdgeDetail[];
   in: EaEdgeDetail[];
   dq?: EaDqCoverage | null;
+  /** infrastructure resources linked to the node (approved links or blueprint category) */
+  infra?: EaInfraRef[];
 }
 
 export interface EaHistoryItem {
@@ -283,7 +285,7 @@ export type EaChangeStatus = "pending" | "conflict" | "approved" | "rejected" | 
 export interface EaChange {
   id: string;
   run_id: string | null;
-  entity: "node" | "edge" | "qa" | "doc";
+  entity: "node" | "edge" | "qa" | "doc" | "infra";
   op: "add" | "update" | "remove";
   target_id: string;
   before: Record<string, unknown> | null;
@@ -438,4 +440,90 @@ export interface EaFlow {
   validated: boolean;
   sanp_url?: string | null;
   source: string;
+}
+
+/* ── Infrastructure view (backend docs/ea-map/DESIGN-infra.md) ──── */
+
+export type EaInfraEnv = "prod" | "uat" | "dev";
+export type EaInfraLinkKind = "ref" | "monitors" | "notifies";
+export type EaInfraOrigin = "explicit" | "inferred";
+
+export interface EaInfraRef {
+  id: string;
+  label: string;
+  ltype: string;
+  vendor: string;
+  envs: string[];
+}
+
+export interface EaInfraResource {
+  id: string;
+  label: string;
+  ltype: string;
+  vendor: string;
+  tf_type: string;
+  address: string;
+  repo: string;
+  stack: string;
+  file_url: string | null;
+  /** container (resource group, VNet, subnet, cluster, namespace) */
+  parent: string | null;
+  /** blueprint infra node of the map (in-apim, in-cosmos, ...) */
+  blueprint: string | null;
+  /** map node linked by a person (component or blueprint node) */
+  node: string | null;
+  external: boolean;
+  envs: string[];
+  location: string | null;
+  attrs: Record<string, unknown>;
+}
+
+export interface EaInfraLink {
+  from: string;
+  to: string;
+  kind: EaInfraLinkKind;
+  origin: EaInfraOrigin;
+  evidence: { file?: string; attr?: string; rule?: string };
+}
+
+export interface EaInfraAlert {
+  id: string;
+  label: string;
+  severity: number | string | null;
+  kind: string | null;
+  targets: string[];
+  action_groups: string[];
+}
+
+export interface EaInfraView {
+  env: EaInfraEnv;
+  envs: EaInfraEnv[];
+  synced_at: string | null;
+  resources: EaInfraResource[];
+  links: EaInfraLink[];
+  monitoring: {
+    alerts: EaInfraAlert[];
+    action_groups: { id: string; label: string; channels: string[] }[];
+    dashboards: { id: string; label: string }[];
+  };
+}
+
+export interface EaInfraLinkSide {
+  id: string;
+  label: string;
+  ltype: string;
+  kind: EaInfraLinkKind;
+  origin: EaInfraOrigin;
+  envs: string[];
+  evidence: { file?: string; attr?: string; rule?: string };
+}
+
+export interface EaInfraResourceDetail extends EaInfraResource {
+  names: Record<string, string>;
+  locations: Record<string, string>;
+  status: string;
+  node_name: string | null;
+  children: number;
+  out: EaInfraLinkSide[];
+  in: EaInfraLinkSide[];
 }

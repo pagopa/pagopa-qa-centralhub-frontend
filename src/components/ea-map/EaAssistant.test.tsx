@@ -52,7 +52,7 @@ describe("EaAssistant", () => {
       steps: [{ tool: "impatto", label: "Calcolato chi dipende da GPD" }],
     });
     const { onHighlight, onShow, openNode } = setup();
-    fireEvent.click(screen.getByRole("button", { name: /chiedi alla mappa/i }));
+    fireEvent.click(screen.getByRole("button", { name: /chiedi a pagoda/i }));
     expect(screen.getByText("Stai guardando: GPD")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Se cambio GPD, chi si rompe?" }));
 
@@ -78,7 +78,7 @@ describe("EaAssistant", () => {
       Promise.reject(new mocks.ApiError(503, { detail: "Assistente non configurato" })),
     );
     setup();
-    fireEvent.click(screen.getByRole("button", { name: /chiedi alla mappa/i }));
+    fireEvent.click(screen.getByRole("button", { name: /chiedi a pagoda/i }));
     const box = screen.getByRole("textbox", { name: /domanda/i });
     fireEvent.change(box, { target: { value: "ciao" } });
     fireEvent.keyDown(box, { key: "Enter" });
