@@ -106,7 +106,7 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
 
 
   function handleSave() {
-    var modifiedTestRuns = runs.filter(nrt => modifiedRunIds.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
+    let modifiedTestRuns = runs.filter(nrt => modifiedRunIds.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
     if (modifiedTestRuns.length === 0 && modifiedScenarios.length === 0 && flakyScenarios.length === 0) return;
     
     if (modifiedTestRuns.length > 0 || modifiedScenarios.length > 0){
@@ -175,8 +175,8 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
   }
 
   function handleScenarioRevisionNoteChange(updatedNrt: NrtsListObject,modifiedScenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) {
-    var newUpdatedScenarios: TestExecution[] = []
-    var found = false;
+    let newUpdatedScenarios: TestExecution[] = []
+    let found = false;
     if (modifiedScenarios.length === 0) {
         newUpdatedScenarios.push(modifiedScenario); // modifiedScenario
     } else {

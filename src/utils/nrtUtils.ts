@@ -64,7 +64,7 @@ export function isScenarioInFlakyScenarios(
 }
 
 export function formatNrtTimestamp(value: string | null | undefined): string | null {
-    let date = value ? new Date(value) : null;
+    const date = value ? new Date(value) : null;
     date?.setHours(date.getHours() + 2);
     return date ? date.toLocaleString("it-IT") : null;
 }
