@@ -18,14 +18,14 @@ export const NRT_TABLE_HEADERS = [
 ] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; visibleInTas: boolean }>;
 
 export const NRT_SCENARIO_TABLE_HEADERS = [
-  "Scenario",
-  "Stato",
-  "Durata",
-  "Retry",
-  "Errore",
-  "Flaky",
-  "Nota",
-] as const;
+  { id: "scenario", label: "Scenario", description: "Nome dello scenario", visibleInTas: true },
+  { id: "status", label: "Stato", description: "Stato dello scenario", visibleInTas: true },
+  { id: "duration", label: "Durata", description: "Durata dello scenario", visibleInTas: true },
+  { id: "retries", label: "Retry", description: "Numero di retry", visibleInTas: true },
+  { id: "error", label: "Errore", description: "Errore dello scenario", visibleInTas: true },
+  { id: "flaky", label: "Flaky", description: "Indica se lo scenario è flaky", visibleInTas: false },
+  { id: "note", label: "Nota", description: "Nota di revisione", visibleInTas: false },
+] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; visibleInTas: boolean }>;
 
 export const NRT_REVISION_RESULT_OPTIONS = [
   { value: "NO_GO", label: "NO GO" },
