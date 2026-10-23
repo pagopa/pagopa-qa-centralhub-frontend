@@ -3,7 +3,7 @@ import type {  TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/t
 import NrtSaveButton from "./NrtSaveButton";
 import { RunModal } from "@/components/e2e/RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
-import {useEffect, useState} from "react"
+import {useState} from "react"
 import {
   buildAllureRunUrl,
   buildAllureScenarioUrl,
@@ -18,6 +18,7 @@ import {
   NRT_RUN_STATUSES,
   NRT_SCENARIO_TABLE_HEADERS,
 } from "@/utils/nrtsCostants";
+import {DetailField} from "./DetailField";
 
 export function NrtDetailsPanel({
   details,
@@ -91,17 +92,11 @@ export function NrtDetailsPanel({
   if (!details) return <p className="py-4 text-[13px] text-text-muted">Dettagli non disponibili.</p>;
 
   const { test_suite: suite } = details;
-  
+  const visibleScenarioColumns = NRT_SCENARIO_TABLE_HEADERS.filter(
+    (column) => !isTasOnly || column.visibleInTas,
+  );
+  const visibleScenarioColumnIds = new Set(visibleScenarioColumns.map((column) => column.id));
 
-    
-  function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
-    return (
-      <div>
-        <dt className="text-text-muted">{label}</dt>
-        <dd className="text-text">{value || "—"}</dd>
-      </div>
-    );
-  }
 
   function handleCheckboxChange(updatedScenario: TestExecution) {
     const updatedFlakyScenario = createFlakyScenario(
@@ -205,9 +200,9 @@ export function NrtDetailsPanel({
             <table className="w-full border-collapse text-[12px]">
               <thead className="sticky top-0 bg-surface">
                 <tr className="border-b border-border">
-                  {NRT_SCENARIO_TABLE_HEADERS.map((heading) => (
-                    <th key={heading} className="w-[14%] px-3 py-2 text-left font-medium text-text-muted">
-                      {heading}
+                  {visibleScenarioColumns.map((column) => (
+                    <th key={column.id} className="w-[14%] px-3 py-2 text-left font-medium text-text-muted">
+                      {column.label}
                     </th>
                   ))}
                 </tr>
@@ -215,27 +210,27 @@ export function NrtDetailsPanel({
               <tbody>
                 {details.test_execution?.filter((scenario) => scenario.status !== NRT_RUN_STATUSES.passed).map((scenario) => (
                   <tr key={scenario.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2 text-text">
-                      <a href={scenario.allure_url == null? buildAllureScenarioUrl(details.test_run, suite.test_object, scenario.allure_id ?? "") : scenario.allure_url ?? ""} onClick={(event) => openReport(event, scenario.scenario_name ?? "Allure scenario")} target="_blank" rel="noopener noreferrer"><span>{scenario.scenario_name ?? "—"} <ArrowUpRight className="inline" size={20}></ArrowUpRight></span></a></td>
-                    <td className="px-3 py-2 font-mono">{scenario.status}</td>
-                    <td className="px-3 py-2 font-mono text-text-dim">
+                    {visibleScenarioColumnIds.has("scenario") && <td className="px-3 py-2 text-text">
+                      <a href={scenario.allure_url == null? buildAllureScenarioUrl(details.test_run, suite.test_object, scenario.allure_id ?? "") : scenario.allure_url ?? ""} onClick={(event) => openReport(event, scenario.scenario_name ?? "Allure scenario")} target="_blank" rel="noopener noreferrer"><span>{scenario.scenario_name ?? "—"} <ArrowUpRight className="inline" size={20}></ArrowUpRight></span></a></td>}
+                    {visibleScenarioColumnIds.has("status") && <td className="px-3 py-2 font-mono">{scenario.status}</td>}
+                    {visibleScenarioColumnIds.has("duration") && <td className="px-3 py-2 font-mono text-text-dim">
                       {scenario.duration_ms == null ? "—" : `${scenario.duration_ms} ms`}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-text-dim">{scenario.retries ?? "—"}</td>
-                    <td className="px-3 py-2 text-danger">{scenario.error_message ?? "—"}</td>
-                    <td className="px-3 py-2 font-mono text-text-dim">
+                    </td>}
+                    {visibleScenarioColumnIds.has("retries") && <td className="px-3 py-2 font-mono text-text-dim">{scenario.retries ?? "—"}</td>}
+                    {visibleScenarioColumnIds.has("error") && <td className="px-3 py-2 text-danger">{scenario.error_message ?? "—"}</td>}
+                    {visibleScenarioColumnIds.has("flaky") && <td className="px-3 py-2 font-mono text-text-dim">
                         <input type="checkbox" checked={isScenarioInFlakyScenarios(scenario, suite, details.test_run?.test_version, flakyScenarios)} onChange={() => { handleCheckboxChange(scenario); onModifiedChange(true); }} />
-                    </td>
-                    <td>
+                    </td>}
+                    {visibleScenarioColumnIds.has("note") && <td>
                       <textarea value={scenario.revision_note ?? ""} onChange={(event) => { handleRevisionNoteChange(details, scenario, details.test_execution ?? [], event); onModifiedChange(true); }} className="w-full rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-2 py-1" />
-                    </td> 
+                    </td>}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        {modified && ((
+        {modified && !isTasOnly && (
           <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
            <NrtSaveButton
               hasSaveError={hasSaveError}
@@ -244,7 +239,7 @@ export function NrtDetailsPanel({
               modified={modified}
             />
           </div>
-        ))}
+        )}
       </div>
       <RunModal
         run={details}
