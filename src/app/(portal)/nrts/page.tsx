@@ -22,14 +22,13 @@ export default function NrtsPage() {
     });
   const { data: suitesList, isLoading: isLoadingSuites } = useSuites();
   const [nrts, setNrts] = useState(nrtsData?.items ?? []);
-  var totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
+  const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
   const [flakyScenarios, setFlakyScenarios] = useState<FlakyScenario[]>([]);
   const { data: flakyScenariosData } = useFlakyScenarios();
 
   useEffect(() => {
       setNrts(nrtsData?.items ?? []);
-      totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   }, [nrtsData]);
 
   useEffect(() => {

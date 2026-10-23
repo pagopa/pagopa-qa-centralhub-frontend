@@ -5,6 +5,7 @@ import { Fragment, ChangeEvent,useState, useEffect } from "react";
 import {
   calculatePassRate,
   calculatePassRateColor,
+  formatNrtTimestamp,
   getRevisionResultBackgroundColor,
 } from "@/utils/nrtUtils";
 import {
@@ -253,7 +254,7 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
                         {nrt.test_suite.test_object.toUpperCase()}
                       </td>}
                       {visibleColumnIds.has("date") && <td className="px-3 py-2 text-text-dim font-mono text-[12px] whitespace-nowrap">
-                        {nrt.test_run.timestamp_start?.replace('T', ' ')}
+                        {formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}
                       </td>}
                       {visibleColumnIds.has("total") && <td className="px-3 py-2 font-mono float-center">{nrt.test_run.scenario_qty}</td>}
                       {visibleColumnIds.has("passed") && <td className="px-3 py-2 font-mono text-success">{nrt.test_run.passed_scenario}</td>}
