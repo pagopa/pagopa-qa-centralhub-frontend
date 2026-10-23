@@ -5,6 +5,7 @@ import { Fragment, ChangeEvent,useState, useEffect } from "react";
 import {
   calculatePassRate,
   calculatePassRateColor,
+  formatNrtTimestamp,
   getRevisionResultBackgroundColor,
 } from "@/utils/nrtUtils";
 import {
@@ -105,7 +106,7 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
 
 
   function handleSave() {
-    var modifiedTestRuns = runs.filter(nrt => modifiedRunIds.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
+    let modifiedTestRuns = runs.filter(nrt => modifiedRunIds.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
     if (modifiedTestRuns.length === 0 && modifiedScenarios.length === 0 && flakyScenarios.length === 0) return;
     
     if (modifiedTestRuns.length > 0 || modifiedScenarios.length > 0){
@@ -174,8 +175,8 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
   }
 
   function handleScenarioRevisionNoteChange(updatedNrt: NrtsListObject,modifiedScenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) {
-    var newUpdatedScenarios: TestExecution[] = []
-    var found = false;
+    let newUpdatedScenarios: TestExecution[] = []
+    let found = false;
     if (modifiedScenarios.length === 0) {
         newUpdatedScenarios.push(modifiedScenario); // modifiedScenario
     } else {
@@ -253,7 +254,7 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
                         {nrt.test_suite.test_object.toUpperCase()}
                       </td>}
                       {visibleColumnIds.has("date") && <td className="px-3 py-2 text-text-dim font-mono text-[12px] whitespace-nowrap">
-                        {nrt.test_run.timestamp_start?.replace('T', ' ')}
+                        {formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}
                       </td>}
                       {visibleColumnIds.has("total") && <td className="px-3 py-2 font-mono float-center">{nrt.test_run.scenario_qty}</td>}
                       {visibleColumnIds.has("passed") && <td className="px-3 py-2 font-mono text-success">{nrt.test_run.passed_scenario}</td>}
