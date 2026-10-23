@@ -9,8 +9,8 @@ type SparklineProps = {
 
 export function Sparkline({
   data,
-  width = 200,
-  height = 158,
+  width = 150,
+  height = 100,
   color = "var(--accent)",
   area = true,
   yAxisLabel = "PASS RATE",
