@@ -52,6 +52,7 @@ src/
 │   │       ├── integrations/        E2E suite config — RouteGuard: manage:integrations
 │   │       ├── bdd/                 Gherkin Generator config (AI provider, Confluence, Ollama) — RouteGuard: manage:bdd
 │   │       ├── users/               Utenti & Ruoli/Permessi (superadmin-only, client-side role check)
+│   │       ├── ea-assistant/        Settings Pagoda: motore, modelli e fallback (superadmin-only, client-side)
 │   │       ├── general/
 │   │       ├── team/
 │   │       └── notifications/
@@ -122,6 +123,17 @@ cambiare solo l'ambiente del container in esecuzione non basta; occorre ricostru
 e distribuire l'immagine.
 
 ## EA Map
+
+**Settings Pagoda** (`/settings/ea-assistant`, voce in Amministrazione riservata ai superadmin):
+scelta globale per ambiente tra Gemini e Groq, modelli modificabili e fallback automatico opzionale
+(disattivato inizialmente). Le modifiche sono salvate sul backend e valgono dalla prossima domanda,
+senza rebuild o riavvio. Si mostra solo la presenza dei secret; le chiavi API non arrivano al browser.
+Pagoda indica provider, modello effettivo ed eventuale fallback sotto ogni risposta.
+Se il modello omette i riferimenti `[[id]]`, gli elementi evidenziati e presenti nella mappa
+restano apribili tramite pulsanti sotto la risposta, senza chiamate AI aggiuntive o ID dedotti.
+Il salvataggio richiede la chiave del motore principale e, se il fallback è attivo, anche quella
+dell'altro motore. Il backend deve avere la migration 0024 e i secret configurati.
+L'autorizzazione backend di queste API è rinviata: il controllo frontend non protegge accessi diretti.
 
 La route `/ea-map` (`view:ea_map`) mostra la mappa di Enterprise Architecture della piattaforma pagoPA. Le viste sono tab con deep link nell'hash: Blueprint, Architettura (`#a-…`, `#p-…`, `#c-…`), **Data Lake** (`#datalake`, `#d-<id>`), Matrice QA, Guida e Revisione (`review:ea_map`). Codice in `src/components/ea-map/` e `src/lib/ea-map/` (funzioni pure, testate).
 
