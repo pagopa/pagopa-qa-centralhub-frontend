@@ -35,8 +35,6 @@ export function NrtDetailsPanel({
   handleIssueInputChange,
   handleRevisionNoteChange,
   isTasOnly,
-  modifiedScenarios,
-  setModifiedScenarios,
 }: {
   details?: NrtsListObject;
   isLoading: boolean;
@@ -46,9 +44,6 @@ export function NrtDetailsPanel({
   onSave: () => void;
   isSaving: boolean;
   hasSaveError: boolean;
-  modifiedScenarios: TestExecution[];
-  setModifiedScenarios: (modifiedScenarios: TestExecution[]) => void;
-  modifiedRunIds: Set<string>;
   flakyScenarios: FlakyScenario[];
   setFlakyScenarios: (flakyScenarios: FlakyScenario[]) => void;
   fetchJiraIssue: (issueId: string, testRun: TestRun, isQaIssue: boolean) => Promise<boolean>;
@@ -106,22 +101,16 @@ export function NrtDetailsPanel({
     );
     const existingScenario = flakyScenarios.some(
       (flakyScenario) => isFlakyScenarioEqual(flakyScenario, updatedFlakyScenario),
-    );
-
-    if (existingScenario) {
-      setFlakyScenarios(
-        flakyScenarios.map((flakyScenario) =>
+    ) ? flakyScenarios.map((flakyScenario) =>
           isFlakyScenarioEqual(flakyScenario, updatedFlakyScenario)
             ? { ...flakyScenario, is_flaky: !flakyScenario.is_flaky }
             : flakyScenario,
-        ),
-      );
-    } else {
-      setFlakyScenarios([
+        ): [
         ...flakyScenarios,
         updatedFlakyScenario,
-      ]);
-    }
+      ];
+
+    setFlakyScenarios(existingScenario);
   }
  
  
@@ -171,7 +160,7 @@ export function NrtDetailsPanel({
           </dl>     
            <div className="flex justify-center space-x-7 px-10 py-3 text-center " onClick={(e) => e.stopPropagation()}>
                     <a
-                      href={details.test_run.allure_url == null ? buildAllureRunUrl(details.test_run, suite.test_object) : details.test_run?.allure_url ?? ""}
+                      href={details.test_run.allure_url == null ? buildAllureRunUrl(details.test_run, suite.test_object, isTasOnly) : details.test_run?.allure_url ?? ""}
                       onClick={(event) => openReport(event, "Allure report")}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -179,7 +168,7 @@ export function NrtDetailsPanel({
                       📊 Allure
                     </a>
                     <a
-                      href={buildAiAnalysisUrl(details.test_run, suite.test_object)}
+                      href={buildAiAnalysisUrl(details.test_run, suite.test_object, isTasOnly)}
                       onClick={(event) => openReport(event, "AI Analysis")}
                       target="_blank"
                       rel="noopener noreferrer"

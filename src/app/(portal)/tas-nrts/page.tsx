@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useNrts, useNrtDetailsScenarios, useFlakyScenarios, useNrtsSuites } from "@/hooks/useNrts";
+import { useState } from "react";
+import { useNrts, useNrtDetailsScenarios, useNrtsSuites } from "@/hooks/useNrts";
 import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
+import type { NrtsListObject } from "@/types";
 import { SuiteCard } from "@/components/nrts/SuiteCard";
-import type { FlakyScenario } from "@/types";
 import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 
 export default function TasNrtsPage() {
@@ -25,38 +25,39 @@ export default function TasNrtsPage() {
   const { data: suitesList, isLoading: isLoadingSuites } = useSuites(
     {origin:"TAS"}
   );
-  const [nrts, setNrts] = useState(nrtsData?.items ?? []);
   const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
-  const [flakyScenarios, setFlakyScenarios] = useState<FlakyScenario[]>([]);
-  const { data: flakyScenariosData } = useFlakyScenarios();
   const { data: suitesData, isLoading: suitesLoading } = useNrtsSuites();
-
-  useEffect(() => {
-      setNrts(nrtsData?.items ?? []);
-  }, [nrtsData]);
-
-  useEffect(() => {
-      setFlakyScenarios(flakyScenariosData ?? []);
-  }, [flakyScenariosData]);
-
-  function handleSuiteCardClick(testObject: string) {
-    setSelectedSuite((prev) => (prev === testObject ? undefined : testObject));
-    setPage(1);
-  }
-
-  useEffect(() => {
-      const updatedNrts = nrts.map(nrt => {
-          if (nrt.test_run?.id === selectedNrtId) {
-              return {
-                  ...nrt,
-                  test_execution: selectedNrtDetails ?? []
-              };
-          }
-          return nrt;
+  const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState<NrtsListObject[]>([]);
+    
+  function handleNrtsChange(nrts: NrtsListObject[]) {
+      setNrtsWithSelectedDetails(nrts);
+  
+    }
+  
+    function handleSuiteCardClick(testObject: string) {
+      setSelectedSuite((prev) => (prev === testObject ? undefined : testObject));
+    }
+    
+    let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? nrtsData?.items ?? [] : nrtsWithSelectedDetails;
+    if (selectedNrtId !== undefined && selectedNrtDetails !== undefined) {
+      nrtsToUse = nrtsToUse.map((nrt) => {
+        if (nrt.test_run.id !== selectedNrtId) return nrt;
+        const localScenarios = nrtsWithSelectedDetails.find(
+          (run) => run.test_run.id === selectedNrtId,
+        )?.test_execution;
+        return {
+          ...nrt,
+          test_execution: selectedNrtDetails.map((scenario) => {
+            const localScenario = localScenarios?.find((local) => local.id === scenario.id);
+            return localScenario
+              ? { ...scenario, revision_note: localScenario.revision_note }
+              : scenario;
+          }),
+        };
       });
-      setNrts(updatedNrts);
-  }, [selectedNrtDetails]);
+    }
+
 
   if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
 
@@ -108,8 +109,8 @@ export default function TasNrtsPage() {
     </div>
     {(error != null ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
     <NrtsTable
-      runs={nrts} 
-      onNrtsChange={setNrts}
+      runs={nrtsToUse} 
+      onNrtsChange={handleNrtsChange}
       totalPages={totalPages} 
       onRowClick={setSelectedNrtId} 
       selectedNrt={selectedNrtId} 
@@ -117,8 +118,7 @@ export default function TasNrtsPage() {
       hasDetailsError={hasDetailsError} 
       modified={modified} 
       onModifiedChange={setIsModified} 
-      flakyScenarios={flakyScenarios}
-      setFlakyScenarios={setFlakyScenarios}
+      flakyScenariosData={[]}
       page={page}
       setPage={setPage}
       isTasOnly={true}

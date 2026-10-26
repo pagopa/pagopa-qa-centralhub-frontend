@@ -2,8 +2,7 @@ import type { FlakyScenario, TestExecution, TestRun, TestSuite } from "@/types";
 import {
     NRT_ALLURE_REPORT_BASE_URL,
     NRT_ALLURE_SUBFOLDER_BY_TEST_OBJECT,
-    NRT_REVISION_RESULT_BACKGROUND_COLORS,
-    type TicketStatusStyle,
+    NRT_REVISION_RESULT_BACKGROUND_COLORS
 } from "./nrtsCostants";
 
 export function calculatePassRate(testRun?: TestRun | null): number {
@@ -83,14 +82,16 @@ function getAllureSubfolder(testObject: string): string {
         ?? `${normalizedTestObject}-tests`;
 }
 
-export function buildAllureRunUrl(testRun: TestRun, testObject: string): string {
+export function buildAllureRunUrl(testRun: TestRun, testObject: string, isTasOnly: boolean): string {
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-    return `${NRT_ALLURE_REPORT_BASE_URL}/${getAllureSubfolder(testObject)}/${timestamp}/index.html`;
+    const folder = isTasOnly ? "TAS" : getAllureSubfolder(testObject);
+    return `${NRT_ALLURE_REPORT_BASE_URL}/${folder}/${timestamp}/index.html`;
 }
 
-export function buildAiAnalysisUrl(testRun: TestRun, testObject: string): string {
+export function buildAiAnalysisUrl(testRun: TestRun, testObject: string, isTasOnly: boolean): string {
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-    return `${NRT_ALLURE_REPORT_BASE_URL}/${getAllureSubfolder(testObject)}/${timestamp}/analysis/index.html`;
+    const folder = isTasOnly ? "TAS" : getAllureSubfolder(testObject);
+    return `${NRT_ALLURE_REPORT_BASE_URL}/${folder}/${timestamp}/analysis/index.html`;
 }
 
 export function buildAllureScenarioUrl(testRun: TestRun, testObject: string, scenarioAllureId: string): string {

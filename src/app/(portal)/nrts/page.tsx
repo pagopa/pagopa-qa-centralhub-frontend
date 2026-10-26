@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNrts, useNrtDetailsScenarios, useFlakyScenarios, useNrtsSuites } from "@/hooks/useNrts";
 import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
-import type { FlakyScenario } from "@/types";
+import type { NrtsListObject } from "@/types";
 import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 import  {SuiteCard} from "@/components/nrts/SuiteCard";
 
@@ -19,40 +19,46 @@ export default function NrtsPage() {
   const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
   const { data: nrtsData, isLoading, error } = useNrts({
         test_object: selectedSuite,
-        page: page
+        page: page,
     });
-  const { data: suitesList, isLoading: isLoadingSuites } = useSuites();
-  const [nrts, setNrts] = useState(nrtsData?.items ?? []);
+  const { data: suitesList } = useSuites();
+  const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState(nrtsData?.items ?? []);
   const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
-  const [flakyScenarios, setFlakyScenarios] = useState<FlakyScenario[]>([]);
   const { data: flakyScenariosData } = useFlakyScenarios();
   const { data: suitesData, isLoading: suitesLoading } = useNrtsSuites();
   
 
-  useEffect(() => {
-      setNrts(nrtsData?.items ?? []);
-  }, [nrtsData]);
+  function handleNrtsChange(nrts: NrtsListObject[]) {
+    setNrtsWithSelectedDetails(nrts);
 
-  useEffect(() => {
-      setFlakyScenarios(flakyScenariosData ?? []);
-  }, [flakyScenariosData]);
-
-    const nrtsWithSelectedDetails = selectedNrtDetails === undefined
-    ? nrts
-    : nrts.map((nrt) =>
-      nrt.test_run.id === selectedNrtId
-        ? { ...nrt, test_execution: selectedNrtDetails }
-        : nrt,
-      );
+  }
 
   function handleSuiteCardClick(testObject: string) {
     setSelectedSuite((prev) => (prev === testObject ? undefined : testObject));
   }
-
   
+  let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? nrtsData?.items ?? [] : nrtsWithSelectedDetails;
+  if (selectedNrtId !== undefined && selectedNrtDetails !== undefined) {
+    nrtsToUse = nrtsToUse.map((nrt) => {
+      if (nrt.test_run.id !== selectedNrtId) return nrt;
+      const localScenarios = nrtsWithSelectedDetails.find(
+        (run) => run.test_run.id === selectedNrtId,
+      )?.test_execution;
+      return {
+        ...nrt,
+        test_execution: selectedNrtDetails.map((scenario) => {
+          const localScenario = localScenarios?.find((local) => local.id === scenario.id);
+          return localScenario
+            ? { ...scenario, revision_note: localScenario.revision_note }
+            : scenario;
+        }),
+      };
+    });
+  }
 
-  if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
+
+  if (isLoading) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
 
   return (
      <>
@@ -107,8 +113,8 @@ export default function NrtsPage() {
     </div>
     {(error != null ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
     <NrtsTable
-      runs={nrtsWithSelectedDetails} // NRTS
-      onNrtsChange={setNrts} // aggiorna NRTS
+      runs={nrtsToUse} // NRTS
+      onNrtsChange={handleNrtsChange} // aggiorna NRTS
       totalPages={totalPages} // pagine
       onRowClick={setSelectedNrtId} // seleziona NRT
       selectedNrt={selectedNrtId} // NRT selezionato
@@ -116,11 +122,10 @@ export default function NrtsPage() {
       hasDetailsError={hasDetailsError} // errore caricamento dettagli NRT
       modified={modified} // stato modificato
       onModifiedChange={setIsModified} // aggiorna stato modificato
-      flakyScenarios={flakyScenarios}
-      setFlakyScenarios={setFlakyScenarios}
       page={page}
       setPage={setPage}
       isTasOnly={false}
+      flakyScenariosData={flakyScenariosData ?? []}
     />
     )}
     </div>

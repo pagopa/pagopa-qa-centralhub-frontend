@@ -1,6 +1,6 @@
-import {useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import type { NrtsListObject, NrtDetailsObject, PaginatedResponse, UpdateNrtsObject, FlakyScenario, TestExecution, NRTSuiteWithLatestRun } from "@/types/index";
+import type { FlakyScenario, NrtsListObject, NRTSuiteWithLatestRun, PaginatedResponse, TestExecution, UpdateNrtsObject } from "@/types/index";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface UseNrtsParams {
   test_object?: string;
