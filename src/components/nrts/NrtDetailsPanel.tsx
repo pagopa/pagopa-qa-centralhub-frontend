@@ -236,6 +236,7 @@ export function NrtDetailsPanel({
         onClose={() => setActiveReport(null)}
         reportUrl={activeReport?.url}
         reportTitle={activeReport?.title}
+        isTasOnly={isTasOnly}
       />
     </div>
   );
