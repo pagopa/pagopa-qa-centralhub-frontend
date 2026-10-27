@@ -28,14 +28,14 @@ export const NRT_SCENARIO_TABLE_HEADERS = [
 ] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; visibleInTas: boolean }>;
 
 export const NRT_REVISION_RESULT_OPTIONS = [
-  { value: "NO_GO", label: "NO GO" },
-  { value: "GO", label: "GO" },
+  { value: "KO", label: "KO" },
+  { value: "OK", label: "OK" },
   { value: "PENDING", label: "PENDING" },
 ] as const;
 
 export const NRT_REVISION_RESULT_BACKGROUND_COLORS: Record<string, string> = {
-  GO: "color-mix(in oklch, var(--success) 70%, transparent)",
-  NO_GO: "color-mix(in oklch, var(--danger) 70%, transparent)",
+  OK: "color-mix(in oklch, var(--success) 70%, transparent)",
+  KO: "color-mix(in oklch, var(--danger) 70%, transparent)",
   PENDING: "color-mix(in oklch, var(--warning) 70%, transparent)",
 };
 
