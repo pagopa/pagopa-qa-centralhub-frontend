@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useE2eRuns } from "@/hooks/useE2eRuns";
-import { SuiteCard } from "@/components/e2e/SuiteCard";
+import { SuiteCard } from "@/components/nrts/SuiteCard";
 import { RunTable } from "@/components/e2e/RunTable";
 import { RunModal } from "@/components/e2e/RunModal";
 import type { E2eRunWithSuite } from "@/types/index";

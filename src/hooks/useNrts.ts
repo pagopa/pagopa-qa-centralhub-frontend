@@ -1,6 +1,6 @@
-import {useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import type { NrtsListObject, NrtDetailsObject, PaginatedResponse, UpdateNrtsObject, FlakyScenario, TestExecution } from "@/types/index";
+import type { FlakyScenario, NrtsListObject, NRTSuiteWithLatestRun, PaginatedResponse, TestExecution, UpdateNrtsObject } from "@/types/index";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface UseNrtsParams {
   test_object?: string;
@@ -76,3 +76,10 @@ export function useFlakyScenarios({test_object}: {test_object?: string} = {}) {
     });
 }
 
+export function useNrtsSuites() {
+  return useQuery({
+    queryKey: ["nrts", "suites"],
+    queryFn: () => apiClient<NRTSuiteWithLatestRun[]>("/api/v1/test-metrics/nrts-suites"),
+    staleTime: 60_000,
+  });
+}

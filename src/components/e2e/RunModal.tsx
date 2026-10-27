@@ -11,6 +11,7 @@ interface RunModalProps {
   onClose: () => void;
   reportUrl?: string;
   reportTitle?: string;
+  isTasOnly?: boolean;
 }
 
 function fmtDuration(ms: number): string {
@@ -21,7 +22,7 @@ function fmtDuration(ms: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
-export function RunModal({ run, open, onClose, reportUrl, reportTitle = "Allure report" }: RunModalProps) {
+export function RunModal({ run, open, onClose, reportUrl, reportTitle = "Allure report", isTasOnly }: RunModalProps) {
   if (!run) return null;
 
   const isNrt = "test_run" in run;
@@ -34,7 +35,7 @@ export function RunModal({ run, open, onClose, reportUrl, reportTitle = "Allure 
   const allureUrl = reportUrl ?? (isNrt
     ? run.test_run.allure_url ?? (
         run.test_run.timestamp_start
-          ? buildAllureRunUrl(run.test_run, run.test_suite.test_object)
+          ? buildAllureRunUrl(run.test_run, run.test_suite.test_object, isTasOnly!)
           : null
       )
     : run.allure_url);
