@@ -761,3 +761,10 @@ export interface FlakyScenario {
   inserted_at: string | null;
   is_flaky?: boolean | undefined;
 }
+
+
+export interface NRTSuiteWithLatestRun {
+  suite: TestSuite;
+  latest_run: TestRun | null;
+  trend: number[];
+}

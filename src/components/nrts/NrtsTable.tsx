@@ -1,23 +1,24 @@
-import type { NrtsListObject, NrtDetailsObject, TestExecution, TestRun, FlakyScenario } from "@/types";
-import { Check, X } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { Fragment, ChangeEvent,useState, useEffect } from "react";
+import NrtPagination from "@/components/nrts/NrtPagination";
+import { Chip, } from "@/components/primitives/Chip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useJiraIssue } from "@/hooks/useJira";
+import { useSaveFlakyScenarios, useUpdateNrt } from "@/hooks/useNrts";
+import type { FlakyScenario, NrtsListObject, TestExecution, TestRun } from "@/types";
 import {
   calculatePassRate,
   calculatePassRateColor,
+  formatNrtTimestamp,
   getRevisionResultBackgroundColor,
 } from "@/utils/nrtUtils";
 import {
   NRT_REVISION_RESULT_OPTIONS,
   NRT_TABLE_HEADERS,
 } from "@/utils/nrtsCostants";
-import {NrtDetailsPanel} from "./NrtDetailsPanel";
-import NrtPagination from "@/components/nrts/NrtPagination";
+import { Check, X } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { ChangeEvent, Fragment, useState } from "react";
+import { NrtDetailsPanel } from "./NrtDetailsPanel";
 import NrtSaveButton from "./NrtSaveButton";
-import { useUpdateNrt, useSaveFlakyScenarios } from "@/hooks/useNrts";
-import { Chip, } from "@/components/primitives/Chip";
-import {useJiraIssue} from "@/hooks/useJira";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function NrtColumnHeader({ label, description }: { label: string; description: string }) {
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -59,11 +60,10 @@ interface NrtsTableProps {
   hasDetailsError?: boolean;
   modified?: boolean;
   onModifiedChange: (modified: boolean) => void;
-  flakyScenarios: FlakyScenario[];
-  setFlakyScenarios: (flakyScenarios: FlakyScenario[]) => void;
   page: number;
   setPage: (page: number) => void;
   isTasOnly: boolean;
+  flakyScenariosData: FlakyScenario[];
 }
 
 export default function NrtsTable({
@@ -76,11 +76,10 @@ export default function NrtsTable({
   hasDetailsError = false,
   modified = false,
   onModifiedChange,
-  flakyScenarios,
-  setFlakyScenarios,
   page,
   setPage,
-  isTasOnly
+  isTasOnly,
+  flakyScenariosData,
 }: NrtsTableProps) {
 const jiraIssue = useJiraIssue();
 const updateNrt = useUpdateNrt();
@@ -91,6 +90,10 @@ const { data: session } = useSession();
 const email = session?.user?.email ?? "";
 const [modifiedScenarios, setModifiedScenarios] = useState<TestExecution[]>([]);
 const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
+const [flakyScenarios, setFlakyScenarios] = useState<FlakyScenario[]>(flakyScenariosData ?? []);
+
+
+const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosData;
 
   function handleTestRunRevisionResultChange(modifiedTestRun: TestRun | undefined, event: ChangeEvent<HTMLSelectElement>) {
     const modifiedRuns = runs.map((nrt) =>
@@ -104,26 +107,29 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
   }
 
 
-  function handleSave() {
-    var modifiedTestRuns = runs.filter(nrt => modifiedRunIds.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
+  function handleSave(runsToSave = runs, runIdsToSave = modifiedRunIds) {
+    let modifiedTestRuns = runsToSave.filter(nrt => runIdsToSave.has(nrt.test_run?.id ?? "")).map(nrt => nrt.test_run);
     if (modifiedTestRuns.length === 0 && modifiedScenarios.length === 0 && flakyScenarios.length === 0) return;
     
     if (modifiedTestRuns.length > 0 || modifiedScenarios.length > 0){
       modifiedTestRuns = modifiedTestRuns.map(testRun => ({ ...testRun, revisioned_by: email }));
       updateNrt.mutate(
         {
-        test_suites: runs.map(nrt => nrt.test_suite),
+        test_suites: runsToSave.map(nrt => nrt.test_suite),
         test_runs: modifiedTestRuns,
         scenarios: modifiedScenarios,
         },
         { onSuccess: () => onModifiedChange(false) },
       );
     }
-    if (flakyScenarios.length > 0) {
-      saveFlakyScenarios.mutate(flakyScenarios, {
+    if (flakyToUse.length > 0) {
+      saveFlakyScenarios.mutate(flakyToUse, {
         onSuccess: () => onModifiedChange(false),
       });
     }
+
+    onNrtsChange([])
+    setFlakyScenarios([]);
   }
 
   async function handleJiraIssueBlur(issueID: string, testRun: TestRun, isQaIssue: boolean): Promise<boolean> {
@@ -146,9 +152,13 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
             }
           : nrt,
       );
-      setModifiedRunIds(new Set([...modifiedRunIds, testRun.id]));
+      const updatedRunIds = new Set([...modifiedRunIds, testRun.id]);
+      setModifiedRunIds(updatedRunIds);
       onNrtsChange(modifiedRuns);
       onModifiedChange(true);
+      if (isTasOnly) {
+        handleSave(modifiedRuns, updatedRunIds);
+      }
       return true;
     } catch (error) {
       return false;
@@ -174,34 +184,25 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
   }
 
   function handleScenarioRevisionNoteChange(updatedNrt: NrtsListObject,modifiedScenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) {
-    var newUpdatedScenarios: TestExecution[] = []
-    var found = false;
-    if (modifiedScenarios.length === 0) {
-        newUpdatedScenarios.push(modifiedScenario); // modifiedScenario
-    } else {
-       newUpdatedScenarios = modifiedScenarios.map(scenario =>{
-        if(scenario.id === modifiedScenario.id) {
-          found = true;
-          return { ...scenario, revision_note: event.target.value };
-        }
-        return scenario;
-       });
-       if(!found) {
-         modifiedScenario.revision_note = event.target.value;
-         newUpdatedScenarios.push(modifiedScenario);
-       }
-    }
+    const updatedScenario = {
+      ...modifiedScenario,
+      revision_note: event.target.value,
+    };
+
+    setModifiedScenarios((previous) =>
+      previous.some((scenario) => scenario.id === updatedScenario.id)
+        ? previous.map((scenario) =>
+            scenario.id === updatedScenario.id ? updatedScenario : scenario,
+          )
+        : [...previous, updatedScenario],
+    );
 
     const nrtUpdatedScenarios = scenarios.map(scenario =>
-      scenario.id === modifiedScenario.id ? { ...scenario, revision_note: event.target.value } : scenario
+      scenario.id === updatedScenario.id ? updatedScenario : scenario
     );
     
     const newNrts = runs.map(run => 
       run.test_run.id == updatedNrt.test_run.id? { ...run, test_execution: nrtUpdatedScenarios} : run )
-
-    setModifiedScenarios(newUpdatedScenarios);
-
-        console.log(modifiedScenarios)
 
     onNrtsChange(newNrts);
   }
@@ -213,7 +214,7 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
                     {(!isTasOnly && 
                     <NrtSaveButton
                     hasSaveError={updateNrt.isError}
-                    onSave={handleSave}
+                    onSave={() => handleSave()}
                     isSaving={updateNrt.isPending}
                     modified={modified}
                   />  
@@ -241,10 +242,11 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
                       tabIndex={0}
                       key={nrt.test_run.id}
                       className={` border-b border-border last:border-0 hover:bg-subtle cursor-pointer ${isSelected ? "bg-subtle" : ""}`}
-                      onClick={() => onRowClick?.(isSelected ? undefined : nrt.test_run.id)}
+                      onClick={() => {setFlakyScenarios(flakyScenarios.length == 0? flakyScenariosData ?? [] : flakyScenarios);onRowClick?.(isSelected ? undefined : nrt.test_run.id); }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
+                          setFlakyScenarios(flakyScenarios.length == 0? flakyScenariosData ?? [] : flakyScenarios);
                           onRowClick?.(isSelected ? undefined : nrt.test_run.id);
                         }
                       }}
@@ -253,7 +255,7 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
                         {nrt.test_suite.test_object.toUpperCase()}
                       </td>}
                       {visibleColumnIds.has("date") && <td className="px-3 py-2 text-text-dim font-mono text-[12px] whitespace-nowrap">
-                        {nrt.test_run.timestamp_start?.replace('T', ' ')}
+                        {formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}
                       </td>}
                       {visibleColumnIds.has("total") && <td className="px-3 py-2 font-mono float-center">{nrt.test_run.scenario_qty}</td>}
                       {visibleColumnIds.has("passed") && <td className="px-3 py-2 font-mono text-success">{nrt.test_run.passed_scenario}</td>}
@@ -294,18 +296,15 @@ const [modifiedRunIds, setModifiedRunIds] = useState(new Set<string>());
                             hasError={hasDetailsError}
                             modified={modified}
                             onModifiedChange={onModifiedChange}
-                            onSave={handleSave}
+                            onSave={() => handleSave()}
                             isSaving={updateNrt.isPending}
                             hasSaveError={updateNrt.isError}
-                            modifiedRunIds={modifiedRunIds}
-                            flakyScenarios={flakyScenarios}
+                            flakyScenarios={flakyToUse}
                             setFlakyScenarios={setFlakyScenarios}
                             fetchJiraIssue={handleJiraIssueBlur}
                             handleIssueInputChange={handleIssueInputChange}
                             handleRevisionNoteChange={handleScenarioRevisionNoteChange}
                             isTasOnly={isTasOnly}
-                            modifiedScenarios={modifiedScenarios}
-                            setModifiedScenarios={setModifiedScenarios}
                           />
                         </td>
                       </tr>
