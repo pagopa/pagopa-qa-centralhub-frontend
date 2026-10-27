@@ -63,9 +63,15 @@ export function isScenarioInFlakyScenarios(
 }
 
 export function formatNrtTimestamp(value: string | null | undefined): string | null {
-    const date = value ? new Date(value) : null;
-    date?.setHours(date.getHours() + 2);
-    return date ? date.toLocaleString("it-IT") : null;
+    if (!value?.trim()) return null;
+
+    const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
+    const date = new Date(hasTimeZone ? value : `${value}Z`);
+
+    if (Number.isNaN(date.getTime()))
+         return null;
+
+    return date.toLocaleString("it-IT", { timeZone: "Europe/Rome" });
 }
 
 export function formatNrtDuration(value: number | null | undefined): string | null {
