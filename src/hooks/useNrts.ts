@@ -76,10 +76,12 @@ export function useFlakyScenarios({test_object}: {test_object?: string} = {}) {
     });
 }
 
-export function useNrtsSuites() {
+export function useNrtsSuites({origin}: {origin?: string} = {}) {
+  const params = new URLSearchParams();
+  if (origin) params.set("origin", origin);
   return useQuery({
-    queryKey: ["nrts", "suites"],
-    queryFn: () => apiClient<NRTSuiteWithLatestRun[]>("/api/v1/test-metrics/nrts-suites"),
+    queryKey: ["nrts", "suites", `${origin}`],
+    queryFn: () => apiClient<NRTSuiteWithLatestRun[]>(`/api/v1/test-metrics/nrts-suites?${params}`),
     staleTime: 60_000,
   });
 }
