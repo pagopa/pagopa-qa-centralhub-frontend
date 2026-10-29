@@ -10,19 +10,19 @@ import  {SuiteCard} from "@/components/nrts/SuiteCard";
 
 export default function NrtsPage() {
   const [page, setPage] = useState(1);
+  const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
   const [selectedNrtId, setSelectedNrtId] = useState<string | undefined>();
   const {
     data: selectedNrtDetails,
     isLoading: isDetailsLoading,
     isError: hasDetailsError,
   } = useNrtDetailsScenarios(selectedNrtId);
-  const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
   const { data: nrtsData, isLoading, error } = useNrts({
         test_object: selectedSuite,
         page: page,
     });
   const { data: suitesList } = useSuites();
-  const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState(nrtsData?.items ?? []);
+  const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState<NrtsListObject[]>([]);
   const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
   const { data: flakyScenariosData } = useFlakyScenarios();
@@ -35,7 +35,11 @@ export default function NrtsPage() {
   }
 
   function handleSuiteCardClick(testObject: string) {
-    setSelectedSuite((prev) => (prev === testObject ? undefined : testObject));
+    setSelectedSuite((prev) => prev !== testObject ? testObject : undefined);
+    setPage(1);
+    setSelectedNrtId(undefined);
+    setIsModified(false);
+    setNrtsWithSelectedDetails([]);
   }
   
   let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? nrtsData?.items ?? [] : nrtsWithSelectedDetails;
@@ -100,10 +104,7 @@ export default function NrtsPage() {
           <select
             className="w-50 rounded-[var(--radius-sm)] border border-border bg-surface text-text text-base px-2 py-1"
             value={selectedSuite ?? ""}
-            onChange={(e) => {
-              setSelectedSuite(e.target.value || undefined);
-              setPage(1);
-            }}
+            onChange={(e) => handleSuiteCardClick(e.target.value)}
           >
             <option value="">Tutte le suite</option>
             {suitesList?.map((s) => (

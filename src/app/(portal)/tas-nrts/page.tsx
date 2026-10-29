@@ -27,7 +27,9 @@ export default function TasNrtsPage() {
   );
   const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
-  const { data: suitesData, isLoading: suitesLoading } = useNrtsSuites();
+  const { data: suitesData, isLoading: suitesLoading } = useNrtsSuites({
+    origin: "TAS"
+  });
   const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState<NrtsListObject[]>([]);
     
   function handleNrtsChange(nrts: NrtsListObject[]) {
@@ -35,9 +37,13 @@ export default function TasNrtsPage() {
   
     }
   
-    function handleSuiteCardClick(testObject: string) {
-      setSelectedSuite((prev) => (prev === testObject ? undefined : testObject));
-    }
+  function handleSuiteCardClick(testObject: string) {
+      setSelectedSuite((prev) => prev !== testObject ? testObject : undefined);
+      setPage(1);
+      setSelectedNrtId(undefined);
+      setIsModified(false);
+      setNrtsWithSelectedDetails([]);
+  }
     
     let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? nrtsData?.items ?? [] : nrtsWithSelectedDetails;
     if (selectedNrtId !== undefined && selectedNrtDetails !== undefined) {
@@ -96,10 +102,7 @@ export default function TasNrtsPage() {
           <select
             className="w-50 rounded-[var(--radius-sm)] border border-border bg-surface text-text text-base px-2 py-1"
             value={selectedSuite ?? ""}
-            onChange={(e) => {
-              setSelectedSuite(e.target.value || undefined);
-              setPage(1);
-            }}
+            onChange={(e) => handleSuiteCardClick(e.target.value)}
           >
             <option value="">Tutte le suite</option>
             {suitesList?.map((s) => (
