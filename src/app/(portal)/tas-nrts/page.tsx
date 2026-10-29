@@ -42,6 +42,7 @@ export default function TasNrtsPage() {
       setPage(1);
       setSelectedNrtId(undefined);
       setIsModified(false);
+      setNrtsWithSelectedDetails([]);
   }
     
     let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? nrtsData?.items ?? [] : nrtsWithSelectedDetails;
