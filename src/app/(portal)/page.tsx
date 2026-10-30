@@ -1,36 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
-import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
+import { LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-function E2eStatusCard() {
-  const { data, isLoading } = useE2eSuites();
-
-  if (isLoading) return <Kpi label="E2E Status" value="—" />;
-
-  const total = data?.length ?? 0;
-  const failing = data?.filter((s) => s.latest_run?.status === "failed").length ?? 0;
-  const passRate = total > 0 ? Math.round(((total - failing) / total) * 100) : null;
-  const status = failing === 0 ? "success" : failing / total > 0.5 ? "danger" : "warning";
-
-  return (
-    <Link href="/e2e" className="no-underline">
-      <Kpi label="Suite status" value={passRate !== null ? `${passRate}%` : "—"} status={status}>
-        {failing > 0 && (
-          <span className="text-danger font-mono text-[11px]">{failing}/{total} fallite</span>
-        )}
-      </Kpi>
-    </Link>
-  );
-}
 
 function GpdPositionsStatusCard() {
   const { data, isLoading } = useGpdPositionSnapshots();
@@ -93,14 +71,6 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
   },
   {
-    href: "/e2e",
-    icon: TestTube2,
-    label: "E2E Test Results",
-    description: "Esplora run, suite e trend di stabilità dei test end-to-end.",
-    color: "var(--accent)",
-    bg: "var(--accent-soft)",
-  },
-  {
     href: "/jira",
     icon: LayoutGrid,
     label: "KPI Jira",
@@ -141,14 +111,6 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--success) 10%, transparent)",
   },
   {
-    href: "/settings/integrations",
-    icon: Settings,
-    label: "Settings",
-    description: "Configura le integrazioni: suite E2E, GitHub repo e intervalli di sincronizzazione.",
-    color: "var(--text-muted)",
-    bg: "var(--subtle)",
-  },
-  {
     href: `${API_BASE_URL}/api/v1/docs`,
     icon: BookOpen,
     label: "API Docs",
@@ -182,7 +144,6 @@ export default function OverviewPage() {
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">
-            <E2eStatusCard />
             <JiraStatusCard />
             <GpdPositionsStatusCard />
           </div>
@@ -200,7 +161,7 @@ export default function OverviewPage() {
           <div className="text-2xl">🧪</div>
           <p className="font-semibold text-[14px] text-text">Testing</p>
           <p className="text-[12px] text-text-dim">
-            Test automation E2E, strategie di test, KPI di stabilità, allure reports, integrazione CI/CD.
+            Strategie di test, KPI di stabilità, report Allure e integrazione CI/CD.
           </p>
         </div>
         <div className="rounded-[var(--radius)] border border-border bg-surface p-5 flex flex-col gap-2">

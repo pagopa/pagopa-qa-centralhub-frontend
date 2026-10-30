@@ -15,7 +15,6 @@ const qa = (score: number, extra: Partial<EaKb["nodes"][number]> = {}) => ({
   it_repo: 0,
   it_wf: false,
   perf_repo: false,
-  e2e_repo: false,
   sonar: false,
   central: [],
   nrt: [],

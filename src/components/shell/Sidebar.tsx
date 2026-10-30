@@ -17,10 +17,8 @@ import {
   Network,
   Radar,
   Receipt,
-  Settings,
   ShieldCheck,
   Sparkles,
-  TestTube2,
   Users,
   Wallet,
   ClipboardCheck,
@@ -63,10 +61,9 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Test Results",
     items: [
-      { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" },
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
       { href: "/nrts", label: "Non-Regression Tests (NRT)", icon: ClipboardCheck, action: "view:nrts", featureKey: "nrts" },
-      { href: "/tas-nrts", label: "Test automation service (TAS)", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts" },
+      { href: "/tas-nrts", label: "Test Automation Service (TAS)", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts" },
       { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },
     ],
   },
@@ -95,7 +92,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Amministrazione",
     items: [
-      { href: "/settings/integrations", label: "Settings E2E", icon: Settings, action: "manage:integrations", featureKey: "settings_e2e" },
       { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd", featureKey: "settings_gherkin" },
       { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
       { href: "/settings/ea-assistant", label: "Settings Pagoda", icon: Sparkles, requiresSuperadmin: true },

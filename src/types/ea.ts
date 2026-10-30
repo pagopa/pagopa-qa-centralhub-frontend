@@ -10,7 +10,6 @@ export interface EaQa {
   it_repo: number;
   it_wf: boolean;
   perf_repo: boolean;
-  e2e_repo: boolean;
   sonar: boolean;
   central: string[];
   nrt: string[];
