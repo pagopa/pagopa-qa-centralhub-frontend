@@ -38,6 +38,7 @@ export function SuiteCard({ suite, latestRun, trend, onClick }: SuiteCardProps) 
   const total = e2eRun ? e2eRun.passed + e2eRun.failed + e2eRun.skipped : 0;
 
   return (
+   (trend.length >= 2 && (
     <button
       onClick={onClick}
       className="flex flex-col gap-[6px] rounded-[var(--radius)] bg-surface border border-border text-left cursor-pointer"
@@ -76,5 +77,6 @@ export function SuiteCard({ suite, latestRun, trend, onClick }: SuiteCardProps) 
         <span className="text-[11px] text-text-muted">Nessun run</span>
       )}
     </button>
+   ))
   );
 }
