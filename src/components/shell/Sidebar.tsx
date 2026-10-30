@@ -66,7 +66,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/e2e", label: "E2E", icon: TestTube2, action: "view:e2e" },
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
       { href: "/nrts", label: "Non-Regression Tests (NRT)", icon: ClipboardCheck, action: "view:nrts", featureKey: "nrts" },
-      { href: "/tas-nrts", label: "Test automation service (TAS)", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts" },
+      { href: "/tas-nrts", label: "Test Automation Service (TAS)", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts" },
       { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },
     ],
   },
