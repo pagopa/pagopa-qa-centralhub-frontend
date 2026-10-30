@@ -6,7 +6,7 @@ import { RouteGuard } from "./RouteGuard";
 const mocks = vi.hoisted(() => ({
   apiClient: vi.fn(),
   replace: vi.fn(),
-  pathname: "/e2e",
+  pathname: "/bdd",
   can: vi.fn(() => true),
 }));
 
@@ -29,8 +29,8 @@ function renderGuard() {
     queryClient,
     ...render(
       <QueryClientProvider client={queryClient}>
-        <RouteGuard action="view:e2e">
-          <div>E2E page content</div>
+        <RouteGuard action="view:bdd">
+          <div>Gherkin page content</div>
         </RouteGuard>
       </QueryClientProvider>,
     ),
@@ -39,16 +39,16 @@ function renderGuard() {
 
 describe("RouteGuard feature visibility", () => {
   beforeEach(() => {
-    mocks.pathname = "/e2e";
+    mocks.pathname = "/bdd";
     mocks.can.mockReturnValue(true);
     mocks.apiClient.mockReset();
     mocks.apiClient.mockResolvedValue({
       items: [
         {
-          key: "e2e",
-          label: "E2E",
-          route: "/e2e",
-          action: "view:e2e",
+          key: "bdd",
+          label: "Gherkin",
+          route: "/bdd",
+          action: "view:bdd",
           external: false,
           enabled: false,
         },
@@ -60,26 +60,26 @@ describe("RouteGuard feature visibility", () => {
     renderGuard();
 
     expect(await screen.findByRole("status")).toHaveTextContent("Funzionalità non disponibile");
-    expect(screen.queryByText("E2E page content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gherkin page content")).not.toBeInTheDocument();
   });
 
   it("refreshes visibility when a client navigation changes the route", async () => {
     mocks.apiClient
       .mockResolvedValueOnce({
-        items: [{ key: "e2e", label: "E2E", route: "/e2e", action: "view:e2e", external: false, enabled: true }],
+        items: [{ key: "bdd", label: "Gherkin", route: "/bdd", action: "view:bdd", external: false, enabled: true }],
       })
       .mockResolvedValueOnce({
-        items: [{ key: "e2e", label: "E2E", route: "/e2e", action: "view:e2e", external: false, enabled: false }],
+        items: [{ key: "bdd", label: "Gherkin", route: "/bdd", action: "view:bdd", external: false, enabled: false }],
       });
 
     const rendered = renderGuard();
-    expect(await screen.findByText("E2E page content")).toBeInTheDocument();
+    expect(await screen.findByText("Gherkin page content")).toBeInTheDocument();
 
-    mocks.pathname = "/e2e/runs/123";
+    mocks.pathname = "/bdd/history";
     rendered.rerender(
       <QueryClientProvider client={rendered.queryClient}>
-        <RouteGuard action="view:e2e">
-          <div>E2E page content</div>
+        <RouteGuard action="view:bdd">
+          <div>Gherkin page content</div>
         </RouteGuard>
       </QueryClientProvider>,
     );
@@ -93,10 +93,10 @@ describe("RouteGuard feature visibility", () => {
     mocks.apiClient.mockResolvedValue({
       items: [
         {
-          key: "e2e",
-          label: "E2E",
-          route: "/e2e",
-          action: "view:e2e",
+          key: "bdd",
+          label: "Gherkin",
+          route: "/bdd",
+          action: "view:bdd",
           external: false,
           enabled: true,
         },
@@ -106,7 +106,7 @@ describe("RouteGuard feature visibility", () => {
     renderGuard();
 
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
-    expect(screen.queryByText("E2E page content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gherkin page content")).not.toBeInTheDocument();
   });
 
   it("blocks Gherkin settings when that settings feature is disabled", async () => {

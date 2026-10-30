@@ -83,7 +83,6 @@ src/
 │   │   │   └── [id]/
 │   │   │       ├── page.tsx         Scenario list for a project
 │   │   │       └── new/page.tsx     Generate wizard (3-step SSE)
-│   │   ├── e2e/            ← Suite list, run table (bulk delete), Allure modal — RouteGuard: view:e2e
 │   │   ├── sanp-health/    ← Drift OpenAPI SANP/Collaudo/Produzione — RouteGuard: view:sanp_health
 │   │   ├── jira/           ← 3 sezioni (Testing / SANP / Data), Monitoraggio + Insights — RouteGuard: view:jira
 │   │   ├── data-hub/       ← RouteGuard: view:data_hub
@@ -93,7 +92,6 @@ src/
 │   │   ├── coverage/
 │   │   ├── releases/
 │   │   └── settings/
-│   │       ├── integrations/        E2E suite config — RouteGuard: manage:integrations
 │   │       ├── bdd/                 Gherkin Generator config (AI provider, Confluence, Ollama) — RouteGuard: manage:bdd
 │   │       ├── users/               Utenti & Ruoli/Permessi (superadmin-only, client-side role check)
 │   │       ├── ea-assistant/        Settings Pagoda: motore, modelli e fallback (superadmin-only, client-side)
@@ -110,7 +108,6 @@ src/
 │   ├── usePermissions.ts   ← usePermissions (role, roleLabel, can, isLoading), useRoleMatrix, useUpdateRolePermissions
 │   ├── useUsers.ts         ← useUsers, useUpdateUser (role/is_active)
 │   ├── useBdd.ts           ← BDD settings, projects, scenarios, generate, Ollama
-│   ├── useE2eSuites.ts     ← suite list, run table, delete (single + bulk)
 │   ├── useJira.ts          ← useJiraOverview/Trend, useJiraSanpOverview/Trend, useJiraDataOverview/Trend
 │   ├── useGpdPositions.ts  ← useGpdPositionSnapshots, useSyncGpdPositions
 │   └── ...
@@ -198,4 +195,4 @@ Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend ch
 - **`/settings/users`**: pagina riservata a `superadmin` (controllo client-side dedicato, non basato su `ACTION_CATALOG`), con tre tab:
   - **Utenti**: lista utenti, modifica ruolo e stato attivo/disattivo (`PATCH /api/v1/users/{id}`).
   - **Ruoli & Permessi**: matrice permessi per categoria, modificabile per i ruoli non di sistema (`PATCH /api/v1/roles/{role}`).
-  - **Funzionalità**: toggle globali per pagina (`GET/PATCH /api/v1/features`), inclusi Settings E2E e Settings Gherkin; una pagina è visibile solo se abilitata e permessa dal ruolo. I valori mancanti sono abilitati di default. Il controllo è client-side come l'RBAC corrente; l'URL Swagger diretto resta accessibile.
+  - **Funzionalità**: toggle globali per pagina (`GET/PATCH /api/v1/features`), inclusi Settings Gherkin; una pagina è visibile solo se abilitata e permessa dal ruolo. I valori mancanti sono abilitati di default. Il controllo è client-side come l'RBAC corrente; l'URL Swagger diretto resta accessibile.
