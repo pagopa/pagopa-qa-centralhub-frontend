@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
+import { useNrtsAvgPassRate } from "@/hooks/useNrts";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
 import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
@@ -11,23 +12,19 @@ import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-function E2eStatusCard() {
-  const { data, isLoading } = useE2eSuites();
+function NrtsAvgPassRateStatusCard() {
+  const { data, isLoading } = useNrtsAvgPassRate();
 
-  if (isLoading) return <Kpi label="E2E Status" value="—" />;
+  if (isLoading) return <Kpi label="NRTs Average Pass Rate" value="—" />;
 
-  const total = data?.length ?? 0;
-  const failing = data?.filter((s) => s.latest_run?.status === "failed").length ?? 0;
-  const passRate = total > 0 ? Math.round(((total - failing) / total) * 100) : null;
-  const status = failing === 0 ? "success" : failing / total > 0.5 ? "danger" : "warning";
+  const pass_rate = data ?? 0 ;
+  
+
+  if (!pass_rate) return <Kpi label="NRTs Average Pass Rate" value="—" />;
 
   return (
-    <Link href="/e2e" className="no-underline">
-      <Kpi label="Suite status" value={passRate !== null ? `${passRate}%` : "—"} status={status}>
-        {failing > 0 && (
-          <span className="text-danger font-mono text-[11px]">{failing}/{total} fallite</span>
-        )}
-      </Kpi>
+    <Link href="/nrts" className="no-underline">
+      <Kpi label="NRTs Average Pass Rate" value={fmtNumberIt(pass_rate ?? 0) + "%"} percentage={pass_rate ?? 0} />
     </Link>
   );
 }
@@ -93,12 +90,20 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
   },
   {
-    href: "/e2e",
-    icon: TestTube2,
-    label: "E2E Test Results",
-    description: "Esplora run, suite e trend di stabilità dei test end-to-end.",
-    color: "var(--accent)",
-    bg: "var(--accent-soft)",
+    href: "/nrts",
+    icon: Sparkles,
+    label: "NRTs",
+    description: "Gestione e monitoraggio dei test NRT.",
+    color: "var(--info)",
+    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
+  },
+  {
+    href: "/tas-nrts",
+    icon: Sparkles,
+    label: "TAS NRTs",
+    description: "Gestione e monitoraggio dei test TAS NRT.",
+    color: "var(--warning)",
+    bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
   },
   {
     href: "/jira",
@@ -182,7 +187,7 @@ export default function OverviewPage() {
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">
-            <E2eStatusCard />
+            <NrtsAvgPassRateStatusCard />
             <JiraStatusCard />
             <GpdPositionsStatusCard />
           </div>

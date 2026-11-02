@@ -5,6 +5,7 @@ interface KpiProps {
   value: string | number;
   delta?: number;
   status?: "success" | "danger" | "warning" | "info";
+  percentage?: number;
   children?: ReactNode; // slot for a Sparkline
 }
 
@@ -15,13 +16,21 @@ const STATUS_COLOR: Record<string, string> = {
   info:    "var(--info)",
 };
 
-export function Kpi({ label, value, delta, status, children }: KpiProps) {
+export function Kpi({ label, value, delta, status, percentage, children }: KpiProps) {
   const deltaColor =
     delta === undefined ? undefined
     : delta > 0 ? "var(--success)"
     : delta < 0 ? "var(--danger)"
     : "var(--text-muted)";
 
+  let color = "var(--text)";
+  if (status !== undefined && STATUS_COLOR[status]) {
+    color = STATUS_COLOR[status];
+  } else if (percentage !== undefined) {
+    color = percentage > 80 ? STATUS_COLOR.success
+      : percentage >= 50 ? STATUS_COLOR.warning
+      : STATUS_COLOR.danger;
+  }
   return (
     <div
       className="flex flex-col gap-1 rounded-[var(--radius)] bg-surface border border-border p-[var(--pad)]"
@@ -39,7 +48,7 @@ export function Kpi({ label, value, delta, status, children }: KpiProps) {
           className="font-mono font-semibold leading-none tabular-nums"
           style={{
             fontSize: 28,
-            color: status ? STATUS_COLOR[status] : "var(--text)",
+            color,
           }}
         >
           {value}
