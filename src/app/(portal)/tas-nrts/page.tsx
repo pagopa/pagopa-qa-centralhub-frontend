@@ -86,11 +86,10 @@ export default function TasNrtsPage() {
           <div className="flex gap-3 flex-wrap">
             {suitesData
               ?.filter(({ suite }) => suitesList?.includes(suite.test_object))
-              .map(({ suite, latest_run, trend }) => (
+              .map(({ suite, trend }) => (
                 <SuiteCard
                   key={suite.test_object}
                   suite={suite}
-                  latestRun={latest_run}
                   trend={trend}
                   onClick={() => handleSuiteCardClick(suite.test_object)}
                 />
