@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
+import { useNrtsAvgPassRate } from "@/hooks/useNrts";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
 import { LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
