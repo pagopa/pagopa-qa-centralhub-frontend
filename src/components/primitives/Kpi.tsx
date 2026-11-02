@@ -27,7 +27,7 @@ export function Kpi({ label, value, delta, status, percentage, children }: KpiPr
   if (status !== undefined && STATUS_COLOR[status]) {
     color = STATUS_COLOR[status];
   } else if (percentage !== undefined) {
-    color = percentage > 80 ? STATUS_COLOR.success
+    color = percentage >= 80 ? STATUS_COLOR.success
       : percentage >= 50 ? STATUS_COLOR.warning
       : STATUS_COLOR.danger;
   }

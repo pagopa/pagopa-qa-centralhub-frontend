@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useE2eSuites } from "@/hooks/useE2eSuites";
 import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { useNrtsAvgPassRate } from "@/hooks/useNrts";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
-import { TestTube2, LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
+import {  LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network, ClipboardCheck, Workflow } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -20,11 +19,11 @@ function NrtsAvgPassRateStatusCard() {
   const pass_rate = data ?? 0 ;
   
 
-  if (!pass_rate) return <Kpi label="NRTs Average Pass Rate" value="—" />;
+  if (pass_rate == undefined || pass_rate == null) return <Kpi label="NRTs Average Pass Rate" value="—" />;
 
   return (
     <Link href="/nrts" className="no-underline">
-      <Kpi label="NRTs Average Pass Rate" value={fmtNumberIt(pass_rate ?? 0) + "%"} percentage={pass_rate ?? 0} />
+      <Kpi label="NRTs Average Pass Rate" value={(pass_rate ?? 0) + "%"} percentage={pass_rate ?? 0} />
     </Link>
   );
 }
@@ -91,7 +90,7 @@ const NAV_TILES = [
   },
   {
     href: "/nrts",
-    icon: Sparkles,
+    icon: ClipboardCheck,
     label: "NRTs",
     description: "Gestione e monitoraggio dei test NRT.",
     color: "var(--info)",
@@ -99,7 +98,7 @@ const NAV_TILES = [
   },
   {
     href: "/tas-nrts",
-    icon: Sparkles,
+    icon: Workflow,
     label: "TAS NRTs",
     description: "Gestione e monitoraggio dei test TAS NRT.",
     color: "var(--warning)",
