@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkline } from "@/components/primitives/Sparkline";
-import type { TestRun, TestSuite } from "@/types/index";
+import type {TestSuite } from "@/types/index";
 
 interface SuiteCardProps {
   suite: TestSuite;

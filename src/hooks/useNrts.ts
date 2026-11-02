@@ -85,3 +85,11 @@ export function useNrtsSuites({origin}: {origin?: string} = {}) {
     staleTime: 60_000,
   });
 }
+
+export function useNrtsAvgPassRate() {
+    return useQuery({
+        queryKey: ["nrts", "avg-pass-rate"],
+        staleTime: 60_000,
+        queryFn: () => apiClient<number>(`/api/v1/test-metrics/avg-pass-rate`),
+    });
+}

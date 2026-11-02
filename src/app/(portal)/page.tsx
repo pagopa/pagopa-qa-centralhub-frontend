@@ -3,12 +3,30 @@
 import Link from "next/link";
 import { useJiraOverview } from "@/hooks/useJira";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
+import { useNrtsAvgPassRate } from "@/hooks/useNrts";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
-import { LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network } from "lucide-react";
+import {  LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network, ClipboardCheck, Workflow } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+function NrtsAvgPassRateStatusCard() {
+  const { data, isLoading } = useNrtsAvgPassRate();
+
+  if (isLoading) return <Kpi label="NRTs Average Pass Rate" value="—" />;
+
+  const pass_rate = data ?? 0 ;
+  
+
+  if (pass_rate == undefined || pass_rate == null) return <Kpi label="NRTs Average Pass Rate" value="—" />;
+
+  return (
+    <Link href="/nrts" className="no-underline">
+      <Kpi label="NRTs Average Pass Rate" value={(pass_rate ?? 0) + "%"} percentage={pass_rate ?? 0} />
+    </Link>
+  );
+}
 
 function GpdPositionsStatusCard() {
   const { data, isLoading } = useGpdPositionSnapshots();
@@ -67,6 +85,22 @@ const NAV_TILES = [
     icon: Sparkles,
     label: "Gherkin Generator",
     description: "Genera scenari BDD da requisiti Confluence, PDF o testo libero con AI (Ollama o Claude).",
+    color: "var(--warning)",
+    bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
+  },
+  {
+    href: "/nrts",
+    icon: ClipboardCheck,
+    label: "NRTs",
+    description: "Gestione e monitoraggio dei test NRT.",
+    color: "var(--info)",
+    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
+  },
+  {
+    href: "/tas-nrts",
+    icon: Workflow,
+    label: "TAS NRTs",
+    description: "Gestione e monitoraggio dei test TAS NRT.",
     color: "var(--warning)",
     bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
   },
@@ -144,6 +178,7 @@ export default function OverviewPage() {
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">
+            <NrtsAvgPassRateStatusCard />
             <JiraStatusCard />
             <GpdPositionsStatusCard />
           </div>
