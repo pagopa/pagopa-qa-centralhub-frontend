@@ -6,7 +6,7 @@ import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { useNrtsAvgPassRate } from "@/hooks/useNrts";
 import { Kpi } from "@/components/primitives/Kpi";
 import { fmtNumberIt } from "@/lib/format";
-import {  LayoutGrid, FileText, Settings, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network, ClipboardCheck, Workflow } from "lucide-react";
+import {  LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network, ClipboardCheck, Workflow } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -145,14 +145,6 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--success) 10%, transparent)",
   },
   {
-    href: "/settings/integrations",
-    icon: Settings,
-    label: "Settings",
-    description: "Configura le integrazioni: suite E2E, GitHub repo e intervalli di sincronizzazione.",
-    color: "var(--text-muted)",
-    bg: "var(--subtle)",
-  },
-  {
     href: `${API_BASE_URL}/api/v1/docs`,
     icon: BookOpen,
     label: "API Docs",
@@ -204,7 +196,7 @@ export default function OverviewPage() {
           <div className="text-2xl">🧪</div>
           <p className="font-semibold text-[14px] text-text">Testing</p>
           <p className="text-[12px] text-text-dim">
-            Test automation E2E, strategie di test, KPI di stabilità, allure reports, integrazione CI/CD.
+            Strategie di test, KPI di stabilità, report Allure e integrazione CI/CD.
           </p>
         </div>
         <div className="rounded-[var(--radius)] border border-border bg-surface p-5 flex flex-col gap-2">

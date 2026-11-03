@@ -1,9 +1,7 @@
 const FEATURE_ROUTES = [
   { route: "/", key: "overview" },
   { route: "/bdd", key: "bdd" },
-  { route: "/settings/integrations", key: "settings_e2e" },
   { route: "/settings/bdd", key: "settings_gherkin" },
-  { route: "/e2e", key: "e2e" },
   { route: "/sanp-health", key: "sanp_health" },
   { route: "/jira", key: "jira" },
   { route: "/data-hub/psp-fees", key: "psp_fees" },

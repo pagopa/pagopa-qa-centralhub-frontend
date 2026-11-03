@@ -1,7 +1,7 @@
 import type { ChangeEvent, MouseEvent } from "react";
 import type {  TestExecution, FlakyScenario, TestRun, NrtsListObject } from "@/types";
 import NrtSaveButton from "./NrtSaveButton";
-import { RunModal } from "@/components/e2e/RunModal";
+import { RunModal } from "./RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import {useState} from "react"
 import {

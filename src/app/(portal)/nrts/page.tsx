@@ -82,11 +82,10 @@ export default function NrtsPage() {
               <p className="text-text-muted text-[13px]">Caricamento…</p>
             ) : (
               <div className="flex gap-3 flex-wrap">
-                {suitesData?.map(({ suite, latest_run, trend }) => (
+                {suitesData?.map(({ suite, trend }) => (
                   <SuiteCard
                     key={suite.test_object}
                     suite={suite}
-                    latestRun={latest_run}
                     trend={trend}
                     onClick={() => handleSuiteCardClick(suite.test_object)}
                   />

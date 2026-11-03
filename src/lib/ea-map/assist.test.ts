@@ -8,7 +8,7 @@ const comp = (id: string, parent: string) =>
   ({
     id, type: "component", parent, name: id, desc: "", kind: "be", kindLabel: "", repo: "", private: false,
     lang: [], fw: [], ns: null, ingress: null, owners: [], apis: [], readme: "", workflows: [], confRepo: [],
-    qa: { unit: 0, it_repo: 0, it_wf: false, perf_repo: false, e2e_repo: false, sonar: false, central: [], nrt: [],
+    qa: { unit: 0, it_repo: 0, it_wf: false, perf_repo: false, sonar: false, central: [], nrt: [],
       tas: false, tas_ci: null, nodo_bdd: false, under_qa: null, score: 0 },
   }) as const;
 

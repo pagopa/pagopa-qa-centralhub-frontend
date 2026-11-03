@@ -17,7 +17,6 @@ vi.mock("@/lib/api", () => ({ apiClient: mocks.apiClient }));
 const featureItems = [
   ["overview", "Overview", "/", "view:overview", false],
   ["bdd", "Gherkin Generator", "/bdd", "view:bdd", false],
-  ["e2e", "E2E", "/e2e", "view:e2e", false],
   ["sanp_health", "SANP Health", "/sanp-health", "view:sanp_health", false],
   ["jira", "KPI Jira", "/jira", "view:jira", false],
   ["nrt_metrics", "NRT Metrics", "/nrt-metrics", "view:nrt_metrics", false],
@@ -25,7 +24,6 @@ const featureItems = [
   ["gpd_positions", "Posizioni Debitorie GPD", "/data-hub/gpd-positions", "view:data_hub", false],
   ["dq_catalog", "Catalogo Controlli", "/data-quality/catalog", "view:data_quality", false],
   ["dq_domains", "Controlli per Dominio", "/data-quality/domains", "view:data_quality", false],
-  ["settings_e2e", "Settings E2E", "/settings/integrations", "manage:integrations", false],
   ["settings_gherkin", "Settings Gherkin", "/settings/bdd", "manage:bdd", false],
   ["ea_map", "EA Map", "/ea-map", "view:ea_map", false],
   ["docs", "Docs & Decks", "/docs", "view:docs", false],
@@ -180,7 +178,7 @@ describe("Sidebar feature visibility", () => {
     expect(screen.queryByRole("link", { name: "API Docs" })).not.toBeInTheDocument();
   });
 
-  it("toggles E2E and Gherkin settings independently", async () => {
+  it("hides Gherkin settings when its feature is disabled", async () => {
     mocks.apiClient.mockResolvedValue({
       items: featureItems.map(([key, label, route, action, external]) => ({
         key,
@@ -188,14 +186,13 @@ describe("Sidebar feature visibility", () => {
         route,
         action,
         external,
-        enabled: key !== "settings_e2e",
+        enabled: key !== "settings_gherkin",
       })),
     });
 
     renderSidebar();
 
-    expect(await screen.findByRole("link", { name: "Settings Gherkin" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Settings E2E" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Settings Gherkin" })).not.toBeInTheDocument();
   });
 
   it("collapses to an icon rail and keeps accessible link names", async () => {

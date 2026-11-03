@@ -9,7 +9,6 @@ import { usePermissions } from "@/hooks/usePermissions";
 const PAGE_TITLES: Record<string, string> = {
   "/": "Overview",
   "/dashboards": "Dashboards",
-  "/e2e": "E2E",
   "/coverage": "Coverage",
   "/perf": "Performance",
   "/jira": "KPI Jira",
@@ -18,7 +17,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/releases": "Releases",
   "/docs": "Docs & Decks",
   "/ea-map": "EA Map",
-  "/settings/integrations": "Settings · Integrations",
   "/settings/bdd": "Settings · Gherkin Generator",
   "/settings/team": "Settings · Team",
   "/settings/notifications": "Settings · Notifications",
