@@ -646,7 +646,7 @@ export interface TestSuite {
   id: string;
   test_object: string;
   test_type: string;
-  suite_version: string;
+  test_object_version: string;
   owner_team: string | null;
 }
 
@@ -709,7 +709,7 @@ export interface NrtSuite{
   id: string;
   test_object: string;
   test_type: string;
-  suite_version: string;
+  test_object_version: string;
   owner_team: string | null;
 }
 
@@ -718,7 +718,7 @@ export interface FlakyScenario {
   suite_id: string;
   test_object: string;
   scenario_name: string;
-  suite_version: string;
+  test_object_version: string;
   test_version: string;
   inserted_at: string | null;
   is_flaky?: boolean | undefined;

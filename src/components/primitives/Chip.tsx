@@ -1,6 +1,5 @@
 type RunStatus = "passed" | "failed" | "flaky" | "skipped" | "running" | "todo" | "inprogress" | "done" | "blocked" | "mixed";
 type Priority = "p1" | "p2" | "p3" | "p4";
-type IssueStatus = "closed" | "completed" | "canceled" | "done" | "annullato" | "resolved" | "evaluated" | "escalated" | "in triage" | "in review" | "in progress" | "pending" | "planned" | "ready to release" | "started" | "waiting for customer" | "waiting for support" | "drafted" | "open" | "selected for development" | "to do" | "blocked";
 
 type ChipProps =
   | { variant: "status"; value: RunStatus; label?: string }

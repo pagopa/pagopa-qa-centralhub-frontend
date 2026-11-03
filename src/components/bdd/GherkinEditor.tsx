@@ -2,45 +2,7 @@
 
 import { useRef } from "react";
 
-const KEYWORD_COLORS: Record<string, string> = {
-  "Feature:": "var(--accent)",
-  "Funzionalità:": "var(--accent)",
-  "Scenario:": "var(--info)",
-  "Schema dello scenario:": "var(--info)",
-  "Scenario Outline:": "var(--info)",
-  "Given": "var(--success)",
-  "Dato": "var(--success)",
-  "Dati": "var(--success)",
-  "When": "var(--warning)",
-  "Quando": "var(--warning)",
-  "Then": "var(--accent)",
-  "Allora": "var(--accent)",
-  "And": "var(--text-dim)",
-  "E": "var(--text-dim)",
-  "But": "var(--text-dim)",
-  "Ma": "var(--text-dim)",
-  "Examples:": "var(--info)",
-  "Esempi:": "var(--info)",
-};
 
-function highlightLine(line: string): React.ReactNode {
-  const trimmed = line.trimStart();
-  for (const [kw, color] of Object.entries(KEYWORD_COLORS)) {
-    if (trimmed.startsWith(kw)) {
-      return <span style={{ color }}>{line}</span>;
-    }
-  }
-  if (trimmed.startsWith("| ")) {
-    return <span style={{ color: "var(--info)" }}>{line}</span>;
-  }
-  if (trimmed.startsWith("#")) {
-    return <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>{line}</span>;
-  }
-  if (trimmed.startsWith("@")) {
-    return <span style={{ color: "var(--warning)" }}>{line}</span>;
-  }
-  return <>{line}</>;
-}
 
 interface GherkinEditorProps {
   value: string;

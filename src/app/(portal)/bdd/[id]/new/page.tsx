@@ -36,7 +36,6 @@ export default function BddNewScenarioPage() {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
 
-  const [generating, setGenerating] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [genError, setGenError] = useState("");
   const [generatedScenarios, setGeneratedScenarios] = useState<BddGeneratedScenario[]>([]);
@@ -94,7 +93,6 @@ export default function BddNewScenarioPage() {
   };
 
   const handleGenerate = async () => {
-    setGenerating(true);
     setStreamText("");
     setGenError("");
     setGeneratedScenarios([]);
@@ -145,9 +143,7 @@ export default function BddNewScenarioPage() {
       }
     } catch (e: unknown) {
       setGenError(e instanceof Error ? e.message : "Errore sconosciuto");
-    } finally {
-      setGenerating(false);
-    }
+    } 
   };
 
   const handleSelectScenario = (idx: number) => {

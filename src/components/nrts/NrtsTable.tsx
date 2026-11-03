@@ -160,7 +160,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
         handleSave(modifiedRuns, updatedRunIds);
       }
       return true;
-    } catch (error) {
+    } catch  {
       return false;
     }
   }
