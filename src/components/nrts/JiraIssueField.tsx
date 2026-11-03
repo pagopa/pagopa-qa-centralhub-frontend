@@ -4,7 +4,6 @@ interface JiraIssueFieldProps {
   field: "product" | "qa";
   value: string;
   issueNotFound: boolean;
-  isTasOnly: boolean;
   onBlur: FocusEventHandler<HTMLInputElement>;
   onChange: ChangeEventHandler<HTMLInputElement>;
 }
@@ -13,11 +12,9 @@ export function JiraIssueField({
   field,
   value,
   issueNotFound,
-  isTasOnly,
   onBlur,
   onChange,
 }: JiraIssueFieldProps) {
-  if (isTasOnly && field === "qa") return null;
 
   const label = field === "product" ? "Ticket prodotto" : "Ticket QA";
 
@@ -27,7 +24,6 @@ export function JiraIssueField({
       <dd className="flex flex-wrap items-center gap-2">
         <input
           type="text"
-          aria-label={label}
           value={value}
           onBlur={onBlur}
           onChange={onChange}

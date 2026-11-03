@@ -52,7 +52,7 @@ export function NrtDetailsPanel({
   handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) => void;
   isTasOnly: boolean;
 }) {
-  const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, test: false });
+  const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, qa: false });
   const [activeReport, setActiveReport] = useState<{ url: string; title: string } | null>(null);
 
   function openReport(event: MouseEvent<HTMLAnchorElement>, title: string) {
@@ -63,7 +63,7 @@ export function NrtDetailsPanel({
   }
 
   async function checkJiraIssue(issueId: string, isQaIssue: boolean) {
-    const field = isQaIssue ? "test" : "product";
+    const field = isQaIssue ? "qa" : "product";
     setJiraIssueNotFound((current) => ({ ...current, [field]: false }));
     if (!issueId.trim() || !details) return;
 
@@ -129,7 +129,6 @@ export function NrtDetailsPanel({
             field="product"
             value={details.test_run?.product_issue ?? ""}
             issueNotFound={jiraIssueNotFound.product}
-            isTasOnly={isTasOnly}
             onBlur={(event) => checkJiraIssue(event.target.value, false)}
             onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, product: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "product"); }}
           />
@@ -137,14 +136,15 @@ export function NrtDetailsPanel({
           <DetailField label="Versione test suite" value={details.test_run?.test_version} />
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
           <DetailField label="Fine" value={formatNrtTimestamp(details.test_run?.timestamp_end ?? null)} />
+          {!isTasOnly && (
           <JiraIssueField
             field="qa"
             value={details.test_run?.qa_issue ?? ""}
-            issueNotFound={jiraIssueNotFound.test}
-            isTasOnly={isTasOnly}
+            issueNotFound={jiraIssueNotFound.qa}
             onBlur={(event) => checkJiraIssue(event.target.value, true)}
-            onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, test: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "qa"); }}
+            onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, qa: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "qa"); }}
           />
+          )}
           <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
           <DetailField label="Revisore" value={details.test_run.revisioned_by ?? "-"} />
           </dl>     
