@@ -29,7 +29,7 @@ export function isFlakyScenarioEqual(
         scenarioA.suite_id === scenarioB.suite_id &&
         scenarioA.test_object === scenarioB.test_object &&
         scenarioA.scenario_name === scenarioB.scenario_name &&
-        scenarioA.suite_version === scenarioB.suite_version &&
+        scenarioA.test_object_version === scenarioB.test_object_version &&
         scenarioA.test_version === scenarioB.test_version
     );
 }
@@ -43,7 +43,7 @@ export function createFlakyScenario(
         suite_id: suite.id,
         test_object: suite.test_object,
         scenario_name: scenario.scenario_name ?? "",
-        suite_version: suite.suite_version,
+        test_object_version: suite.test_object_version,
         test_version: testVersion ?? "",
         inserted_at: null,
         is_flaky: true,

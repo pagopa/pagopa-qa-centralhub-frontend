@@ -19,6 +19,7 @@ import {
   NRT_SCENARIO_TABLE_HEADERS,
 } from "@/utils/nrtsCostants";
 import {DetailField} from "./DetailField";
+import { JiraIssueField } from "./JiraIssueField";
 
 export function NrtDetailsPanel({
   details,
@@ -51,7 +52,7 @@ export function NrtDetailsPanel({
   handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) => void;
   isTasOnly: boolean;
 }) {
-  const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, test: false });
+  const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, qa: false });
   const [activeReport, setActiveReport] = useState<{ url: string; title: string } | null>(null);
 
   function openReport(event: MouseEvent<HTMLAnchorElement>, title: string) {
@@ -62,7 +63,7 @@ export function NrtDetailsPanel({
   }
 
   async function checkJiraIssue(issueId: string, isQaIssue: boolean) {
-    const field = isQaIssue ? "test" : "product";
+    const field = isQaIssue ? "qa" : "product";
     setJiraIssueNotFound((current) => ({ ...current, [field]: false }));
     if (!issueId.trim() || !details) return;
 
@@ -119,44 +120,33 @@ export function NrtDetailsPanel({
     <div className="flex flex-col ">
       <div>
         <h2 className="mb-2 text-[12px] font-semibold uppercase text-text-muted">Suite e run</h2>
-        <dl className="grid gap-x-6 gap-y-2 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid gap-x-6 gap-y-2 text-[12px] sm:grid-cols-2 lg:grid-cols-5">
           <DetailField label="Tipo suite" value={suite.test_type} />
-          <DetailField label="Versione suite" value={suite.suite_version} />
+          <DetailField label="Test object" value={suite.test_object} />
+          <DetailField label="Versione test object" value={suite.test_object_version} />
           <DetailField label="Team owner" value={suite.owner_team} />
+          <JiraIssueField
+            field="product"
+            value={details.test_run?.product_issue ?? ""}
+            issueNotFound={jiraIssueNotFound.product}
+            onBlur={(event) => checkJiraIssue(event.target.value, false)}
+            onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, product: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "product"); }}
+          />
           <DetailField label="Ambiente" value={details.test_run?.env} />
-          <DetailField label="Versione test" value={details.test_run?.test_version} />
+          <DetailField label="Versione test suite" value={details.test_run?.test_version} />
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
           <DetailField label="Fine" value={formatNrtTimestamp(details.test_run?.timestamp_end ?? null)} />
+          {!isTasOnly && (
+          <JiraIssueField
+            field="qa"
+            value={details.test_run?.qa_issue ?? ""}
+            issueNotFound={jiraIssueNotFound.qa}
+            onBlur={(event) => checkJiraIssue(event.target.value, true)}
+            onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, qa: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "qa"); }}
+          />
+          )}
           <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
           <DetailField label="Revisore" value={details.test_run.revisioned_by ?? "-"} />
-          <div>
-            <dt className="text-text-muted">Ticket prodotto:</dt>{" "}
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                value={details.test_run?.product_issue ?? ""}
-                onBlur={(event) => checkJiraIssue(event.target.value, false)}
-                onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, product: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "product"); }}
-                className="border border-border bg-surface text-text text-base px-2 py-1"
-              />
-              {jiraIssueNotFound.product && <span className="text-danger text-[12px]">Nessuna issue Jira trovata</span>}
-            </div>
-          </div>
-           {!isTasOnly && (
-          <div>
-            <dt className="text-text-muted">Ticket QA:</dt>{" "}
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                value={details.test_run?.qa_issue ?? ""}
-                onBlur={(event) => checkJiraIssue(event.target.value, true)}
-                onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, test: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "qa"); }}
-                className="border border-border bg-surface text-text text-base px-2 py-1"
-              />
-              {jiraIssueNotFound.test && <span className="text-danger text-[12px]">Nessuna issue Jira trovata</span>}
-            </div>
-          </div>   
-          )}
           </dl>     
            <div className="flex justify-center space-x-7 px-10 py-3 text-center " onClick={(e) => e.stopPropagation()}>
                     <a

@@ -7,7 +7,7 @@ import {
   useJiraDataOverview, useJiraDataTrend,
   useJiraEstimateDrift, useJiraSanpEstimateDrift, useJiraDataEstimateDrift,
 } from "@/hooks/useJira";
-import type { JiraAlert, JiraOverview, JiraTrend, TrendWeek, JiraEstimateDrift, EstimateDriftGroup, EstimateDriftItem } from "@/types/index";
+import type { JiraAlert, JiraOverview, JiraTrend, TrendWeek, JiraEstimateDrift, EstimateDriftGroup } from "@/types/index";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
 const JIRA_BASE = "https://pagopa.atlassian.net/browse";
@@ -432,7 +432,6 @@ function fmtHours(sec: number): string {
 
 function DriftBar({ original, spent }: { original: number; spent: number }) {
   if (original === 0) return null;
-  const pct = Math.min((spent / original) * 100, 200); // cap at 200% visually
   const over = spent > original;
   const overPct = over ? Math.min(((spent - original) / original) * 100, 100) : 0;
   return (

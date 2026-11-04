@@ -69,16 +69,6 @@ function faviconUrl(url: string) {
   }
 }
 
-const EMPTY_FORM = {
-  title: "",
-  description: "",
-  url: "",
-  type: "external" as DocType,
-  category: "",
-  icon: "page" as DocIcon,
-  thumbnail_url: "",
-  position: 0,
-};
 
 export default function DocsPage() {
   const { data: items = [], isLoading } = useDocItems();
