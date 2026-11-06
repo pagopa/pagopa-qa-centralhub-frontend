@@ -13,6 +13,7 @@ import type {
   EaEdgeUpdate,
   EaFlow,
   EaHistoryItem,
+  EaImpactRules,
   EaInfraEnv,
   EaInfraResourceDetail,
   EaInfraView,
@@ -177,6 +178,16 @@ export function useBulkDecideEaChanges() {
   );
 }
 
+
+/** How the risk of a release is rated: the rules the backend applies, for the guide and the Impact view. */
+export function useEaImpactRules(enabled = true) {
+  return useQuery<EaImpactRules>({
+    queryKey: [...eaMapQueryKey, "impact-rules"],
+    queryFn: () => apiClient("/api/v1/ea/impact/rules"),
+    staleTime: 60 * 60 * 1000,
+    enabled,
+  });
+}
 
 /** Impact of a pull request or comparison on the platform (read-only, computed on demand). */
 export function useEaReleaseImpact() {

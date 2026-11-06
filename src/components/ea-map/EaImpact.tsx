@@ -9,6 +9,7 @@ import type { EaImpactedNode, EaReleaseImpact, EaRisk } from "@/types/ea";
 import { useEaReleaseImpact } from "@/hooks/useEaMap";
 import { RISK_LABEL, errorMessage } from "@/lib/ea-map/assist";
 import type { EaGraph } from "@/lib/ea-map/graph";
+import { ImpactRules } from "./ImpactRules";
 import { cx, qc } from "./shared";
 import s from "./ea-assist.module.css";
 
@@ -87,6 +88,12 @@ function Result({ g, r, openNode, onShow }: { g: EaGraph; r: EaReleaseImpact; op
             {r.change.files} file · <span className={s.add}>+{r.change.additions}</span> <span className={s.del}>−{r.change.deletions}</span> · componente{" "}
             <button type="button" className={s.link} onClick={() => openNode(r.component.id)}>{r.component.name}</button>
             {r.component.product ? ` (${r.component.product})` : ""}
+          </p>
+          <p className={s.why}>
+            {r.risk_explain.summary}
+            {r.risk_explain.trigger.length > 0 && (
+              <> File che l’hanno deciso: {r.risk_explain.trigger.flatMap((t) => t.examples).slice(0, 3).join(", ")}.</>
+            )}
           </p>
           <div className={s.cats}>
             {r.categories.map((c) => (
@@ -183,6 +190,16 @@ function Result({ g, r, openNode, onShow }: { g: EaGraph; r: EaReleaseImpact; op
   );
 }
 
+function RulesBox() {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className={s.rules} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>Come si calcola il rischio</summary>
+      {open && <ImpactRules tableClass={s.rulesTbl} />}
+    </details>
+  );
+}
+
 export function EaImpact({ g, openNode, onShow }: Props) {
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<"link" | "tag">("link");
@@ -234,6 +251,8 @@ export function EaImpact({ g, openNode, onShow }: Props) {
           {analyse.isPending ? "Analisi in corso…" : "Analizza l’impatto"}
         </button>
       </form>
+
+      <RulesBox />
 
       {analyse.isError && (
         <div role="alert" className={s.alert}>{errorMessage(analyse.error, "Analisi non riuscita, riprova tra poco.")}</div>

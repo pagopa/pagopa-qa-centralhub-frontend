@@ -32,6 +32,7 @@ const RESULT: EaReleaseImpact = {
   change: { repo: "gpd-core", title: "Nuovo campo IUV", url: "https://github.com/pagopa/gpd-core/pull/7", ref: "PR #7", state: "open", files: 3, additions: 40, deletions: 2 },
   component: { id: "gpd-core", name: "GPD Core", product: "GPD", qa_score: 3 },
   risk: "alto",
+  risk_explain: { change_risk: "alto", trigger: [{ key: "contract", label: "Contratto API", files: 1, examples: ["openapi/openapi.json"] }], promoted: false, direct_callers: 1, promote_threshold: 5, summary: "La modifica tocca Contratto API (1): rischio alto." },
   categories: [{ key: "contract", label: "Contratto API", weight: 3, files: 1, examples: ["openapi/openapi.json"] }],
   impacted: [
     { id: "wisp", name: "WISP Converter", type: "component", product: "GPD", relation: "chiamante", relations: ["chiamante", "dipendenza"], depth: 1, via: "api", path: ["gpd-core", "wisp"], risk: "alto", reason: "", qa_score: 4 },
@@ -73,6 +74,8 @@ describe("EaImpact", () => {
     expect(await screen.findByText("Nuovo campo IUV")).toBeTruthy();
     expect(JSON.parse(mocks.apiClient.mock.calls[0][1].body)).toEqual({ url: "https://github.com/pagopa/gpd-core/pull/7" });
     expect(screen.getByText("Alto", { selector: "b" })).toBeTruthy();
+    expect(screen.getByText(/La modifica tocca Contratto API \(1\): rischio alto\./)).toBeTruthy();
+    expect(screen.getByText(/openapi\/openapi\.json/, { selector: "p *, p" })).toBeTruthy();
     expect(screen.getByText("integration/gpd")).toBeTruthy();
     expect(screen.getByText("dipendenza reciproca")).toBeTruthy();
     expect(screen.getByText(/Consigliate per gli impatti indiretti · 1/)).toBeTruthy();
@@ -94,5 +97,23 @@ describe("EaImpact", () => {
     fireEvent.click(screen.getByRole("button", { name: /analizza/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Il repository x non è nella mappa");
     expect(JSON.parse(mocks.apiClient.mock.calls[0][1].body)).toEqual({ repo: "x", base: "1.0.0", head: "main" });
+  });
+
+  it("loads and shows the calculation rules only when the box is opened", async () => {
+    mocks.apiClient.mockResolvedValue({
+      categories: [
+        { key: "contract", label: "Contratto API", weight: 3, risk: "alto", hint: "openapi, .proto" },
+        { key: "docs", label: "Documentazione", weight: 0, risk: "nessuno", hint: "file .md" },
+      ],
+      change_risk: [{ risk: "alto", categories: ["contract"] }],
+      promotion: { from: "medio", to: "alto", min_direct_callers: 5 },
+      depth: 3,
+    });
+    setup();
+    expect(mocks.apiClient).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Come si calcola il rischio"));
+    expect(await screen.findByText("openapi, .proto")).toBeTruthy();
+    expect(mocks.apiClient.mock.calls[0][0]).toBe("/api/v1/ea/impact/rules");
+    expect(screen.getByText(/almeno 5 chiamanti diretti/)).toBeTruthy();
   });
 });
