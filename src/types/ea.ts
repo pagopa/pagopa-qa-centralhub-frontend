@@ -363,7 +363,7 @@ export interface EaReleaseImpact {
   };
   component: { id: string; name: string; product: string | null; qa_score: number };
   risk: EaRisk;
-  risk_explain: EaRiskExplain;
+  risk_explain?: EaRiskExplain;
   categories: { key: string; label: string; weight: number; files: number; examples: string[] }[];
   impacted: EaImpactedNode[];
   suites: EaSuggestedSuite[];

@@ -51,7 +51,7 @@ function setup() {
   const onShow = vi.fn();
   const openNode = vi.fn();
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <EaImpact g={buildGraph(KB)} openNode={openNode} onShow={onShow} />
     </QueryClientProvider>,
   );
@@ -99,6 +99,34 @@ describe("EaImpact", () => {
     expect(JSON.parse(mocks.apiClient.mock.calls[0][1].body)).toEqual({ repo: "x", base: "1.0.0", head: "main" });
   });
 
+  it("keeps rendering when the backend does not return a risk explanation", async () => {
+    mocks.apiClient.mockResolvedValue({ ...RESULT, risk_explain: undefined });
+    setup();
+    fireEvent.change(screen.getByLabelText(/link della pull request/i), {
+      target: { value: "https://github.com/pagopa/gpd-core/pull/7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /analizza/i }));
+
+    expect(await screen.findByText("Nuovo campo IUV")).toBeTruthy();
+    expect(screen.getByText("Alto", { selector: "b" })).toBeTruthy();
+    expect(screen.queryByText(/La modifica tocca/)).toBeNull();
+  });
+
+  it("does not render a file explanation when the trigger list is empty", async () => {
+    mocks.apiClient.mockResolvedValue({
+      ...RESULT,
+      risk_explain: { ...RESULT.risk_explain, trigger: [] },
+    });
+    setup();
+    fireEvent.change(screen.getByLabelText(/link della pull request/i), {
+      target: { value: "https://github.com/pagopa/gpd-core/pull/7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /analizza/i }));
+
+    expect(await screen.findByText("Nuovo campo IUV")).toBeTruthy();
+    expect(screen.queryByText(/File che l’hanno deciso/)).toBeNull();
+  });
+
   it("loads and shows the calculation rules only when the box is opened", async () => {
     mocks.apiClient.mockResolvedValue({
       categories: [
@@ -115,6 +143,17 @@ describe("EaImpact", () => {
     expect(await screen.findByText("openapi, .proto")).toBeTruthy();
     expect(mocks.apiClient.mock.calls[0][0]).toBe("/api/v1/ea/impact/rules");
     expect(screen.getByText(/almeno 5 chiamanti diretti/)).toBeTruthy();
+    expect(screen.getByText(/Alto: Contratto API/)).toBeTruthy();
     expect(screen.getByText(/soli test o documentazione non viene propagato nessun impatto/)).toBeTruthy();
+  });
+
+  it("shows a clear error when the impact rules endpoint is unavailable", async () => {
+    mocks.apiClient.mockRejectedValue(new Error("rules unavailable"));
+    setup();
+    fireEvent.click(screen.getByText("Come si calcola il rischio"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Le regole di calcolo non sono disponibili in questo momento.",
+    );
   });
 });

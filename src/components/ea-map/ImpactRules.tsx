@@ -1,8 +1,7 @@
 "use client";
 
-/* How the risk of a release is rated. The categories, their rating and the promotion
-   threshold are read from the backend (the same rules the analysis applies), so this text
-   can never drift from the code. Shared by the Impact view and the guide. */
+/* Categories, change-risk mapping, promotion threshold and graph depth come from the backend.
+   Classification and propagation notes explain behavior not represented by that endpoint. */
 
 import { useEaImpactRules } from "@/hooks/useEaMap";
 import { RISK_LABEL } from "@/lib/ea-map/assist";
@@ -14,10 +13,6 @@ export function ImpactRules({ tableClass }: { tableClass?: string }) {
   const { min_direct_callers: min, from, to } = rules.promotion;
   return (
     <>
-      <p>
-        Ogni file cambiato ha <b>una sola categoria</b>: vale la prima riga della tabella che combacia con il suo percorso.
-        Il rischio della modifica è quello della categoria più grave presente; il numero di file e di righe cambiate non conta.
-      </p>
       <table className={tableClass}>
         <thead>
           <tr><th>Categoria</th><th>File riconosciuti</th><th>Rischio della modifica</th></tr>
@@ -32,13 +27,26 @@ export function ImpactRules({ tableClass }: { tableClass?: string }) {
           ))}
         </tbody>
       </table>
+      <p>Ogni file cambiato è assegnato a una categoria secondo l’ordine della tabella.</p>
+      <p><b>Rischio della modifica</b>: si applica la prima regola corrispondente:</p>
+      <ul>
+        {rules.change_risk.map((rule) => (
+          <li key={rule.risk}>
+            {RISK_LABEL[rule.risk]}:{" "}
+            {rule.categories
+              .map((key) => rules.categories.find((category) => category.key === key)?.label ?? key)
+              .join(", ")}
+          </li>
+        ))}
+      </ul>
       <p>
         <b>Promozione</b>: se la modifica è a rischio {RISK_LABEL[from].toLowerCase()} e il componente ha almeno{" "}
         {min} chiamanti diretti, il rischio finale diventa {RISK_LABEL[to].toLowerCase()}.
       </p>
       <p>
         <b>Elementi coinvolti</b> (fino a {rules.depth} passaggi nella mappa). Vale solo se il rischio della modifica non è
-        «nessuno»: per le modifiche di soli test o documentazione non viene propagato nessun impatto.
+        «nessuno»: per le modifiche di soli test o documentazione non viene propagato nessun impatto. I dettagli di
+        propagazione che seguono descrivono l’algoritmo attuale e sono testo mantenuto qui.
       </p>
       <ul>
         <li>

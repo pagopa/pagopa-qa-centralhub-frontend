@@ -89,12 +89,14 @@ function Result({ g, r, openNode, onShow }: { g: EaGraph; r: EaReleaseImpact; op
             <button type="button" className={s.link} onClick={() => openNode(r.component.id)}>{r.component.name}</button>
             {r.component.product ? ` (${r.component.product})` : ""}
           </p>
-          <p className={s.why}>
-            {r.risk_explain.summary}
-            {r.risk_explain.trigger.length > 0 && (
-              <> File che l’hanno deciso: {r.risk_explain.trigger.flatMap((t) => t.examples).slice(0, 3).join(", ")}.</>
-            )}
-          </p>
+          {r.risk_explain && (
+            <p className={s.why}>
+              {r.risk_explain.summary}
+              {r.risk_explain.trigger.length > 0 && (
+                <> File che l’hanno deciso: {r.risk_explain.trigger.flatMap((t) => t.examples).slice(0, 3).join(", ")}.</>
+              )}
+            </p>
+          )}
           <div className={s.cats}>
             {r.categories.map((c) => (
               <span key={c.key} className={cx(s.cat, c.weight >= 3 && s.catHot)} title={c.examples.join("\n")}>
