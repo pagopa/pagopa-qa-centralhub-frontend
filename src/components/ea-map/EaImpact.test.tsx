@@ -115,5 +115,6 @@ describe("EaImpact", () => {
     expect(await screen.findByText("openapi, .proto")).toBeTruthy();
     expect(mocks.apiClient.mock.calls[0][0]).toBe("/api/v1/ea/impact/rules");
     expect(screen.getByText(/almeno 5 chiamanti diretti/)).toBeTruthy();
+    expect(screen.getByText(/soli test o documentazione non viene propagato nessun impatto/)).toBeTruthy();
   });
 });

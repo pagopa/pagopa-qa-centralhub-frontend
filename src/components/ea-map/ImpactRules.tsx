@@ -37,7 +37,8 @@ export function ImpactRules({ tableClass }: { tableClass?: string }) {
         {min} chiamanti diretti, il rischio finale diventa {RISK_LABEL[to].toLowerCase()}.
       </p>
       <p>
-        <b>Elementi coinvolti</b> (fino a {rules.depth} passaggi nella mappa):
+        <b>Elementi coinvolti</b> (fino a {rules.depth} passaggi nella mappa). Vale solo se il rischio della modifica non è
+        «nessuno»: per le modifiche di soli test o documentazione non viene propagato nessun impatto.
       </p>
       <ul>
         <li>
