@@ -273,3 +273,13 @@ div.hlBar button {
   .dock button.fab, .panel .sugg button { transition: none; }
   .panel, .result { animation: none; }
 }
+
+/* Impact: why the risk is what it is, and how it is calculated */
+.why { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+.why code { font-size: 12px; }
+.rules { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 12px 16px; font-size: 13.5px; }
+.rules summary { cursor: pointer; font-weight: 600; }
+.rules p, .rules ul { margin-top: 8px; }
+.rules ul { padding-left: 18px; }
+.rulesTbl { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.rulesTbl th, .rulesTbl td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--border); }

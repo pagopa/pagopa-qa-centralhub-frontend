@@ -332,6 +332,24 @@ export interface EaSuggestedSuite {
   priority: number;
 }
 
+/** Why the change got its risk level (computed by the backend, with the files that decided it). */
+export interface EaRiskExplain {
+  change_risk: EaRisk;
+  trigger: { key: string; label: string; files: number; examples: string[] }[];
+  promoted: boolean;
+  direct_callers: number;
+  promote_threshold: number;
+  summary: string;
+}
+
+/** The rules the backend applies to rate a release: single source for the guide and the Impact view. */
+export interface EaImpactRules {
+  categories: { key: string; label: string; weight: number; risk: EaRisk; hint: string }[];
+  change_risk: { risk: EaRisk; categories: string[] }[];
+  promotion: { from: EaRisk; to: EaRisk; min_direct_callers: number };
+  depth: number;
+}
+
 export interface EaReleaseImpact {
   change: {
     repo: string;
@@ -345,6 +363,7 @@ export interface EaReleaseImpact {
   };
   component: { id: string; name: string; product: string | null; qa_score: number };
   risk: EaRisk;
+  risk_explain?: EaRiskExplain;
   categories: { key: string; label: string; weight: number; files: number; examples: string[] }[];
   impacted: EaImpactedNode[];
   suites: EaSuggestedSuite[];

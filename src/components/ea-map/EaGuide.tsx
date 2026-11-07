@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { isRuntime, type EaGraph } from "@/lib/ea-map/graph";
+import { ImpactRules } from "./ImpactRules";
 import { Crumbs, qc } from "./shared";
 import s from "./ea-map.module.css";
 
@@ -146,11 +147,14 @@ export function EaGuide({ g, goTo }: { g: EaGraph; goTo: (id: string | null) => 
             <p>Dalla vista <b>Impatto</b> si incolla il link di una pull request o di un confronto GitHub, oppure si sceglie un repository e due tag. Il repository deve essere un componente della mappa.</p>
             <ul>
               <li><b>File cambiati</b>: letti da GitHub e classificati in contratto API (OpenAPI, WSDL, proto…), dati e schema (migration, SQL), configurazione e deploy (Helm, Terraform, Dockerfile), codice, pipeline, test e documentazione.</li>
-              <li><b>Rischio della modifica</b>: alto se cambia un contratto o uno schema, medio per codice o configurazione, basso per le sole pipeline, nessuno per test e documentazione.</li>
+              <li><b>Rischio della modifica</b>: alto se cambia un contratto o uno schema, medio per codice o configurazione, basso per le sole pipeline, nessuno per test e documentazione. Il dettaglio delle regole è nella sezione «Come si calcola il rischio» qui sotto.</li>
               <li><b>Chi può rompersi</b>: i componenti che chiamano quello modificato. Il rischio è pieno per i chiamanti diretti e scende di un livello a ogni passaggio; i dataset alimentati dal componente sono a rischio alto se cambia il contratto.</li>
               <li><b>Cosa testare</b>: le suite centrali, NRT e i test nei repository che coprono i componenti coinvolti, più i test di performance se il rischio è medio o alto. Gli elementi senza test di integrazione sono segnalati come lacune.</li>
               <li><b>Processi e servizi</b>: i processi del Blueprint e i servizi coinvolti, con il link alla pagina SANP.</li>
             </ul>
+
+            <h3>Come si calcola il rischio</h3>
+            <ImpactRules tableClass={s.gTbl} />
 
             <h3>Live</h3>
             <p>L’interruttore <b>Live</b> colora la mappa con gli esiti delle run di test che il QA Hub già raccoglie (regressione notturna, suite centrali TAS, pipeline). Si sceglie l’ambiente (di default DEV); vengono considerate le run degli ultimi 7 giorni.</p>
