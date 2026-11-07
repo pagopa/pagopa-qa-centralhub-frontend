@@ -37,7 +37,7 @@ const details: NrtsListObject = {
   test_execution: [],
 };
 
-function renderPanel(isTasOnly = false) {
+function renderPanel(isTasOnly = false, origin?: "TAS" | "QG") {
   const fetchJiraIssue = vi.fn().mockResolvedValue(false);
   const handleIssueInputChange = vi.fn();
   render(
@@ -56,6 +56,7 @@ function renderPanel(isTasOnly = false) {
       handleIssueInputChange={handleIssueInputChange}
       handleRevisionNoteChange={vi.fn()}
       isTasOnly={isTasOnly}
+      origin={origin}
     />,
   );
   return { fetchJiraIssue, handleIssueInputChange };
@@ -68,6 +69,16 @@ function getTicketField(label: string) {
 }
 
 describe("NrtDetailsPanel", () => {
+  it("hides the product ticket for Quality Gate runs", () => {
+    renderPanel(true, "QG");
+    expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
+  });
+
+  it("keeps the product ticket for TAS runs", () => {
+    renderPanel(true, "TAS");
+    expect(screen.getByText("Ticket prodotto:")).toBeInTheDocument();
+  });
+
   it.each([
     ["product", "Ticket prodotto:", "PROD-123", false, "Ticket QA:"],
     ["qa", "Ticket QA:", "QA-456", true, "Ticket prodotto:"],

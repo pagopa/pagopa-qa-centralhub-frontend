@@ -14,8 +14,13 @@ import {
 import {
   NRT_REVISION_RESULT_OPTIONS,
   NRT_TABLE_HEADERS,
+  QG_HIDDEN_COLUMN_IDS,
+  QG_REVISION_RESULT_OPTIONS,
 } from "@/utils/nrtsCostants";
-import { Check, X } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useDeleteQualityGateRun } from "@/hooks/useQualityGate";
+import { DeleteRunDialog } from "./DeleteRunDialog";
 import { useSession } from "next-auth/react";
 import { ChangeEvent, Fragment, useState } from "react";
 import { NrtDetailsPanel } from "./NrtDetailsPanel";
@@ -87,7 +92,18 @@ export default function NrtsTable({
 const jiraIssue = useJiraIssue();
 const updateNrt = useUpdateNrt();
 const saveFlakyScenarios = useSaveFlakyScenarios();
-const visibleColumns = NRT_TABLE_HEADERS.filter((column) => !isTasOnly || column.visibleInTas);
+const isQualityGate = origin === "QG";
+const visibleColumns = NRT_TABLE_HEADERS.filter((column) =>
+  isQualityGate
+    ? column.id === "result" || (column.visibleInTas && !QG_HIDDEN_COLUMN_IDS.has(column.id))
+    : !isTasOnly || column.visibleInTas,
+);
+const resultOptions = isQualityGate ? QG_REVISION_RESULT_OPTIONS : NRT_REVISION_RESULT_OPTIONS;
+const { can } = usePermissions();
+const canDeleteRuns = isQualityGate && can("run:qg");
+const deleteRun = useDeleteQualityGateRun();
+const [runToDelete, setRunToDelete] = useState<NrtsListObject | null>(null);
+const columnCount = visibleColumns.length + (canDeleteRuns ? 1 : 0);
 const visibleColumnIds = new Set<string>(visibleColumns.map((column) => column.id));
 const { data: session } = useSession();
 const email = session?.user?.email ?? "";
@@ -104,9 +120,24 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
         ? { ...nrt, test_run: { ...nrt.test_run, revision_result: event.target.value } }
         : nrt
     );
-    setModifiedRunIds(new Set([...modifiedRunIds, modifiedTestRun?.id ?? ""]));
+    const updatedRunIds = new Set([...modifiedRunIds, modifiedTestRun?.id ?? ""]);
+    setModifiedRunIds(updatedRunIds);
     onNrtsChange(modifiedRuns);
     onModifiedChange(true);
+    // Quality Gate has no Save button: the outcome is persisted as soon as it changes.
+    if (isQualityGate) handleSave(modifiedRuns, updatedRunIds);
+  }
+
+  function handleConfirmDelete() {
+    if (!runToDelete) return;
+    const runId = runToDelete.test_run.id;
+    deleteRun.mutate(runId, {
+      onSuccess: () => {
+        setRunToDelete(null);
+        if (selectedNrt === runId) onRowClick?.(undefined);
+        onNrtsChange([]);
+      },
+    });
   }
 
 
@@ -232,6 +263,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                   {visibleColumns.map((column) => (
                     <NrtColumnHeader key={column.id} label={column.label} description={column.description} />
                   ))}
+                  {canDeleteRuns && <th scope="col" className="w-10 px-3 py-2"><span className="sr-only">Azioni</span></th>}
                 </tr>
               </thead>
               <tbody>
@@ -284,15 +316,29 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                       onKeyDown={(event) => event.stopPropagation()}
                       style={{ backgroundColor: getRevisionResultBackgroundColor(nrt.test_run.revision_result ?? "") }}
                       >
-                      {NRT_REVISION_RESULT_OPTIONS.map(({ value, label }) => (
+                      {resultOptions.map(({ value, label }) => (
                         <option key={value} value={value} style={{ backgroundColor: "var(--surface)", color: "var(--text)" }}>{label}</option>
                       ))}
                     </select></td>}
                       {visibleColumnIds.has("revision") && <td className="px-3 py-2 text-text-muted">{nrt.test_run.revisioned ? <Check className="text-success" size={16} /> : <X className="text-danger" size={16} />}</td>}
+                      {canDeleteRuns && (
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            aria-label={`Elimina la run ${nrt.test_suite.test_object} del ${formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}`}
+                            title="Elimina run"
+                            className="rounded-sm p-1 text-text-muted transition hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                            onClick={(event) => { event.stopPropagation(); deleteRun.reset(); setRunToDelete(nrt); }}
+                            onKeyDown={(event) => event.stopPropagation()}
+                          >
+                            <Trash2 size={16} aria-hidden />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                     {isSelected && (
                       <tr className="border-b border-border bg-subtle">
-                        <td colSpan={visibleColumns.length} className="p-4">
+                        <td colSpan={columnCount} className="p-4">
                           <NrtDetailsPanel
                             details={nrt}
                             isLoading={isDetailsLoading}
@@ -322,6 +368,13 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
           </div>
 
           <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
+          <DeleteRunDialog
+            runLabel={runToDelete ? `${runToDelete.test_suite.test_object.toUpperCase()} del ${formatNrtTimestamp(runToDelete.test_run.timestamp_start?.replace('T', ' '))}` : null}
+            isDeleting={deleteRun.isPending}
+            hasError={deleteRun.isError}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setRunToDelete(null)}
+          />
         </>
         );
   }

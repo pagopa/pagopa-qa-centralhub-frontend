@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api";
 import { INPUT_CLASS, SELECT_CLASS, PRIMARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import {
   useLaunchQualityGateRun,
-  useQualityGateRunStatus,
+  useQualityGateRuns,
   type QualityGateRunStatus,
   type QualityGateEnvironment,
   type QualityGateTestType,
@@ -55,22 +55,37 @@ function describeRun(status?: QualityGateRunStatus): { label: string; tone: Tone
   }
 }
 
-function RunStatus({ correlationId, runName, actionsUrl }: { correlationId: string; runName: string; actionsUrl: string }) {
-  const { data, isError } = useQualityGateRunStatus(correlationId);
-  const { label, tone, busy } = describeRun(data);
-  const link = data?.html_url ?? actionsUrl;
+function formatStarted(createdAt: string | null): string {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("it-IT");
+}
+
+function RunsList({ runs }: { runs: QualityGateRunStatus[] }) {
+  if (runs.length === 0) return null;
   return (
-    <div role="status" className="flex flex-wrap items-center gap-3 text-[13px] text-text-dim">
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${TONE_CLASS[tone]}`}>
-        {busy && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
-        {label}
-      </span>
-      <span className="font-mono text-[12px]">{runName}</span>
-      <a href={link} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-        Apri su GitHub Actions
-      </a>
-      {isError && <span className="text-text-muted">Stato non disponibile, riprovo…</span>}
-      {!busy && <span className="text-text-muted">La lista qui sotto è stata aggiornata.</span>}
+    <div className="flex flex-col gap-2">
+      <p className="font-mono uppercase text-text-muted" style={{ fontSize: 10, letterSpacing: ".06em" }}>
+        Run in corso e recenti
+      </p>
+      <ul aria-label="Run Quality Gate recenti" className="flex flex-col gap-1.5">
+        {runs.map((run) => {
+          const { label, tone, busy } = describeRun(run);
+          return (
+            <li key={run.correlation_id} className="flex flex-wrap items-center gap-3 text-[13px] text-text-dim">
+              <span className={`inline-flex min-w-44 items-center gap-1.5 rounded-full px-2.5 py-1 font-medium ${TONE_CLASS[tone]}`}>
+                {busy && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+                {label}
+              </span>
+              <span className="font-mono text-[12px]">{run.run_name}</span>
+              <span className="text-text-muted">{formatStarted(run.created_at)}</span>
+              <a href={run.html_url ?? undefined} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                Apri su GitHub Actions
+              </a>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -83,6 +98,24 @@ export function QualityGateLaunchPanel({ suites = [] }: { suites?: string[] }) {
   const [tags, setTags] = useState("@runnable");
   const [allure, setAllure] = useState(true);
   const launch = useLaunchQualityGateRun();
+  const pendingId = launch.isSuccess ? launch.data.correlation_id : undefined;
+  const { data: listedRuns = [], isError: hasRunsError } = useQualityGateRuns(pendingId);
+  // A run just dispatched is not listed by GitHub for a few seconds: show it as starting meanwhile.
+  const runs: QualityGateRunStatus[] =
+    launch.isSuccess && !listedRuns.some((r) => r.correlation_id === launch.data.correlation_id)
+      ? [
+          {
+            correlation_id: launch.data.correlation_id,
+            run_name: launch.data.run_name,
+            state: "pending",
+            conclusion: null,
+            html_url: launch.data.actions_url,
+            created_at: null,
+            updated_at: null,
+          },
+          ...listedRuns,
+        ]
+      : listedRuns;
 
   const suiteValue = suite.trim().toLowerCase();
   const isValid = SUITE_PATTERN.test(suiteValue) && TAGS_PATTERN.test(tags);
@@ -151,12 +184,9 @@ export function QualityGateLaunchPanel({ suites = [] }: { suites?: string[] }) {
           {launch.isPending ? "Avvio…" : "Lancia"}
         </button>
       </div>
-      {launch.isSuccess && (
-        <RunStatus
-          correlationId={launch.data.correlation_id}
-          runName={launch.data.run_name}
-          actionsUrl={launch.data.actions_url}
-        />
+      <RunsList runs={runs} />
+      {hasRunsError && (
+        <p className="text-[13px] text-text-muted">Stato delle run non disponibile, riprovo…</p>
       )}
       {launch.isError && (
         <p role="alert" className="text-[13px] text-danger">{errorMessage(launch.error)}</p>

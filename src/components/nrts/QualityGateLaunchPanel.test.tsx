@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   mutate: vi.fn(),
   state: {} as Record<string, unknown>,
   runStatus: {} as Record<string, unknown>,
+  runsHookArgs: vi.fn(),
 }));
 
 vi.mock("@/hooks/useQualityGate", () => ({
@@ -17,7 +18,10 @@ vi.mock("@/hooks/useQualityGate", () => ({
     isError: false,
     ...mocks.state,
   }),
-  useQualityGateRunStatus: () => ({ data: undefined, isError: false, ...mocks.runStatus }),
+  useQualityGateRuns: (...args: unknown[]) => {
+    mocks.runsHookArgs(...args);
+    return { data: undefined, isError: false, ...mocks.runStatus };
+  },
 }));
 
 describe("QualityGateLaunchPanel", () => {
@@ -54,26 +58,35 @@ describe("QualityGateLaunchPanel", () => {
     data: { correlation_id: "qg-abc", run_name: "tas-qg-abc", actions_url: "https://github.com/x/actions" },
   };
 
-  function status(state: string, conclusion: string | null = null) {
+  function run(id: string, state: string, conclusion: string | null = null) {
     return {
-      data: {
-        correlation_id: "qg-abc",
-        run_name: "tas-qg-abc",
-        state,
-        conclusion,
-        html_url: "https://github.com/x/actions/runs/1",
-        created_at: null,
-        updated_at: null,
-      },
+      correlation_id: `qg-${id}`,
+      run_name: `tas-qg-${id}`,
+      state,
+      conclusion,
+      html_url: `https://github.com/x/actions/runs/${id}`,
+      created_at: "2026-11-03T10:00:00Z",
+      updated_at: null,
     };
   }
 
-  it("shows the run name, a starting state and the Actions link after a launch", () => {
+  it("shows a just-launched run as starting until GitHub lists it", () => {
     mocks.state = launched;
     render(<QualityGateLaunchPanel />);
-    expect(screen.getByRole("status")).toHaveTextContent("tas-qg-abc");
-    expect(screen.getByRole("status")).toHaveTextContent("Avvio in corso");
+    const item = screen.getByRole("listitem");
+    expect(item).toHaveTextContent("tas-qg-abc");
+    expect(item).toHaveTextContent("Avvio in corso");
     expect(screen.getByRole("link", { name: /GitHub Actions/ })).toHaveAttribute("href", "https://github.com/x/actions");
+    expect(mocks.runsHookArgs).toHaveBeenCalledWith("qg-abc");
+  });
+
+  it("lists active and recent runs even without a launch in this page", () => {
+    mocks.runStatus = { data: [run("1", "in_progress"), run("2", "completed", "failure")] };
+    render(<QualityGateLaunchPanel />);
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("In esecuzione");
+    expect(items[1]).toHaveTextContent("Fallita");
   });
 
   it.each([
@@ -83,10 +96,22 @@ describe("QualityGateLaunchPanel", () => {
     ["completed", "failure", "Fallita"],
     ["completed", "cancelled", "Annullata"],
   ])("renders the live state %s/%s", (state, conclusion, label) => {
-    mocks.state = launched;
-    mocks.runStatus = status(state, conclusion);
+    mocks.runStatus = { data: [run("1", state, conclusion)] };
     render(<QualityGateLaunchPanel />);
-    expect(screen.getByRole("status")).toHaveTextContent(label);
+    expect(screen.getByRole("listitem")).toHaveTextContent(label);
     expect(screen.getByRole("link", { name: /GitHub Actions/ })).toHaveAttribute("href", "https://github.com/x/actions/runs/1");
+  });
+
+  it("does not duplicate a launched run once it is listed", () => {
+    mocks.state = launched;
+    mocks.runStatus = { data: [run("abc", "queued")] };
+    render(<QualityGateLaunchPanel />);
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByRole("listitem")).toHaveTextContent("In coda");
+  });
+
+  it("shows nothing when there are no runs", () => {
+    render(<QualityGateLaunchPanel />);
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 });

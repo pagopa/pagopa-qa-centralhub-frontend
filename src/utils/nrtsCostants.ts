@@ -33,6 +33,20 @@ export const NRT_REVISION_RESULT_OPTIONS = [
   { value: "PENDING", label: "PENDING" },
 ] as const;
 
+// Quality Gate wording for the same persisted values (OK -> GO, KO -> NOGO).
+export const QG_REVISION_RESULT_OPTIONS = [
+  { value: "OK", label: "GO" },
+  { value: "KO", label: "NOGO" },
+  { value: "PENDING", label: "PENDING" },
+] as const;
+
+// Columns not shown in the Quality Gate list.
+export const QG_HIDDEN_COLUMN_IDS: ReadonlySet<string> = new Set([
+  "trigger",
+  "origin",
+  "productIssueStatus",
+]);
+
 export const NRT_REVISION_RESULT_BACKGROUND_COLORS: Record<string, string> = {
   OK: "color-mix(in oklch, var(--success) 70%, transparent)",
   KO: "color-mix(in oklch, var(--danger) 70%, transparent)",
