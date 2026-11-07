@@ -9,7 +9,7 @@ import { SuiteCard } from "@/components/nrts/SuiteCard";
 import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 import type { RunOrigin } from "@/utils/nrtUtils";
 import { ApiError } from "@/lib/api";
-import { SELECT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { SELECT_CLASS, PRIMARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { RefreshCw } from "lucide-react";
 
 export interface OriginNrtsPageProps {
@@ -139,7 +139,7 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
             onClick={handleRefresh}
             disabled={isRefreshing}
             aria-label="Aggiorna elenco"
-            className={SECONDARY_BUTTON_CLASS}
+            className={PRIMARY_BUTTON_CLASS}
           >
             <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
             Aggiorna
