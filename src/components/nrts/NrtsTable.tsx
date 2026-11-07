@@ -9,6 +9,7 @@ import {
   calculatePassRateColor,
   formatNrtTimestamp,
   getRevisionResultBackgroundColor,
+  type RunOrigin,
 } from "@/utils/nrtUtils";
 import {
   NRT_REVISION_RESULT_OPTIONS,
@@ -63,6 +64,7 @@ interface NrtsTableProps {
   page: number;
   setPage: (page: number) => void;
   isTasOnly: boolean;
+  origin?: RunOrigin;
   flakyScenariosData: FlakyScenario[];
 }
 
@@ -79,6 +81,7 @@ export default function NrtsTable({
   page,
   setPage,
   isTasOnly,
+  origin = "TAS",
   flakyScenariosData,
 }: NrtsTableProps) {
 const jiraIssue = useJiraIssue();
@@ -305,6 +308,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                             handleIssueInputChange={handleIssueInputChange}
                             handleRevisionNoteChange={handleScenarioRevisionNoteChange}
                             isTasOnly={isTasOnly}
+                            origin={origin}
                           />
                         </td>
                       </tr>

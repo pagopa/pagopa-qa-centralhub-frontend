@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { NrtsListObject } from "@/types";
-import { buildAllureRunUrl } from "@/utils/nrtUtils";
+import { buildAllureRunUrl, type RunOrigin } from "@/utils/nrtUtils";
 
 interface RunModalProps {
   run: NrtsListObject | null;
@@ -16,6 +16,7 @@ interface RunModalProps {
   reportUrl?: string;
   reportTitle?: string;
   isTasOnly: boolean;
+  origin?: RunOrigin;
 }
 
 function fmtDuration(durationMs: number | null): string {
@@ -38,13 +39,14 @@ export function RunModal({
   reportUrl,
   reportTitle = "Allure report",
   isTasOnly,
+  origin = "TAS",
 }: RunModalProps) {
   if (!run) return null;
 
   const { test_run: testRun, test_suite: suite } = run;
   const allureUrl = reportUrl ?? testRun.allure_url ?? (
     testRun.timestamp_start
-      ? buildAllureRunUrl(testRun, suite.test_object, isTasOnly)
+      ? buildAllureRunUrl(testRun, suite.test_object, isTasOnly, origin)
       : null
   );
 

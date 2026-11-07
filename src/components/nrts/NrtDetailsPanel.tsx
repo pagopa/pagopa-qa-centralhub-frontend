@@ -8,6 +8,7 @@ import {
   buildAllureRunUrl,
   buildAllureScenarioUrl,
   buildAiAnalysisUrl,
+  type RunOrigin,
   createFlakyScenario,
   formatNrtTimestamp,
   isFlakyScenarioEqual,
@@ -36,6 +37,7 @@ export function NrtDetailsPanel({
   handleIssueInputChange,
   handleRevisionNoteChange,
   isTasOnly,
+  origin = "TAS",
 }: {
   details?: NrtsListObject;
   isLoading: boolean;
@@ -51,6 +53,7 @@ export function NrtDetailsPanel({
   handleIssueInputChange: (event: ChangeEvent<HTMLInputElement>, runId: string, field: "product" | "qa") => void;
   handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) => void;
   isTasOnly: boolean;
+  origin?: RunOrigin;
 }) {
   const [jiraIssueNotFound, setJiraIssueNotFound] = useState({ product: false, qa: false });
   const [activeReport, setActiveReport] = useState<{ url: string; title: string } | null>(null);
@@ -150,7 +153,7 @@ export function NrtDetailsPanel({
           </dl>     
            <div className="flex justify-center space-x-7 px-10 py-3 text-center " onClick={(e) => e.stopPropagation()}>
                     <a
-                      href={details.test_run.allure_url == null ? buildAllureRunUrl(details.test_run, suite.test_object, isTasOnly) : details.test_run?.allure_url ?? ""}
+                      href={details.test_run.allure_url == null ? buildAllureRunUrl(details.test_run, suite.test_object, isTasOnly, origin) : details.test_run?.allure_url ?? ""}
                       onClick={(event) => openReport(event, "Allure report")}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -158,7 +161,7 @@ export function NrtDetailsPanel({
                       📊 Allure
                     </a>
                     <a
-                      href={buildAiAnalysisUrl(details.test_run, suite.test_object, isTasOnly)}
+                      href={buildAiAnalysisUrl(details.test_run, suite.test_object, isTasOnly, origin)}
                       onClick={(event) => openReport(event, "AI Analysis")}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -227,6 +230,7 @@ export function NrtDetailsPanel({
         reportUrl={activeReport?.url}
         reportTitle={activeReport?.title}
         isTasOnly={isTasOnly}
+        origin={origin}
       />
     </div>
   );
