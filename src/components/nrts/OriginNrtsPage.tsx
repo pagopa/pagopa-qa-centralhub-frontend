@@ -9,6 +9,8 @@ import { SuiteCard } from "@/components/nrts/SuiteCard";
 import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 import type { RunOrigin } from "@/utils/nrtUtils";
 import { ApiError } from "@/lib/api";
+import { SELECT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { RefreshCw } from "lucide-react";
 
 export interface OriginNrtsPageProps {
   origin: RunOrigin;
@@ -31,7 +33,7 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
     isError: hasDetailsError,
   } = useNrtDetailsScenarios(selectedNrtId);
   const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
-  const { data: nrtsData, isLoading, error } = useNrts({
+  const { data: nrtsData, isLoading, error, refetch: refetchNrts, isFetching: isFetchingNrts } = useNrts({
         origin,
         test_object: selectedSuite,
         page: page
@@ -41,11 +43,20 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
   );
   const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
-  const { data: suitesData, isLoading: suitesLoading } = useNrtsSuites({
+  const { data: suitesData, isLoading: suitesLoading, refetch: refetchSuites, isFetching: isFetchingSuites } = useNrtsSuites({
     origin
   });
   const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState<NrtsListObject[]>([]);
     
+  const isRefreshing = isFetchingNrts || isFetchingSuites;
+
+  function handleRefresh() {
+    // Drop locally cached row edits so the refreshed rows are shown as returned by the backend.
+    setNrtsWithSelectedDetails([]);
+    setIsModified(false);
+    void Promise.all([refetchNrts(), refetchSuites()]);
+  }
+
   function handleNrtsChange(nrts: NrtsListObject[]) {
       setNrtsWithSelectedDetails(nrts);
   
@@ -112,9 +123,9 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
           </div>
         )}
       </div>
-      <div className="flex flex-col w-full gap-5">
+      <div className="flex w-full items-center gap-3">
           <select
-            className="w-50 rounded-[var(--radius-sm)] border border-border bg-surface text-text text-base px-2 py-1"
+            className={`${SELECT_CLASS} w-56`}
             value={selectedSuite ?? ""}
             onChange={(e) => handleSuiteCardClick(e.target.value)}
           >
@@ -123,6 +134,16 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
               <option key={s} value={s}>{s.toUpperCase()}</option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-label="Aggiorna elenco"
+            className={SECONDARY_BUTTON_CLASS}
+          >
+            <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
+            Aggiorna
+          </button>
     </div>
     {(error != null && !isEmptyResult(error) ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
     <NrtsTable
