@@ -88,15 +88,26 @@ function getAllureSubfolder(testObject: string): string {
         ?? `${normalizedTestObject}-tests`;
 }
 
-export function buildAllureRunUrl(testRun: TestRun, testObject: string, isTasOnly: boolean): string {
+export type RunOrigin = "TAS" | "QG";
+
+// TAS and QG reports are published as <origin>/<suite>/<timestamp>/.
+function buildRunFolder(testObject: string, isTasOnly: boolean, origin: RunOrigin): string {
+    return isTasOnly ? `${origin}/${testObject.trim().toLowerCase()}` : getAllureSubfolder(testObject);
+}
+
+export function buildAllureRunUrl(testRun: TestRun, testObject: string, isTasOnly: boolean, origin: RunOrigin = "TAS"): string {
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-    const folder = isTasOnly ? "TAS" : getAllureSubfolder(testObject);
+    const folder = buildRunFolder(testObject, isTasOnly, origin);
     return `${NRT_ALLURE_REPORT_BASE_URL}/${folder}/${timestamp}/index.html`;
 }
 
-export function buildAiAnalysisUrl(testRun: TestRun, testObject: string, isTasOnly: boolean): string {
+export function buildAiAnalysisUrl(testRun: TestRun, testObject: string, isTasOnly: boolean, origin: RunOrigin = "TAS"): string {
+    // The stored report URL is authoritative for TAS/QG runs: the analysis lives next to it.
+    if (isTasOnly && testRun.allure_url) {
+        return `${testRun.allure_url.replace(/index\.html$/, "").replace(/\/?$/, "/")}analysis/index.html`;
+    }
     const timestamp = testRun.timestamp_start?.replace("T", " ").replace(" ", "_");
-    const folder = isTasOnly ? "TAS" : getAllureSubfolder(testObject);
+    const folder = buildRunFolder(testObject, isTasOnly, origin);
     return `${NRT_ALLURE_REPORT_BASE_URL}/${folder}/${timestamp}/analysis/index.html`;
 }
 

@@ -105,6 +105,14 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
   },
   {
+    href: "/quality-gate",
+    icon: ShieldCheck,
+    label: "Quality Gate",
+    description: "Esecuzioni del Quality Gate e lancio del TAS come gate.",
+    color: "var(--success)",
+    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
+  },
+  {
     href: "/jira",
     icon: LayoutGrid,
     label: "KPI Jira",
