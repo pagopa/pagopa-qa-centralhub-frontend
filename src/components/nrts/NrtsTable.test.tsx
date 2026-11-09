@@ -116,19 +116,34 @@ describe("NrtsTable (Quality Gate)", () => {
     expect(within(row).getAllByText(/03\/11\/2026/)).toHaveLength(2);
   });
 
-  it("offers Allure, AI Analysis and report icons on every Quality Gate row", () => {
+  it("offers Allure, AI Analysis and report icons on a Quality Gate row with failures", () => {
     mocks.can.mockReturnValue(false);
-    renderTable("QG");
+    renderTable("QG", [makeRun({ passed_scenario: 9, failed_scenario: 1 })]);
     expect(screen.getByRole("link", { name: /report Allure di checkout/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /AI Analysis di checkout/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /report Quality Gate di checkout/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /report Quality Gate di checkout/ })).toBeInTheDocument();
   });
 
-  it("opens the Quality Gate report popup from the row icon", async () => {
+  it("hides the AI Analysis icon when the run has no failing scenarios", () => {
+    mocks.can.mockReturnValue(false);
+    renderTable("QG");
+    expect(screen.queryByRole("link", { name: /AI Analysis di checkout/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /report Allure di checkout/ })).toBeInTheDocument();
+  });
+
+  it("counts broken and skipped scenarios as failures for the AI Analysis icon", () => {
+    mocks.can.mockReturnValue(false);
+    renderTable("QG", [makeRun({ passed_scenario: 8, broken_scenario: 1, skipped_scenario: 1 })]);
+    expect(screen.getByRole("link", { name: /AI Analysis di checkout/ })).toBeInTheDocument();
+  });
+
+  it("links the report icon to the shareable report page without selecting the row", async () => {
     const { onRowClick } = renderTable("QG");
-    await userEvent.click(screen.getByRole("button", { name: /report Quality Gate di checkout/ }));
+    const link = screen.getByRole("link", { name: /report Quality Gate di checkout/ });
+    expect(link).toHaveAttribute("href", "/quality-gate/report/run-1");
+    link.addEventListener("click", (event) => event.preventDefault());
+    await userEvent.click(link);
     expect(onRowClick).not.toHaveBeenCalled();
-    expect(await screen.findByText("Caricamento del report…")).toBeInTheDocument();
   });
 
   it("keeps trigger and origin on the TAS list without the outcome", () => {

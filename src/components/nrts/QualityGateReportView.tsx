@@ -1,18 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Download, ExternalLink, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { PRIMARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { Check, Copy, Download, ExternalLink, Loader2 } from "lucide-react";
+import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { useQualityGateRunScenarios } from "@/hooks/useQualityGate";
-import type { NrtsListObject } from "@/types";
 import {
   buildQualityGateReportData,
+  type QualityGateRunDetail,
   ghaRunId,
   type QualityGateOutcome,
   type QualityGateReportData,
@@ -67,20 +61,28 @@ function SectionTitle({ tone, children }: { tone: string; children: React.ReactN
   );
 }
 
-interface QualityGateReportDialogProps {
-  run: NrtsListObject | null;
-  open: boolean;
-  onClose: () => void;
+interface QualityGateReportViewProps {
+  run: QualityGateRunDetail;
 }
 
-/** Popup report of a Quality Gate run, with a button to download it as PDF. */
-export function QualityGateReportDialog({ run, open, onClose }: QualityGateReportDialogProps) {
-  const { data: scenarios, isLoading, isError } = useQualityGateRunScenarios(run?.test_run.id, open);
+/** Report of a Quality Gate run, with a button to download it as PDF and one to copy its link. */
+export function QualityGateReportView({ run }: QualityGateReportViewProps) {
+  const { data: scenarios, isLoading, isError } = useQualityGateRunScenarios(run.test_run.id);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFailed, setDownloadFailed] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  if (!run) return null;
   const report = scenarios ? buildQualityGateReportData(run, scenarios) : null;
+
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setLinkCopied(false);
+    }
+  }
 
   async function handleDownload() {
     if (!report) return;
@@ -97,13 +99,8 @@ export function QualityGateReportDialog({ run, open, onClose }: QualityGateRepor
   }
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent
-        className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0"
-        style={{ width: "min(960px, 92vw)", maxWidth: "min(960px, 92vw)" }}
-      >
-        <DialogHeader className="border-b border-border px-5 py-4">
-          <DialogTitle className="sr-only">Report Quality Gate</DialogTitle>
+    <article className="overflow-hidden rounded-[var(--radius)] border border-border bg-surface">
+      <header className="border-b border-border px-5 py-4">
           {report ? (
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -128,9 +125,9 @@ export function QualityGateReportDialog({ run, open, onClose }: QualityGateRepor
           ) : (
             <p className="text-base font-semibold text-text">Report Quality Gate</p>
           )}
-        </DialogHeader>
+      </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <div className="px-5 py-4">
           {isLoading && (
             <p className="flex items-center gap-2 text-[13px] text-text-muted">
               <Loader2 size={14} className="animate-spin" aria-hidden /> Caricamento del report…
@@ -226,6 +223,15 @@ export function QualityGateReportDialog({ run, open, onClose }: QualityGateRepor
           <span className="text-[11px] text-text-muted">
             {downloadFailed ? <span role="alert" className="text-danger">Impossibile generare il PDF. Riprova.</span> : "Il PDF contiene lo stesso riepilogo e le liste degli scenari."}
           </span>
+          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className={SECONDARY_BUTTON_CLASS}
+            onClick={handleCopyLink}
+          >
+            {linkCopied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
+            {linkCopied ? "Link copiato" : "Copia link"}
+          </button>
           <button
             type="button"
             className={PRIMARY_BUTTON_CLASS}
@@ -235,8 +241,8 @@ export function QualityGateReportDialog({ run, open, onClose }: QualityGateRepor
             {isDownloading ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Download size={16} aria-hidden />}
             Scarica PDF
           </button>
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </article>
   );
 }

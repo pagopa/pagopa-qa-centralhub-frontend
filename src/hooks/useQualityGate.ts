@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
+import type { QualityGateRunDetail } from "@/utils/qualityGateReport";
 
 export type QualityGateTestType = "integration" | "e2e" | "api";
 export type QualityGateEnvironment = "dev" | "uat";
@@ -116,5 +117,16 @@ export function useQualityGateRunScenarios(runId: string | undefined, enabled = 
     staleTime: 60_000,
     queryFn: () =>
       apiClient<QualityGateScenario[]>(`/api/v1/quality-gate/test-runs/${runId}/scenarios`),
+  });
+}
+
+/** A single Quality Gate run with its suite: backs the shareable report page. */
+export function useQualityGateRun(runId: string | undefined) {
+  return useQuery({
+    queryKey: ["quality-gate-run", runId],
+    enabled: Boolean(runId),
+    staleTime: 60_000,
+    retry: false,
+    queryFn: () => apiClient<QualityGateRunDetail>(`/api/v1/quality-gate/test-runs/${runId}`),
   });
 }

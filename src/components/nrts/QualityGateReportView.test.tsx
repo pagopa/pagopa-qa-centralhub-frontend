@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { NrtsListObject } from "@/types";
-import { QualityGateReportDialog } from "./QualityGateReportDialog";
+import { QualityGateReportView } from "./QualityGateReportView";
 
 const longName = "Scenario_" + "x".repeat(200);
 const longError = "https://example.org/" + "y".repeat(200);
@@ -44,9 +44,9 @@ const run: NrtsListObject = {
   test_execution: [],
 };
 
-describe("QualityGateReportDialog", () => {
+describe("QualityGateReportView", () => {
   it("lets long scenario names and errors wrap inside zero-minimum grid tracks", () => {
-    render(<QualityGateReportDialog run={run} open onClose={() => {}} />);
+    render(<QualityGateReportView run={run} />);
     const name = screen.getByText(longName);
     const error = screen.getByText(longError);
     expect(name).toHaveClass("break-words");
@@ -56,7 +56,7 @@ describe("QualityGateReportDialog", () => {
   });
 
   it("shows the KO and OK sections with the outcome", () => {
-    render(<QualityGateReportDialog run={run} open onClose={() => {}} />);
+    render(<QualityGateReportView run={run} />);
     expect(screen.getByRole("region", { name: "Scenari KO" })).toHaveTextContent("(1)");
     expect(screen.getByRole("region", { name: "Scenari OK" })).toHaveTextContent("ok one");
     expect(screen.getByText("PENDING")).toBeInTheDocument();
