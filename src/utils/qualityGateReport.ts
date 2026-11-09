@@ -2,6 +2,9 @@ import type { NrtsListObject } from "@/types";
 import type { QualityGateScenario } from "@/hooks/useQualityGate";
 import { calculatePassRate, formatNrtDuration, formatNrtTimestamp } from "@/utils/nrtUtils";
 
+/** What the report needs of a run: the run itself and its suite. */
+export type QualityGateRunDetail = Pick<NrtsListObject, "test_run" | "test_suite">;
+
 export type QualityGateOutcome = "GO" | "NOGO" | "PENDING";
 
 export interface QualityGateReportData {
@@ -34,7 +37,7 @@ const dash = "—";
 
 /** Builds everything the on-screen report and the PDF show, from the table row and its scenarios. */
 export function buildQualityGateReportData(
-  run: NrtsListObject,
+  run: QualityGateRunDetail,
   scenarios: QualityGateScenario[],
 ): QualityGateReportData {
   const { test_run: testRun, test_suite: suite } = run;
