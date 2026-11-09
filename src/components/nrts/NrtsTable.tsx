@@ -5,6 +5,8 @@ import { useJiraIssue } from "@/hooks/useJira";
 import { useSaveFlakyScenarios, useUpdateNrt } from "@/hooks/useNrts";
 import type { FlakyScenario, NrtsListObject, TestExecution, TestRun } from "@/types";
 import {
+  buildAiAnalysisUrl,
+  buildAllureRunUrl,
   calculatePassRate,
   calculatePassRateColor,
   formatNrtTimestamp,
@@ -14,17 +16,22 @@ import {
 import {
   NRT_REVISION_RESULT_OPTIONS,
   NRT_TABLE_HEADERS,
-  QG_HIDDEN_COLUMN_IDS,
   QG_REVISION_RESULT_OPTIONS,
+  QG_TABLE_HEADERS,
 } from "@/utils/nrtsCostants";
-import { Check, Trash2, X } from "lucide-react";
+import { BarChart3, Bot, Check, FileText, Trash2, X } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useDeleteQualityGateRun } from "@/hooks/useQualityGate";
 import { DeleteRunDialog } from "./DeleteRunDialog";
+import { QualityGateReportDialog } from "./QualityGateReportDialog";
+import { RunModal } from "./RunModal";
 import { useSession } from "next-auth/react";
-import { ChangeEvent, Fragment, useState } from "react";
+import { ChangeEvent, Fragment, type MouseEvent, useState } from "react";
 import { NrtDetailsPanel } from "./NrtDetailsPanel";
 import NrtSaveButton from "./NrtSaveButton";
+
+const ROW_ICON_CLASS =
+  "rounded-sm p-1 text-text-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 function NrtColumnHeader({ label, description }: { label: string; description: string }) {
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -93,18 +100,25 @@ const jiraIssue = useJiraIssue();
 const updateNrt = useUpdateNrt();
 const saveFlakyScenarios = useSaveFlakyScenarios();
 const isQualityGate = origin === "QG";
-const visibleColumns = NRT_TABLE_HEADERS.filter((column) =>
-  isQualityGate
-    ? column.id === "result" || (column.visibleInTas && !QG_HIDDEN_COLUMN_IDS.has(column.id))
-    : !isTasOnly || column.visibleInTas,
-);
+const visibleColumns: ReadonlyArray<{ id: string; label: string; description: string }> = isQualityGate
+  ? QG_TABLE_HEADERS
+  : NRT_TABLE_HEADERS.filter((column) => !isTasOnly || column.visibleInTas);
+const visibleColumnIds = new Set<string>(visibleColumns.map((column) => column.id));
 const resultOptions = isQualityGate ? QG_REVISION_RESULT_OPTIONS : NRT_REVISION_RESULT_OPTIONS;
 const { can } = usePermissions();
 const canDeleteRuns = isQualityGate && can("run:qg");
 const deleteRun = useDeleteQualityGateRun();
 const [runToDelete, setRunToDelete] = useState<NrtsListObject | null>(null);
-const columnCount = visibleColumns.length + (canDeleteRuns ? 1 : 0);
-const visibleColumnIds = new Set<string>(visibleColumns.map((column) => column.id));
+const columnCount = visibleColumns.length + (isQualityGate ? 1 : 0);
+const [activeReport, setActiveReport] = useState<{ run: NrtsListObject; url: string; title: string } | null>(null);
+const [reportRun, setReportRun] = useState<NrtsListObject | null>(null);
+
+function openReportModal(event: MouseEvent<HTMLAnchorElement>, run: NrtsListObject, title: string) {
+  event.stopPropagation();
+  if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  setActiveReport({ run, url: event.currentTarget.href, title });
+}
 const { data: session } = useSession();
 const email = session?.user?.email ?? "";
 const [modifiedScenarios, setModifiedScenarios] = useState<TestExecution[]>([]);
@@ -263,7 +277,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                   {visibleColumns.map((column) => (
                     <NrtColumnHeader key={column.id} label={column.label} description={column.description} />
                   ))}
-                  {canDeleteRuns && <th scope="col" className="w-10 px-3 py-2"><span className="sr-only">Azioni</span></th>}
+                  {isQualityGate && <th scope="col" className="px-3 py-2"><span className="sr-only">Azioni</span></th>}
                 </tr>
               </thead>
               <tbody>
@@ -289,9 +303,14 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                       {visibleColumnIds.has("suite") && <td className="px-3 py-2 font-semibold text-text whitespace-nowrap">
                         {nrt.test_suite.test_object.toUpperCase()}
                       </td>}
+                      {visibleColumnIds.has("type") && <td className="px-3 py-2 text-text-dim">{nrt.test_suite.test_type || "—"}</td>}
                       {visibleColumnIds.has("date") && <td className="px-3 py-2 text-text-dim font-mono text-[12px] whitespace-nowrap">
                         {formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}
                       </td>}
+                      {visibleColumnIds.has("end") && <td className="px-3 py-2 text-text-dim font-mono text-[12px] whitespace-nowrap">
+                        {formatNrtTimestamp(nrt.test_run.timestamp_end?.replace('T', ' ')) ?? "—"}
+                      </td>}
+                      {visibleColumnIds.has("testObjectVersion") && <td className="px-3 py-2 text-text-dim font-mono text-[12px]">{nrt.test_suite.test_object_version || "—"}</td>}
                       {visibleColumnIds.has("total") && <td className="px-3 py-2 font-mono float-center">{nrt.test_run.scenario_qty}</td>}
                       {visibleColumnIds.has("passed") && <td className="px-3 py-2 font-mono text-success">{nrt.test_run.passed_scenario}</td>}
                       {visibleColumnIds.has("failed") && <td className="px-3 py-2 font-mono text-danger">{nrt.test_run.failed_scenario}</td>}
@@ -321,18 +340,52 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                       ))}
                     </select></td>}
                       {visibleColumnIds.has("revision") && <td className="px-3 py-2 text-text-muted">{nrt.test_run.revisioned ? <Check className="text-success" size={16} /> : <X className="text-danger" size={16} />}</td>}
-                      {canDeleteRuns && (
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            aria-label={`Elimina la run ${nrt.test_suite.test_object} del ${formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}`}
-                            title="Elimina run"
-                            className="rounded-sm p-1 text-text-muted transition hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                            onClick={(event) => { event.stopPropagation(); deleteRun.reset(); setRunToDelete(nrt); }}
-                            onKeyDown={(event) => event.stopPropagation()}
-                          >
-                            <Trash2 size={16} aria-hidden />
-                          </button>
+                      {isQualityGate && (
+                        <td className="px-3 py-2">
+                          <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                            <a
+                              href={nrt.test_run.allure_url ?? buildAllureRunUrl(nrt.test_run, nrt.test_suite.test_object, isTasOnly, origin)}
+                              onClick={(event) => openReportModal(event, nrt, "Allure report")}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Apri il report Allure di ${nrt.test_suite.test_object}`}
+                              title="Report Allure"
+                              className={ROW_ICON_CLASS}
+                            >
+                              <BarChart3 size={16} aria-hidden />
+                            </a>
+                            <a
+                              href={buildAiAnalysisUrl(nrt.test_run, nrt.test_suite.test_object, isTasOnly, origin)}
+                              onClick={(event) => openReportModal(event, nrt, "AI Analysis")}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Apri l'AI Analysis di ${nrt.test_suite.test_object}`}
+                              title="AI Analysis"
+                              className={ROW_ICON_CLASS}
+                            >
+                              <Bot size={16} aria-hidden />
+                            </a>
+                            <button
+                              type="button"
+                              aria-label={`Apri il report Quality Gate di ${nrt.test_suite.test_object}`}
+                              title="Report Quality Gate"
+                              className={ROW_ICON_CLASS}
+                              onClick={() => setReportRun(nrt)}
+                            >
+                              <FileText size={16} aria-hidden />
+                            </button>
+                            {canDeleteRuns && (
+                              <button
+                                type="button"
+                                aria-label={`Elimina la run ${nrt.test_suite.test_object} del ${formatNrtTimestamp(nrt.test_run.timestamp_start?.replace('T', ' '))}`}
+                                title="Elimina run"
+                                className={`${ROW_ICON_CLASS} hover:!text-danger`}
+                                onClick={() => { deleteRun.reset(); setRunToDelete(nrt); }}
+                              >
+                                <Trash2 size={16} aria-hidden />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -368,6 +421,16 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
           </div>
 
           <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
+          <RunModal
+            run={activeReport?.run ?? null}
+            open={activeReport !== null}
+            onClose={() => setActiveReport(null)}
+            reportUrl={activeReport?.url}
+            reportTitle={activeReport?.title}
+            isTasOnly={isTasOnly}
+            origin={origin}
+          />
+          <QualityGateReportDialog run={reportRun} open={reportRun !== null} onClose={() => setReportRun(null)} />
           <DeleteRunDialog
             runLabel={runToDelete ? `${runToDelete.test_suite.test_object.toUpperCase()} del ${formatNrtTimestamp(runToDelete.test_run.timestamp_start?.replace('T', ' '))}` : null}
             isDeleting={deleteRun.isPending}

@@ -21,6 +21,7 @@ import {
 } from "@/utils/nrtsCostants";
 import {DetailField} from "./DetailField";
 import { JiraIssueField } from "./JiraIssueField";
+import { ghaRunId } from "@/utils/qualityGateReport";
 
 export function NrtDetailsPanel({
   details,
@@ -123,20 +124,42 @@ export function NrtDetailsPanel({
     <div className="flex flex-col ">
       <div>
         <h2 className="mb-2 text-[12px] font-semibold uppercase text-text-muted">Suite e run</h2>
+        {origin === "QG" ? (
+        <dl className="grid gap-x-6 gap-y-2 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+          <DetailField label="Ambiente" value={details.test_run?.env} />
+          <DetailField label="Versione test suite" value={details.test_run?.test_version} />
+          <DetailField label="Revisore" value={details.test_run.revisioned_by ?? "-"} />
+          <div>
+            <dt className="text-text-muted">Esecuzione GitHub Actions</dt>
+            <dd className="text-text">
+              {details.test_run.gha_run_url ? (
+                <a
+                  href={details.test_run.gha_run_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Run #{ghaRunId(details.test_run.gha_run_url) ?? "—"} <ArrowUpRight className="inline" size={14} aria-hidden />
+                </a>
+              ) : "—"}
+            </dd>
+          </div>
+        </dl>
+        ) : (
+          <>
         <dl className="grid gap-x-6 gap-y-2 text-[12px] sm:grid-cols-2 lg:grid-cols-5">
           <DetailField label="Tipo suite" value={suite.test_type} />
           <DetailField label="Test object" value={suite.test_object} />
           <DetailField label="Versione test object" value={suite.test_object_version} />
           <DetailField label="Team owner" value={suite.owner_team} />
-          {origin !== "QG" && (
-            <JiraIssueField
-              field="product"
-              value={details.test_run?.product_issue ?? ""}
-              issueNotFound={jiraIssueNotFound.product}
-              onBlur={(event) => checkJiraIssue(event.target.value, false)}
-              onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, product: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "product"); }}
-            />
-          )}
+          <JiraIssueField
+            field="product"
+            value={details.test_run?.product_issue ?? ""}
+            issueNotFound={jiraIssueNotFound.product}
+            onBlur={(event) => checkJiraIssue(event.target.value, false)}
+            onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, product: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "product"); }}
+          />
           <DetailField label="Ambiente" value={details.test_run?.env} />
           <DetailField label="Versione test suite" value={details.test_run?.test_version} />
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
@@ -171,14 +194,16 @@ export function NrtDetailsPanel({
                       🤖 AI Analysis
                     </a>
           </div> 
+          </>
+        )}
       </div>
 
       <div>
         <h2 className="mb-2 text-[12px] font-semibold uppercase text-text-muted">
-          Scenari <span className="font-mono">({details.test_execution?.length ?? 0})</span>
+          {origin === "QG" ? "Scenari falliti" : "Scenari"} <span className="font-mono">({details.test_execution?.length ?? 0})</span>
         </h2>
         {details.test_execution?.length === 0 ? (
-          <p className="text-[12px] text-text-muted">Nessuno scenario associato a questa run.</p>
+          <p className="text-[12px] text-text-muted">{origin === "QG" ? "Nessuno scenario fallito." : "Nessuno scenario associato a questa run."}</p>
         ) : (
           <div className="max-h-64 overflow-auto rounded-[var(--radius-sm)] border border-border">
             <table className="w-full border-collapse text-[12px]">

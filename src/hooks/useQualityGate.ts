@@ -96,3 +96,25 @@ export function useDeleteQualityGateRun() {
     },
   });
 }
+
+export interface QualityGateScenario {
+  id: string;
+  scenario_name: string | null;
+  /** PASSED | FAILED | BROKEN | SKIPPED (upper case, as stored). */
+  status: string | null;
+  duration_ms: number | null;
+  retries: number | null;
+  error_message: string | null;
+  allure_url: string | null;
+}
+
+/** All scenarios of a Quality Gate run (passed ones included), used by the run report. */
+export function useQualityGateRunScenarios(runId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["quality-gate-run-scenarios", runId],
+    enabled: enabled && Boolean(runId),
+    staleTime: 60_000,
+    queryFn: () =>
+      apiClient<QualityGateScenario[]>(`/api/v1/quality-gate/test-runs/${runId}/scenarios`),
+  });
+}
