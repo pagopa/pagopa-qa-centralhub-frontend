@@ -1,5 +1,8 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+/** Where the backend is reached from the browser (the gateway URL in deployed environments). */
+export const API_BASE_URL = BASE_URL;
+
 export class ApiError extends Error {
   constructor(
     public status: number,

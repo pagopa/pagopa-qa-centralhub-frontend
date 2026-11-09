@@ -10,6 +10,7 @@ const FEATURE_ROUTES = [
   { route: "/data-quality/domains", key: "dq_domains" },
   { route: "/ea-map", key: "ea_map" },
   { route: "/docs", key: "docs" },
+  { route: "/api-docs", key: "api_docs" },
 ] as const;
 
 export function featureKeyForPath(pathname: string): string | null {
