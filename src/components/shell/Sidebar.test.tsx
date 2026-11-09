@@ -27,7 +27,7 @@ const featureItems = [
   ["settings_gherkin", "Settings Gherkin", "/settings/bdd", "manage:bdd", false],
   ["ea_map", "EA Map", "/ea-map", "view:ea_map", false],
   ["docs", "Docs & Decks", "/docs", "view:docs", false],
-  ["api_docs", "API Docs", "/api/v1/docs", "view:api_docs", true],
+  ["api_docs", "API Docs", "/api-docs", "view:api_docs", false],
 ] as const;
 
 function renderSidebar() {
@@ -85,6 +85,15 @@ describe("Sidebar feature visibility", () => {
     expect(link.querySelector(".lucide-external-link")).toBeInTheDocument();
     const labels = screen.getAllByRole("link").map((item) => item.textContent?.trim());
     expect(labels.indexOf("NRT Metrics")).toBe(labels.indexOf("SANP Health") + 1);
+  });
+
+  it("opens API Docs as an internal page, not as a link to the backend", async () => {
+    renderSidebar();
+
+    const link = await screen.findByRole("link", { name: "API Docs" });
+    expect(link).toHaveAttribute("href", "/api-docs");
+    expect(link).not.toHaveAttribute("target");
+    expect(link.querySelector(".lucide-external-link")).not.toBeInTheDocument();
   });
 
   it.each([undefined, "", "   "])(
@@ -160,7 +169,7 @@ describe("Sidebar feature visibility", () => {
     expect(screen.queryByRole("link", { name: "NRT Metrics" })).not.toBeInTheDocument();
   });
 
-  it("hides the external API Docs link when its feature is disabled", async () => {
+  it("hides the API Docs link when its feature is disabled", async () => {
     mocks.apiClient.mockResolvedValue({
       items: featureItems.map(([key, label, route, action, external]) => ({
         key,

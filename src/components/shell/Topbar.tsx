@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/bugs": "Defect Tracker",
   "/releases": "Releases",
   "/docs": "Docs & Decks",
+  "/api-docs": "API Docs",
   "/ea-map": "EA Map",
   "/settings/bdd": "Settings · Gherkin Generator",
   "/settings/team": "Settings · Team",

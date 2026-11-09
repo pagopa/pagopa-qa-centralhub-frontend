@@ -9,7 +9,6 @@ import { fmtNumberIt } from "@/lib/format";
 import {  LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network, ClipboardCheck, Workflow } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function NrtsAvgPassRateStatusCard() {
   const { data, isLoading } = useNrtsAvgPassRate();
@@ -153,13 +152,12 @@ const NAV_TILES = [
     bg: "color-mix(in oklch, var(--success) 10%, transparent)",
   },
   {
-    href: `${API_BASE_URL}/api/v1/docs`,
+    href: "/api-docs",
     icon: BookOpen,
     label: "API Docs",
     description: "Documentazione interattiva (Swagger UI) delle API del backend QA Hub.",
     color: "var(--info)",
     bg: "color-mix(in oklch, var(--info) 10%, transparent)",
-    external: true,
   },
 ];
 
@@ -239,20 +237,6 @@ export default function OverviewPage() {
                 </div>
               </div>
             );
-
-            if (tile.external) {
-              return (
-                <a
-                  key={tile.href}
-                  href={tile.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="no-underline group"
-                >
-                  {content}
-                </a>
-              );
-            }
 
             return (
               <Link key={tile.href} href={tile.href} className="no-underline group">

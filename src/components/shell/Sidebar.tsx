@@ -31,7 +31,6 @@ import { useStoredFlag } from "@/lib/stored-flag";
 
 const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEFAULT_NRT_METRICS_URL =
   "https://pagopa-u-weu-grafana-cpavbjb0axhrdcg3.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&var-test_object=fdr3&editIndex=0&tab=transformations&kiosk";
 
@@ -97,7 +96,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
       { href: "/settings/ea-assistant", label: "Settings Pagoda", icon: Sparkles, requiresSuperadmin: true },
       { href: "/settings/tm-resources", label: "Risorse T&M", icon: Receipt, requiresSuperadmin: true },
-      { href: `${API_BASE_URL}/api/v1/docs`, label: "API Docs", icon: BookOpen, external: true, action: "view:api_docs", featureKey: "api_docs" },
+      { href: "/api-docs", label: "API Docs", icon: BookOpen, action: "view:api_docs", featureKey: "api_docs" },
     ],
   },
 ];

@@ -12,6 +12,7 @@ describe("featureKeyForPath", () => {
     ["/data-quality/domains", "dq_domains"],
     ["/settings/bdd", "settings_gherkin"],
     ["/settings/users", null],
+    ["/api-docs", "api_docs"],
   ])("maps %s to feature %s", (pathname, expectedKey) => {
     expect(featureKeyForPath(pathname)).toBe(expectedKey);
   });

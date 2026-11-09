@@ -32,7 +32,7 @@ const featureItems = [
   {
     key: "api_docs",
     label: "API Docs",
-    route: "/api/v1/docs",
+    route: "/api-docs",
     action: "view:api_docs",
     external: true,
     enabled: true,
