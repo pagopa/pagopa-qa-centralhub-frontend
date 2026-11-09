@@ -130,3 +130,19 @@ export function useQualityGateRun(runId: string | undefined) {
     queryFn: () => apiClient<QualityGateRunDetail>(`/api/v1/quality-gate/test-runs/${runId}`),
   });
 }
+
+export interface QualityGateSuites {
+  /** False when the backend could not read the TAS repository: do not restrict the choice then. */
+  available: boolean;
+  /** Launchable suites with the test types each one has. */
+  suites: Record<string, QualityGateTestType[]>;
+}
+
+/** Suites that exist in the TAS repository with their test types, for the launch form. */
+export function useQualityGateSuites() {
+  return useQuery({
+    queryKey: ["quality-gate-suites"],
+    staleTime: 60_000,
+    queryFn: () => apiClient<QualityGateSuites>("/api/v1/quality-gate/suites"),
+  });
+}

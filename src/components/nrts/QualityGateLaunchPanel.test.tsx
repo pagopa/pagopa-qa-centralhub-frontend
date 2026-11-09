@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api";
 import { QualityGateLaunchPanel } from "./QualityGateLaunchPanel";
 
 const mocks = vi.hoisted(() => ({
@@ -8,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   state: {} as Record<string, unknown>,
   runStatus: {} as Record<string, unknown>,
   runsHookArgs: vi.fn(),
+  catalog: undefined as unknown,
 }));
 
 vi.mock("@/hooks/useQualityGate", () => ({
@@ -18,6 +20,7 @@ vi.mock("@/hooks/useQualityGate", () => ({
     isError: false,
     ...mocks.state,
   }),
+  useQualityGateSuites: () => ({ data: mocks.catalog }),
   useQualityGateRuns: (...args: unknown[]) => {
     mocks.runsHookArgs(...args);
     return { data: undefined, isError: false, ...mocks.runStatus };
@@ -29,6 +32,7 @@ describe("QualityGateLaunchPanel", () => {
     mocks.mutate.mockReset();
     mocks.state = {};
     mocks.runStatus = {};
+    mocks.catalog = undefined;
   });
 
   it("disables launch until the suite name is valid", async () => {
@@ -113,5 +117,53 @@ describe("QualityGateLaunchPanel", () => {
   it("shows nothing when there are no runs", () => {
     render(<QualityGateLaunchPanel />);
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  describe("with the TAS suite catalog", () => {
+    beforeEach(() => {
+      mocks.catalog = { available: true, suites: { checkout: ["e2e"], wisp: ["integration", "e2e"] } };
+    });
+
+    const typeNames = () => screen.getAllByRole("option", { hidden: true })
+      .filter((o) => ["integration", "e2e", "api"].includes(o.textContent ?? ""))
+      .map((o) => o.textContent);
+
+    it("offers only the test types the suite has and submits one of them", async () => {
+      render(<QualityGateLaunchPanel />);
+      await userEvent.type(screen.getByLabelText("Suite"), "checkout");
+      expect(typeNames()).toEqual(["e2e"]);
+      await userEvent.click(screen.getByRole("button", { name: "Lancia" }));
+      expect(mocks.mutate).toHaveBeenCalledWith(expect.objectContaining({ test_suite: "checkout", test_type: "e2e" }));
+    });
+
+    it("keeps every type for a suite that has them all", async () => {
+      render(<QualityGateLaunchPanel />);
+      await userEvent.type(screen.getByLabelText("Suite"), "wisp");
+      expect(typeNames()).toEqual(["integration", "e2e"]);
+    });
+
+    it("blocks the launch and says so when the suite does not exist in the TAS repository", async () => {
+      render(<QualityGateLaunchPanel />);
+      await userEvent.type(screen.getByLabelText("Suite"), "nope");
+      expect(screen.getByRole("status")).toHaveTextContent("non esiste nel repository TAS");
+      expect(screen.getByRole("button", { name: "Lancia" })).toBeDisabled();
+    });
+
+    it("does not restrict anything when the repository could not be read", async () => {
+      mocks.catalog = { available: false, suites: {} };
+      render(<QualityGateLaunchPanel />);
+      await userEvent.type(screen.getByLabelText("Suite"), "anything");
+      expect(typeNames()).toEqual(["integration", "e2e", "api"]);
+      expect(screen.getByRole("button", { name: "Lancia" })).toBeEnabled();
+    });
+  });
+
+  it("shows the reason given by the backend when the launch is rejected with 422", () => {
+    mocks.state = {
+      isError: true,
+      error: new ApiError(422, { detail: "Suite 'checkout' has no 'integration' tests (available: e2e)" }),
+    };
+    render(<QualityGateLaunchPanel />);
+    expect(screen.getByRole("alert")).toHaveTextContent("available: e2e");
   });
 });
