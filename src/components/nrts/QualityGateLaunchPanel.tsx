@@ -7,6 +7,7 @@ import { INPUT_CLASS, SELECT_CLASS, PRIMARY_BUTTON_CLASS } from "@/components/ui
 import {
   useLaunchQualityGateRun,
   useQualityGateRuns,
+  useQualityGateSuites,
   type QualityGateRunStatus,
   type QualityGateEnvironment,
   type QualityGateTestType,
@@ -21,7 +22,11 @@ const ENVIRONMENTS: QualityGateEnvironment[] = ["dev", "uat"];
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 503) return "Lancio non configurato sul backend (token GitHub mancante).";
-    if (error.status === 422) return "Parametri non validi o suite non lanciabile.";
+    if (error.status === 422) {
+      // The backend explains a suite/type mismatch ("Suite 'x' has no 'y' tests (available: ...)").
+      const detail = (error.body as { detail?: unknown } | null)?.detail;
+      return typeof detail === "string" ? detail : "Parametri non validi o suite non lanciabile.";
+    }
     if (error.status === 502) return "GitHub ha rifiutato l'avvio del workflow.";
   }
   return "Impossibile avviare il Quality Gate.";
@@ -117,13 +122,24 @@ export function QualityGateLaunchPanel({ suites = [] }: { suites?: string[] }) {
         ]
       : listedRuns;
 
+  const { data: catalogData } = useQualityGateSuites();
+  // Null when the TAS repository could not be read: the choice is then not restricted.
+  const catalog = catalogData?.available ? catalogData.suites : null;
+
   const suiteValue = suite.trim().toLowerCase();
-  const isValid = SUITE_PATTERN.test(suiteValue) && TAGS_PATTERN.test(tags);
+  const suiteFormatOk = SUITE_PATTERN.test(suiteValue);
+  const suiteUnknown = catalog !== null && suiteFormatOk && !(suiteValue in catalog);
+  const typeOptions: QualityGateTestType[] =
+    catalog !== null && suiteValue in catalog ? catalog[suiteValue] : TEST_TYPES;
+  // The selected type follows the suite: if it does not exist for it, fall back to one that does.
+  const effectiveType = typeOptions.includes(testType) ? testType : typeOptions[0];
+  const suggestions = catalog !== null ? Object.keys(catalog) : suites;
+  const isValid = suiteFormatOk && !suiteUnknown && TAGS_PATTERN.test(tags);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!isValid || launch.isPending) return;
-    launch.mutate({ test_suite: suiteValue, test_type: testType, environment, tags, allure });
+    launch.mutate({ test_suite: suiteValue, test_type: effectiveType, environment, tags, allure });
   }
 
   return (
@@ -147,15 +163,15 @@ export function QualityGateLaunchPanel({ suites = [] }: { suites?: string[] }) {
             required
           />
           <datalist id="qg-suites">
-            {suites.map((s) => (
+            {suggestions.map((s) => (
               <option key={s} value={s} />
             ))}
           </datalist>
         </label>
         <label className="flex flex-col gap-1.5 text-[13px] font-medium text-text-dim">
           Tipo di test
-          <select className={SELECT_CLASS} value={testType} onChange={(e) => setTestType(e.target.value as QualityGateTestType)}>
-            {TEST_TYPES.map((t) => (
+          <select className={SELECT_CLASS} value={effectiveType} onChange={(e) => setTestType(e.target.value as QualityGateTestType)}>
+            {typeOptions.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -184,6 +200,11 @@ export function QualityGateLaunchPanel({ suites = [] }: { suites?: string[] }) {
           {launch.isPending ? "Avvio…" : "Lancia"}
         </button>
       </div>
+      {suiteUnknown && (
+        <p role="status" className="text-[13px] text-warning">
+          La suite «{suiteValue}» non esiste nel repository TAS.
+        </p>
+      )}
       <RunsList runs={runs} />
       {hasRunsError && (
         <p className="text-[13px] text-text-muted">Stato delle run non disponibile, riprovo…</p>
