@@ -21,6 +21,10 @@ const OUTCOME_COLOR: Record<QualityGateOutcome, Rgb> = {
 };
 
 const PAGE_MARGIN = 14;
+// Space kept free at the bottom for the footer (rule at -12 mm, text at -7 mm).
+const FOOTER_RESERVE = 16;
+// Room needed below a section heading for the heading itself and the first rows or message.
+const MIN_SECTION_HEIGHT = 20;
 
 /**
  * Builds the Quality Gate report as a vector PDF (selectable text, multiple pages).
@@ -141,7 +145,13 @@ export async function buildQualityGateReportPdf(data: QualityGateReportData) {
 
   const sectionTitle = (text: string, color: Rgb) => {
     const lastY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y;
-    const top = lastY + 9;
+    let top = lastY + 9;
+    // AutoTable only paginates its own rows: start a new page when the heading and the
+    // first content would not fit above the footer.
+    if (top + MIN_SECTION_HEIGHT > pageHeight - FOOTER_RESERVE) {
+      doc.addPage();
+      top = PAGE_MARGIN + 4;
+    }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...color);

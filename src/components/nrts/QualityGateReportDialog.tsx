@@ -178,8 +178,8 @@ export function QualityGateReportDialog({ run, open, onClose }: QualityGateRepor
                 ) : (
                   <div className="overflow-hidden rounded-[var(--radius-sm)] border border-border text-[12px]">
                     {report.koScenarios.map((s) => (
-                      <div key={s.id} className="grid grid-cols-[2fr_70px_3fr] gap-3 border-b border-border px-3 py-2 last:border-0">
-                        <span className="text-text">{s.scenario_name ?? "—"}</span>
+                      <div key={s.id} className="grid grid-cols-[minmax(0,2fr)_70px_minmax(0,3fr)] gap-3 border-b border-border px-3 py-2 last:border-0">
+                        <span className="break-words text-text">{s.scenario_name ?? "—"}</span>
                         <span className={(s.status ?? "").toUpperCase() === "BROKEN" ? "text-warning" : "text-danger"}>
                           {(s.status ?? "").toLowerCase()}
                         </span>
