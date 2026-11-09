@@ -18,6 +18,7 @@ vi.mock("@/hooks/useNrts", () => ({
   useSaveFlakyScenarios: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("@/hooks/useQualityGate", () => ({
+  useQualityGateRunScenarios: () => ({ data: undefined, isLoading: true, isError: false }),
   useDeleteQualityGateRun: () => ({
     mutate: mocks.deleteMutate,
     reset: vi.fn(),
@@ -83,18 +84,57 @@ describe("NrtsTable (Quality Gate)", () => {
     mocks.deleteMutate.mockReset();
   });
 
-  it("hides trigger, origin and product ticket status and shows the outcome", () => {
+  it("lists the Quality Gate columns in the requested order", () => {
     renderTable("QG");
-    const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
-    expect(headers).not.toContain("Trigger");
-    expect(headers).not.toContain("Origine");
-    expect(headers).not.toContain("Prod. ticket status");
-    expect(headers).toContain("Esito");
+    const headers = screen
+      .getAllByRole("columnheader")
+      .map((h) => h.textContent)
+      .filter(Boolean);
+    expect(headers).toEqual([
+      "Suite",
+      "Tipologia",
+      "Inizio",
+      "Fine",
+      "Ver. test object",
+      "Totale",
+      "Passed",
+      "Failed",
+      "Broken",
+      "Skipped",
+      "Pass rate",
+      "Esito",
+      "Azioni",
+    ]);
+  });
+
+  it("shows type, end time and test object version in the row", () => {
+    renderTable("QG", [makeRun()]);
+    const row = screen.getAllByRole("row")[1];
+    expect(within(row).getByText("e2e")).toBeInTheDocument();
+    expect(within(row).getByText("1")).toBeInTheDocument();
+    // start (Inizio) and end (Fine) are both rendered
+    expect(within(row).getAllByText(/03\/11\/2026/)).toHaveLength(2);
+  });
+
+  it("offers Allure, AI Analysis and report icons on every Quality Gate row", () => {
+    mocks.can.mockReturnValue(false);
+    renderTable("QG");
+    expect(screen.getByRole("link", { name: /report Allure di checkout/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /AI Analysis di checkout/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /report Quality Gate di checkout/ })).toBeInTheDocument();
+  });
+
+  it("opens the Quality Gate report popup from the row icon", async () => {
+    const { onRowClick } = renderTable("QG");
+    await userEvent.click(screen.getByRole("button", { name: /report Quality Gate di checkout/ }));
+    expect(onRowClick).not.toHaveBeenCalled();
+    expect(await screen.findByText("Caricamento del report…")).toBeInTheDocument();
   });
 
   it("keeps trigger and origin on the TAS list without the outcome", () => {
     renderTable("TAS");
     const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
+    expect(headers).not.toContain("Tipologia");
     expect(headers).toContain("Trigger");
     expect(headers).toContain("Origine");
     expect(headers).not.toContain("Esito");

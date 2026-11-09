@@ -674,6 +674,7 @@ export interface TestRun {
   product_issue_status: string | null;
   qa_issue: string | null;
   qa_issue_status: string | null;
+  gha_run_url?: string | null;
 }
 
 export interface TestExecution {

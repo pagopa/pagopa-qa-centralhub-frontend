@@ -40,12 +40,21 @@ export const QG_REVISION_RESULT_OPTIONS = [
   { value: "PENDING", label: "PENDING" },
 ] as const;
 
-// Columns not shown in the Quality Gate list.
-export const QG_HIDDEN_COLUMN_IDS: ReadonlySet<string> = new Set([
-  "trigger",
-  "origin",
-  "productIssueStatus",
-]);
+// Columns of the Quality Gate list, in display order.
+export const QG_TABLE_HEADERS = [
+  { id: "suite", label: "Suite", description: "Suite di test" },
+  { id: "type", label: "Tipologia", description: "Tipologia della suite (es. integration, e2e)" },
+  { id: "date", label: "Inizio", description: "Data e ora di inizio della run" },
+  { id: "end", label: "Fine", description: "Data e ora di fine della run" },
+  { id: "testObjectVersion", label: "Ver. test object", description: "Versione del test object" },
+  { id: "total", label: "Totale", description: "Totale scenari" },
+  { id: "passed", label: "Passed", description: "Scenari passati" },
+  { id: "failed", label: "Failed", description: "Scenari falliti" },
+  { id: "broken", label: "Broken", description: "Scenari interrotti" },
+  { id: "skipped", label: "Skipped", description: "Scenari saltati" },
+  { id: "passRate", label: "Pass rate", description: "Percentuale di passaggio" },
+  { id: "result", label: "Esito", description: "Esito del Quality Gate (GO, NOGO, PENDING)" },
+] as const satisfies ReadonlyArray<{ id: string; label: string; description: string }>;
 
 export const NRT_REVISION_RESULT_BACKGROUND_COLORS: Record<string, string> = {
   OK: "color-mix(in oklch, var(--success) 70%, transparent)",
