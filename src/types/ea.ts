@@ -437,7 +437,7 @@ export interface EaLive {
   objects: EaLiveObject[];
   nodes: Record<string, { status: EaLiveStatus; fresh_failure: boolean; at: string | null; objects: string[] }>;
   unmapped: string[];
-  feed: { test_object: string; status: EaLiveStatus; trigger: string | null; at: string | null; failed: number; total: number; allure_url: string | null; nodes: string[] }[];
+  feed: { test_object: string; status: EaLiveStatus; trigger: string | null; at: string | null; failed: number; total: number; allure_url: string | null; run_id?: string | null; origin?: string | null; nodes: string[] }[];
   counts: { passed: number; partial: number; failed: number };
 }
 

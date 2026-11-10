@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { Check, Copy, Download, ExternalLink, Loader2 } from "lucide-react";
 import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
-import { useQualityGateRunScenarios } from "@/hooks/useQualityGate";
+import { useRunReportScenarios } from "@/hooks/useQualityGate";
 import {
   buildQualityGateReportData,
   type QualityGateRunDetail,
   ghaRunId,
   type QualityGateOutcome,
   type QualityGateReportData,
+  RUN_REPORT_LABELS,
+  type RunReportKind,
 } from "@/utils/qualityGateReport";
 
 const OUTCOME_CLASS: Record<QualityGateOutcome, string> = {
@@ -63,16 +65,19 @@ function SectionTitle({ tone, children }: { tone: string; children: React.ReactN
 
 interface QualityGateReportViewProps {
   run: QualityGateRunDetail;
+  /** Quality Gate run (default), TAS or NRT run: same report, other title and outcome labels. */
+  kind?: RunReportKind;
 }
 
-/** Report of a Quality Gate run, with a button to download it as PDF and one to copy its link. */
-export function QualityGateReportView({ run }: QualityGateReportViewProps) {
-  const { data: scenarios, isLoading, isError } = useQualityGateRunScenarios(run.test_run.id);
+/** Report of a Quality Gate (or TAS) run, with a button to download it as PDF and one to copy its link. */
+export function QualityGateReportView({ run, kind = "qg" }: QualityGateReportViewProps) {
+  const { data: scenarios, isLoading, isError } = useRunReportScenarios(kind, run.test_run.id);
+  const labels = RUN_REPORT_LABELS[kind];
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFailed, setDownloadFailed] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const report = scenarios ? buildQualityGateReportData(run, scenarios) : null;
+  const report = scenarios ? buildQualityGateReportData(run, scenarios, kind) : null;
 
   async function handleCopyLink() {
     try {
@@ -105,7 +110,7 @@ export function QualityGateReportView({ run }: QualityGateReportViewProps) {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] uppercase text-text-muted" style={{ letterSpacing: ".06em" }}>
-                  Quality Gate report
+                  {labels.title}
                 </p>
                 <p className="text-xl font-semibold text-text">
                   {report.suite}{" "}
@@ -119,11 +124,11 @@ export function QualityGateReportView({ run }: QualityGateReportViewProps) {
               </div>
               <div className={`min-w-24 rounded-xl px-5 py-2 text-center ${OUTCOME_CLASS[report.outcome]}`}>
                 <p className="text-[11px]">ESITO</p>
-                <p className="text-2xl font-semibold leading-tight">{report.outcome}</p>
+                <p className="text-2xl font-semibold leading-tight">{labels.outcome[report.outcome]}</p>
               </div>
             </div>
           ) : (
-            <p className="text-base font-semibold text-text">Report Quality Gate</p>
+            <p className="text-base font-semibold text-text">{`Report ${labels.title.replace(/ report$/, "")}`}</p>
           )}
       </header>
 

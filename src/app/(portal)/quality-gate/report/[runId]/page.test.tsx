@@ -7,8 +7,8 @@ const mocks = vi.hoisted(() => ({ can: vi.fn(), run: vi.fn() }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ runId: "run-1" }) }));
 vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: mocks.can }) }));
 vi.mock("@/hooks/useQualityGate", () => ({
-  useQualityGateRun: () => mocks.run(),
-  useQualityGateRunScenarios: () => ({ data: [], isLoading: false, isError: false }),
+  useRunReport: (...args: unknown[]) => mocks.run(...args),
+  useRunReportScenarios: () => ({ data: [], isLoading: false, isError: false }),
 }));
 
 const run = {
@@ -29,6 +29,7 @@ describe("QualityGateReportPage", () => {
   it("renders the report and a way back to the list for roles that can see the list", () => {
     mocks.can.mockImplementation((action: string) => action === "view:qg_nrts");
     render(<QualityGateReportPage />);
+    expect(mocks.run).toHaveBeenCalledWith("qg", "run-1");
     expect(screen.getByRole("link", { name: /Torna alla lista/ })).toHaveAttribute("href", "/quality-gate");
     expect(screen.getByText("GO")).toBeInTheDocument();
   });

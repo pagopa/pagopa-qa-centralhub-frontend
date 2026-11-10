@@ -114,7 +114,13 @@ const { can } = usePermissions();
 const canDeleteRuns = isQualityGate && can("run:qg");
 const deleteRun = useDeleteQualityGateRun();
 const [runToDelete, setRunToDelete] = useState<NrtsListObject | null>(null);
-const columnCount = visibleColumns.length + (isQualityGate ? 1 : 0);
+// Every list (Quality Gate, TAS, NRT) has the actions column, with the report of its own kind.
+const report = isQualityGate
+  ? { base: "/quality-gate/report", label: "Quality Gate" }
+  : isTasOnly
+    ? { base: "/tas-nrts/report", label: "TAS" }
+    : { base: "/nrts/report", label: "NRT" };
+const columnCount = visibleColumns.length + 1;
 const [activeReport, setActiveReport] = useState<{ run: NrtsListObject; url: string; title: string } | null>(null);
 
 function openReportModal(event: MouseEvent<HTMLAnchorElement>, run: NrtsListObject, title: string) {
@@ -281,7 +287,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                   {visibleColumns.map((column) => (
                     <NrtColumnHeader key={column.id} label={column.label} description={column.description} />
                   ))}
-                  {isQualityGate && <th scope="col" className="px-3 py-2"><span className="sr-only">Azioni</span></th>}
+                  <th scope="col" className="px-3 py-2"><span className="sr-only">Azioni</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -344,8 +350,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                       ))}
                     </select></td>}
                       {visibleColumnIds.has("revision") && <td className="px-3 py-2 text-text-muted">{nrt.test_run.revisioned ? <Check className="text-success" size={16} /> : <X className="text-danger" size={16} />}</td>}
-                      {isQualityGate && (
-                        <td className="px-3 py-2">
+                      <td className="px-3 py-2">
                           <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
                             <a
                               href={nrt.test_run.allure_url ?? buildAllureRunUrl(nrt.test_run, nrt.test_suite.test_object, isTasOnly, origin)}
@@ -372,9 +377,9 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                             </a>
                             )}
                             <Link
-                              href={`/quality-gate/report/${nrt.test_run.id}`}
-                              aria-label={`Apri il report Quality Gate di ${nrt.test_suite.test_object}`}
-                              title="Report Quality Gate"
+                              href={`${report.base}/${nrt.test_run.id}`}
+                              aria-label={`Apri il report ${report.label} di ${nrt.test_suite.test_object}`}
+                              title={`Report ${report.label}`}
                               className={ROW_ICON_CLASS}
                             >
                               <FileText size={16} aria-hidden />
@@ -392,7 +397,6 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                             )}
                           </div>
                         </td>
-                      )}
                     </tr>
                     {isSelected && (
                       <tr className="border-b border-border bg-subtle">
