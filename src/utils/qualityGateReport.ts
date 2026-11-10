@@ -7,7 +7,22 @@ export type QualityGateRunDetail = Pick<NrtsListObject, "test_run" | "test_suite
 
 export type QualityGateOutcome = "GO" | "NOGO" | "PENDING";
 
+/** Which run report this is: Quality Gate, TAS or NRT (same content, other labels). */
+export type RunReportKind = "qg" | "tas" | "nrt";
+
+/** Title, PDF file prefix and the way the outcome is written, for each kind of report. */
+export const RUN_REPORT_LABELS: Record<
+  RunReportKind,
+  { title: string; filePrefix: string; outcome: Record<QualityGateOutcome, string> }
+> = {
+  qg: { title: "Quality Gate report", filePrefix: "quality-gate", outcome: { GO: "GO", NOGO: "NOGO", PENDING: "PENDING" } },
+  // A TAS run has no go/no-go decision: its outcome is the revision result.
+  tas: { title: "TAS report", filePrefix: "tas", outcome: { GO: "OK", NOGO: "KO", PENDING: "PENDING" } },
+  nrt: { title: "NRT report", filePrefix: "nrt", outcome: { GO: "OK", NOGO: "KO", PENDING: "PENDING" } },
+};
+
 export interface QualityGateReportData {
+  kind: RunReportKind;
   suite: string;
   testType: string;
   testObjectVersion: string;
@@ -39,12 +54,14 @@ const dash = "—";
 export function buildQualityGateReportData(
   run: QualityGateRunDetail,
   scenarios: QualityGateScenario[],
+  kind: RunReportKind = "qg",
 ): QualityGateReportData {
   const { test_run: testRun, test_suite: suite } = run;
   const byStatus = (...statuses: string[]) =>
     scenarios.filter((s) => statuses.includes((s.status ?? "").toUpperCase()));
 
   return {
+    kind,
     suite: suite.test_object.toUpperCase(),
     testType: suite.test_type || dash,
     testObjectVersion: suite.test_object_version || dash,
@@ -71,11 +88,13 @@ export function buildQualityGateReportData(
   };
 }
 
-/** File name of the downloaded PDF, e.g. quality-gate-checkout-2026-11-09.pdf. */
-export function qualityGateReportFileName(data: Pick<QualityGateReportData, "suite" | "start">): string {
+/** File name of the downloaded PDF, e.g. quality-gate-checkout-2026-11-09.pdf (tas-… for TAS). */
+export function qualityGateReportFileName(
+  data: Pick<QualityGateReportData, "suite" | "start"> & { kind?: RunReportKind },
+): string {
   const day = /(\d{2})\/(\d{2})\/(\d{4})/.exec(data.start);
   const date = day ? `${day[3]}-${day[2]}-${day[1]}` : "report";
-  return `quality-gate-${data.suite.toLowerCase()}-${date}.pdf`;
+  return `${RUN_REPORT_LABELS[data.kind ?? "qg"].filePrefix}-${data.suite.toLowerCase()}-${date}.pdf`;
 }
 
 /** Last numeric segment of a GitHub Actions run URL, for display (e.g. "#123456"). */

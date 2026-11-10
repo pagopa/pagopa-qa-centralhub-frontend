@@ -96,6 +96,7 @@ describe("report helpers", () => {
   it("builds a dated file name", () => {
     const data = buildQualityGateReportData(run, []);
     expect(qualityGateReportFileName(data)).toBe("quality-gate-checkout-2026-11-09.pdf");
+    expect(qualityGateReportFileName({ ...data, kind: "tas" })).toBe("tas-checkout-2026-11-09.pdf");
   });
 });
 

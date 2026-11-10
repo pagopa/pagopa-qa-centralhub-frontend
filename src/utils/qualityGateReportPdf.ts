@@ -1,5 +1,5 @@
 import type { QualityGateOutcome, QualityGateReportData } from "@/utils/qualityGateReport";
-import { ghaRunId, qualityGateReportFileName } from "@/utils/qualityGateReport";
+import { ghaRunId, qualityGateReportFileName, RUN_REPORT_LABELS } from "@/utils/qualityGateReport";
 
 type Rgb = [number, number, number];
 
@@ -27,7 +27,7 @@ const FOOTER_RESERVE = 16;
 const MIN_SECTION_HEIGHT = 20;
 
 /**
- * Builds the Quality Gate report as a vector PDF (selectable text, multiple pages).
+ * Builds the Quality Gate (or TAS) run report as a vector PDF (selectable text, multiple pages).
  * jsPDF is imported on demand so it is only downloaded when a report is requested.
  */
 export async function buildQualityGateReportPdf(data: QualityGateReportData) {
@@ -47,7 +47,8 @@ export async function buildQualityGateReportPdf(data: QualityGateReportData) {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("QUALITY GATE REPORT", PAGE_MARGIN, 11);
+  const labels = RUN_REPORT_LABELS[data.kind ?? "qg"];
+  doc.text(labels.title.toUpperCase(), PAGE_MARGIN, 11);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.text(data.suite, PAGE_MARGIN, 20);
@@ -65,7 +66,7 @@ export async function buildQualityGateReportPdf(data: QualityGateReportData) {
   doc.text("ESITO", pageWidth - PAGE_MARGIN - badgeW / 2, 13, { align: "center" });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(data.outcome === "PENDING" ? 12 : 18);
-  doc.text(data.outcome, pageWidth - PAGE_MARGIN - badgeW / 2, 22, { align: "center" });
+  doc.text(labels.outcome[data.outcome], pageWidth - PAGE_MARGIN - badgeW / 2, 22, { align: "center" });
 
   // KPI tiles
   const tiles: Array<[string, string, Rgb]> = [

@@ -18,7 +18,6 @@ vi.mock("@/hooks/useNrts", () => ({
   useSaveFlakyScenarios: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("@/hooks/useQualityGate", () => ({
-  useQualityGateRunScenarios: () => ({ data: undefined, isLoading: true, isError: false }),
   useDeleteQualityGateRun: () => ({
     mutate: mocks.deleteMutate,
     reset: vi.fn(),
@@ -57,7 +56,7 @@ function makeRun(overrides: Partial<NrtsListObject["test_run"]> = {}): NrtsListO
   };
 }
 
-function renderTable(origin: "TAS" | "QG", runs: NrtsListObject[] = [makeRun()]) {
+function renderTable(origin: "TAS" | "QG", runs: NrtsListObject[] = [makeRun()], isTasOnly = true) {
   const onNrtsChange = vi.fn();
   const onRowClick = vi.fn();
   render(
@@ -69,7 +68,7 @@ function renderTable(origin: "TAS" | "QG", runs: NrtsListObject[] = [makeRun()])
       onModifiedChange={vi.fn()}
       page={1}
       setPage={vi.fn()}
-      isTasOnly
+      isTasOnly={isTasOnly}
       origin={origin}
       flakyScenariosData={[]}
     />,
@@ -144,6 +143,23 @@ describe("NrtsTable (Quality Gate)", () => {
     link.addEventListener("click", (event) => event.preventDefault());
     await userEvent.click(link);
     expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("gives the TAS and NRT lists the same actions as the Quality Gate, with their own report", () => {
+    mocks.can.mockReturnValue(false);
+    renderTable("TAS", [makeRun({ test_origin: "TAS", passed_scenario: 9, failed_scenario: 1 })]);
+    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toContain("Azioni");
+    expect(screen.getByRole("link", { name: /report Allure di checkout/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /AI Analysis di checkout/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /report TAS di checkout/ })).toHaveAttribute("href", "/tas-nrts/report/run-1");
+    // Deleting stays a Quality Gate action.
+    expect(screen.queryByRole("button", { name: /Elimina la run/ })).not.toBeInTheDocument();
+  });
+
+  it("links an NRT row to the NRT report", () => {
+    mocks.can.mockReturnValue(false);
+    renderTable("TAS", [makeRun({ test_origin: "GHA" })], false);
+    expect(screen.getByRole("link", { name: /report NRT di checkout/ })).toHaveAttribute("href", "/nrts/report/run-1");
   });
 
   it("keeps trigger and origin on the TAS list without the outcome", () => {

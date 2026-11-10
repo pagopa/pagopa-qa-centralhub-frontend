@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import type { QualityGateRunDetail } from "@/utils/qualityGateReport";
+import type { QualityGateRunDetail, RunReportKind } from "@/utils/qualityGateReport";
 
 export type QualityGateTestType = "integration" | "e2e" | "api";
 export type QualityGateEnvironment = "dev" | "uat";
@@ -109,25 +109,31 @@ export interface QualityGateScenario {
   allure_url: string | null;
 }
 
-/** All scenarios of a Quality Gate run (passed ones included), used by the run report. */
-export function useQualityGateRunScenarios(runId: string | undefined, enabled = true) {
+/** Where each kind of run report reads its run and scenarios. */
+const RUN_REPORT_API: Record<RunReportKind, string> = {
+  qg: "/api/v1/quality-gate/test-runs",
+  tas: "/api/v1/test-metrics/tas/test-runs",
+  nrt: "/api/v1/test-metrics/nrts/test-runs",
+};
+
+/** All scenarios of a run (passed ones included), for the Quality Gate, TAS or NRT report. */
+export function useRunReportScenarios(kind: RunReportKind, runId: string | undefined) {
   return useQuery({
-    queryKey: ["quality-gate-run-scenarios", runId],
-    enabled: enabled && Boolean(runId),
+    queryKey: ["run-report-scenarios", kind, runId],
+    enabled: Boolean(runId),
     staleTime: 60_000,
-    queryFn: () =>
-      apiClient<QualityGateScenario[]>(`/api/v1/quality-gate/test-runs/${runId}/scenarios`),
+    queryFn: () => apiClient<QualityGateScenario[]>(`${RUN_REPORT_API[kind]}/${runId}/scenarios`),
   });
 }
 
-/** A single Quality Gate run with its suite: backs the shareable report page. */
-export function useQualityGateRun(runId: string | undefined) {
+/** A single run with its suite: backs the shareable report page of each kind. */
+export function useRunReport(kind: RunReportKind, runId: string | undefined) {
   return useQuery({
-    queryKey: ["quality-gate-run", runId],
+    queryKey: ["run-report", kind, runId],
     enabled: Boolean(runId),
     staleTime: 60_000,
     retry: false,
-    queryFn: () => apiClient<QualityGateRunDetail>(`/api/v1/quality-gate/test-runs/${runId}`),
+    queryFn: () => apiClient<QualityGateRunDetail>(`${RUN_REPORT_API[kind]}/${runId}`),
   });
 }
 

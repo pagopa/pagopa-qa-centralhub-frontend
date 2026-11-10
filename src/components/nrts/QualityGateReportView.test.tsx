@@ -6,15 +6,18 @@ import { QualityGateReportView } from "./QualityGateReportView";
 const longName = "Scenario_" + "x".repeat(200);
 const longError = "https://example.org/" + "y".repeat(200);
 
+const scenariosQuery = () => ({
+  isLoading: false,
+  isError: false,
+  data: [
+    { id: "1", scenario_name: longName, status: "FAILED", duration_ms: 1, retries: 0, error_message: longError, allure_url: null },
+    { id: "2", scenario_name: "ok one", status: "PASSED", duration_ms: 2, retries: 0, error_message: null, allure_url: null },
+  ],
+});
+const hooks = vi.hoisted(() => ({ scenarios: vi.fn() }));
+
 vi.mock("@/hooks/useQualityGate", () => ({
-  useQualityGateRunScenarios: () => ({
-    isLoading: false,
-    isError: false,
-    data: [
-      { id: "1", scenario_name: longName, status: "FAILED", duration_ms: 1, retries: 0, error_message: longError, allure_url: null },
-      { id: "2", scenario_name: "ok one", status: "PASSED", duration_ms: 2, retries: 0, error_message: null, allure_url: null },
-    ],
-  }),
+  useRunReportScenarios: (...args: unknown[]) => { hooks.scenarios(...args); return scenariosQuery(); },
 }));
 
 const run: NrtsListObject = {
@@ -60,5 +63,23 @@ describe("QualityGateReportView", () => {
     expect(screen.getByRole("region", { name: "Scenari KO" })).toHaveTextContent("(1)");
     expect(screen.getByRole("region", { name: "Scenari OK" })).toHaveTextContent("ok one");
     expect(screen.getByText("PENDING")).toBeInTheDocument();
+  });
+
+  it("is the TAS report for a TAS run: TAS title, revision outcome, TAS scenarios", () => {
+    hooks.scenarios.mockClear();
+    const tasRun = { ...run, test_run: { ...run.test_run, test_origin: "TAS", revision_result: "KO" } };
+    render(<QualityGateReportView run={tasRun} kind="tas" />);
+    expect(screen.getByText("TAS report")).toBeInTheDocument();
+    expect(screen.getByText("KO")).toBeInTheDocument();
+    expect(screen.queryByText("NOGO")).not.toBeInTheDocument();
+    expect(hooks.scenarios).toHaveBeenCalledWith("tas", "r");
+  });
+
+  it("is the NRT report for an NRT run", () => {
+    hooks.scenarios.mockClear();
+    render(<QualityGateReportView run={{ ...run, test_run: { ...run.test_run, test_origin: "GHA", revision_result: "OK" } }} kind="nrt" />);
+    expect(screen.getByText("NRT report")).toBeInTheDocument();
+    expect(screen.getByText("OK")).toBeInTheDocument();
+    expect(hooks.scenarios).toHaveBeenCalledWith("nrt", "r");
   });
 });

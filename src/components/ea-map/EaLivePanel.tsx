@@ -5,7 +5,7 @@
    linked to the map yet. */
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, ExternalLink, Loader2, MapPin } from "lucide-react";
+import { ChevronDown, ChevronUp, FileText, Loader2, MapPin } from "lucide-react";
 import type { EaLive, EaLiveEnv, EaLiveStatus } from "@/types/ea";
 import { ago } from "@/lib/ea-map/live";
 import type { EaGraph } from "@/lib/ea-map/graph";
@@ -14,6 +14,22 @@ import s from "./ea-assist.module.css";
 
 const ENVS: EaLiveEnv[] = ["DEV", "UAT", "PROD"];
 const STATUS_LABEL: Record<EaLiveStatus, string> = { passed: "passata", partial: "parziale", failed: "fallita", none: "nessun dato" };
+
+/** Section of the Hub a run belongs to, from its origin: the same rule as the /nrts list
+    (every origin other than TAS and Quality Gate is an NRT run). */
+export function runKind(origin: string | null | undefined): "TAS" | "QG" | "NRT" {
+  return origin === "TAS" ? "TAS" : origin === "QG" ? "QG" : "NRT";
+}
+
+/** Report of the run inside the Hub: TAS runs have the TAS report, Quality Gate runs theirs,
+    every other run is an NRT run (the /nrts list) and has the NRT report. */
+export function runReportHref(item: { run_id?: string | null; origin?: string | null }): string | null {
+  if (!item.run_id) return null;
+  const kind = runKind(item.origin);
+  if (kind === "TAS") return `/tas-nrts/report/${item.run_id}`;
+  if (kind === "QG") return `/quality-gate/report/${item.run_id}`;
+  return `/nrts/report/${item.run_id}`;
+}
 
 interface Props {
   g: EaGraph;
@@ -58,13 +74,15 @@ export function EaLivePanel({ g, env, onEnv, data, loading, error, onShow }: Pro
             <>
               <p className={s.liveSub}>Ultime run · aggiornato {ago(data.generated_at)}</p>
               <ul className={s.feed}>
-                {data.feed.map((f, i) => (
+                {data.feed.map((f, i) => {
+                  const report = runReportHref(f);
+                  return (
                   <li key={`${f.test_object}-${f.at}-${i}`} className={cx(s.feedItem, s[`fi_${f.status}`])}>
                     <span className={s.fiDot} aria-label={STATUS_LABEL[f.status]} />
                     <div className={s.fiMain}>
                       <b>{f.test_object}</b>
                       <span className={s.dim}>
-                        {f.trigger ?? "run"} · {ago(f.at)}
+                        <span title="Tipo di run (dall'origine)">{runKind(f.origin)}</span> · <span title="Come è partita la run">{f.trigger ?? "run"}</span> · {ago(f.at)}
                         {f.status === "failed" ? ` · ${f.failed}/${f.total} scenari ko` : ""}
                       </span>
                       {f.nodes.length > 0 && <span className={s.fiNodes}>{names(f.nodes)}</span>}
@@ -73,12 +91,13 @@ export function EaLivePanel({ g, env, onEnv, data, loading, error, onShow }: Pro
                       {f.nodes.length > 0 && (
                         <button type="button" onClick={() => onShow(f.nodes)} title="Mostra sulla mappa"><MapPin aria-hidden="true" /></button>
                       )}
-                      {f.allure_url && (
-                        <a href={f.allure_url} target="_blank" rel="noopener noreferrer" title="Report Allure"><ExternalLink aria-hidden="true" /></a>
+                      {report && (
+                        <a href={report} target="_blank" rel="noopener noreferrer" title="Apri il report della run" aria-label={`Apri il report della run ${f.test_object}`}><FileText aria-hidden="true" /></a>
                       )}
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
               {data.unmapped.length > 0 && (
                 <details className={s.more}>
