@@ -98,8 +98,8 @@ const NAV_TILES = [
   {
     href: "/tas-nrts",
     icon: Workflow,
-    label: "TAS NRTs",
-    description: "Gestione e monitoraggio dei test TAS NRT.",
+    label: "TAS (Test Automation Services)",
+    description: "Gestione e monitoraggio delle esecuzioni dei test TAS.",
     color: "var(--warning)",
     bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
   },

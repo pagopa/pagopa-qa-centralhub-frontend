@@ -5,9 +5,7 @@ import { RunModal } from "./RunModal";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import {useState} from "react"
 import {
-  buildAllureRunUrl,
   buildAllureScenarioUrl,
-  buildAiAnalysisUrl,
   type RunOrigin,
   createFlakyScenario,
   formatNrtTimestamp,
@@ -147,7 +145,6 @@ export function NrtDetailsPanel({
           </div>
         </dl>
         ) : (
-          <>
         <dl className="grid gap-x-6 gap-y-2 text-[12px] sm:grid-cols-2 lg:grid-cols-5">
           <DetailField label="Tipo suite" value={suite.test_type} />
           <DetailField label="Test object" value={suite.test_object} />
@@ -175,30 +172,11 @@ export function NrtDetailsPanel({
           )}
           <DetailField label="Durata" value={formatNrtDuration(details.test_run?.duration_ms ?? null)} />
           <DetailField label="Revisore" value={details.test_run.revisioned_by ?? "-"} />
-          </dl>     
-           <div className="flex justify-center space-x-7 px-10 py-3 text-center " onClick={(e) => e.stopPropagation()}>
-                    <a
-                      href={details.test_run.allure_url == null ? buildAllureRunUrl(details.test_run, suite.test_object, isTasOnly, origin) : details.test_run?.allure_url ?? ""}
-                      onClick={(event) => openReport(event, "Allure report")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent text-lg hover:underline">
-                      📊 Allure
-                    </a>
-                    <a
-                      href={buildAiAnalysisUrl(details.test_run, suite.test_object, isTasOnly, origin)}
-                      onClick={(event) => openReport(event, "AI Analysis")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent text-lg hover:underline">
-                      🤖 AI Analysis
-                    </a>
-          </div> 
-          </>
+          </dl>
         )}
       </div>
 
-      <div>
+      <div className="mt-5">
         <h2 className="mb-2 text-[12px] font-semibold uppercase text-text-muted">
           {origin === "QG" ? "Scenari falliti" : "Scenari"} <span className="font-mono">({details.test_execution?.length ?? 0})</span>
         </h2>

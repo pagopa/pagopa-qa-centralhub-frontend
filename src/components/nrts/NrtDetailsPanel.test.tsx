@@ -112,4 +112,25 @@ describe("NrtDetailsPanel", () => {
     expect(screen.getByText("Versione test object")).toBeInTheDocument();
     expect(screen.getByText("2.0")).toBeInTheDocument();
   });
+
+  it.each([
+    ["NRT", false, undefined],
+    ["TAS", true, "TAS"],
+    ["Quality Gate", true, "QG"],
+  ] as const)("does not repeat the Allure and AI Analysis links in the %s detail (they are row icons)", (_name, isTasOnly, origin) => {
+    renderPanel(isTasOnly, origin);
+    expect(screen.queryByText(/Allure/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI Analysis/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["NRT", false, undefined, /^Scenari/],
+    ["TAS", true, "TAS", /^Scenari/],
+    ["Quality Gate", true, "QG", /^Scenari falliti/],
+  ] as const)("keeps the scenarios title of the %s detail one line away from the content above", (_name, isTasOnly, origin, title) => {
+    renderPanel(isTasOnly, origin);
+    const heading = screen.getByRole("heading", { name: title });
+    expect(heading.parentElement).toHaveClass("mt-5");
+  });
 });
