@@ -1,12 +1,35 @@
 name: Auto Deploy
 
 on:
+  # Merged PRs are deployed to dev, the release type comes from the PR labels.
   pull_request:
     branches:
       - main
     types: [closed]
 
+  # Manual run, e.g. to promote to uat or prod.
   workflow_dispatch:
+    inputs:
+      env:
+        description: Target environment
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+        default: dev
+      semver:
+        description: Release type (only applied on dev)
+        type: choice
+        options:
+          - skip
+          - patch
+          - minor
+          - major
+        default: skip
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -15,24 +38,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set default semver (skip)
-        run: echo "SEMVER=skip" >> $GITHUB_ENV
+      - name: Resolve environment and release type
+        id: params
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_ENV: ${{ inputs.env }}
+          INPUT_SEMVER: ${{ inputs.semver }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          set -euo pipefail
 
-      - name: Set major
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'breaking-change') }}
-        run: echo "SEMVER=major" >> $GITHUB_ENV
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            ENV="${INPUT_ENV:-dev}"
+            SEMVER="${INPUT_SEMVER:-skip}"
+          else
+            ENV="dev"
+            # "skip" is an explicit opt-out and wins over any other label;
+            # otherwise the highest level wins (major > minor > patch).
+            has_label() { echo "$PR_LABELS" | jq -e --arg l "$1" 'index($l) != null' > /dev/null; }
+            if has_label skip; then
+              SEMVER="skip"
+            elif has_label major; then
+              SEMVER="major"
+            elif has_label minor; then
+              SEMVER="minor"
+            elif has_label patch; then
+              SEMVER="patch"
+            else
+              SEMVER="skip"
+            fi
+          fi
 
-      - name: Set minor
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'enhancement') }}
-        run: echo "SEMVER=minor" >> $GITHUB_ENV
+          case "$ENV" in dev|uat|prod) ;; *) echo "::error::Invalid env: $ENV"; exit 1 ;; esac
+          case "$SEMVER" in skip|patch|minor|major) ;; *) echo "::error::Invalid semver: $SEMVER"; exit 1 ;; esac
 
-      - name: Set patch
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'bug') }}
-        run: echo "SEMVER=patch" >> $GITHUB_ENV
+          # The release (version bump, tag, GitHub release) happens on the first deploy (dev) only.
+          if [ "$ENV" != "dev" ] && [ "$SEMVER" != "skip" ]; then
+            echo "::notice::Release type '$SEMVER' ignored on $ENV: releases are created on dev only"
+            SEMVER="skip"
+          fi
 
-      - name: Set skip
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'ignore-for-release') }}
-        run: echo "SEMVER=skip" >> $GITHUB_ENV
+          echo "Deploying to $ENV with release type $SEMVER"
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
 
       - name: Azure Pipelines Action
         uses: jacopocarlini/azure-pipelines@b9721743a54e862597395b4a70727cfdc03028fb # v1.3
@@ -40,7 +88,5 @@ jobs:
           azure-devops-project-url: https://dev.azure.com/pagopaspa/pagoPA-projects
           azure-pipeline-name: 'pagopa-qa-centralhub-frontend.deploy'
           azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
-          azure-template-parameters: '{"ENV": "uat", "SEMVER": "${{ env.SEMVER }}"}'
+          azure-template-parameters: '{"ENV": "${{ steps.params.outputs.env }}", "SEMVER": "${{ steps.params.outputs.semver }}"}'
           azure-pipeline-variables: '{"system.debug": "true"}'
-
-
