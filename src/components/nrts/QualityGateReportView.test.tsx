@@ -82,4 +82,17 @@ describe("QualityGateReportView", () => {
     expect(screen.getByText("OK")).toBeInTheDocument();
     expect(hooks.scenarios).toHaveBeenCalledWith("nrt", "r");
   });
+
+  it("shows the general note of the run when there is one", () => {
+    render(<QualityGateReportView run={{ ...run, test_run: { ...run.test_run, note: "Known issue\nsee PROD-1" } }} kind="nrt" />);
+    const section = screen.getByRole("region", { name: "Note" });
+    expect(section).toHaveTextContent("Known issue");
+    expect(section).toHaveTextContent("see PROD-1");
+    expect(section.querySelector("p")).toHaveClass("whitespace-pre-wrap");
+  });
+
+  it.each([null, undefined, "", "  "])("omits the note section for %j", (note) => {
+    render(<QualityGateReportView run={{ ...run, test_run: { ...run.test_run, note } }} kind="nrt" />);
+    expect(screen.queryByRole("region", { name: "Note" })).not.toBeInTheDocument();
+  });
 });

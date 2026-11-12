@@ -65,12 +65,13 @@ export function useSaveFlakyScenarios() {
     });
 }
 
-export function useFlakyScenarios({test_object}: {test_object?: string} = {}) {
+export function useFlakyScenarios({test_object, enabled = true}: {test_object?: string; enabled?: boolean} = {}) {
     const params = new URLSearchParams();
     if (test_object) params.set("test_object", test_object);
 
     return useQuery({
         queryKey: ["flaky-scenarios", {test_object}],
+        enabled,
         staleTime: 1000 * 60 * 60, // 60 minute
         queryFn: () => apiClient<FlakyScenario[]>(`/api/v1/test-metrics/flaky-scenarios?${params}`),
     });

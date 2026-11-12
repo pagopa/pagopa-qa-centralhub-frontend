@@ -1,7 +1,7 @@
 "use client";
 
 import OriginNrtsPage from "@/components/nrts/OriginNrtsPage";
-import { QualityGateLaunchPanel } from "@/components/nrts/QualityGateLaunchPanel";
+import { TestRunLaunchPanel } from "@/components/nrts/TestRunLaunchPanel";
 import { Gate } from "@/lib/permissions";
 import { useSuites } from "@/hooks/useSuites";
 
@@ -11,7 +11,7 @@ export default function QualityGatePage() {
   return (
     <OriginNrtsPage origin="QG" title="Quality Gate (esecuzioni TAS come gate)">
       <Gate action="run:qg">
-        <QualityGateLaunchPanel suites={suites ?? []} />
+        <TestRunLaunchPanel origin="QG" suites={suites ?? []} />
       </Gate>
     </OriginNrtsPage>
   );

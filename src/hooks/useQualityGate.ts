@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
+import type { RunOrigin } from "@/utils/nrtUtils";
 import type { QualityGateRunDetail, RunReportKind } from "@/utils/qualityGateReport";
 
 export type QualityGateTestType = "integration" | "e2e" | "api";
@@ -20,16 +21,30 @@ export interface QualityGateRunResponse {
   actions_url: string;
 }
 
-export function useLaunchQualityGateRun() {
+/** Where the runs of each origin are launched, followed and deleted. */
+const RUN_API: Record<RunOrigin, string> = {
+  QG: "/api/v1/quality-gate",
+  TAS: "/api/v1/test-metrics/tas",
+  NRT: "/api/v1/test-metrics/nrts",
+};
+
+export interface NrtRunRequest {
+  /** "all" runs every suite configured for the environment. */
+  suites: "all" | string[];
+  target_env: QualityGateEnvironment;
+}
+
+/** Launches a run of the given origin; `T` is the request body of that origin. */
+export function useLaunchRun<T = QualityGateRunRequest>(origin: RunOrigin) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (request: QualityGateRunRequest) =>
-      apiClient<QualityGateRunResponse>("/api/v1/quality-gate/runs", {
+    mutationFn: (request: T) =>
+      apiClient<QualityGateRunResponse>(`${RUN_API[origin]}/runs`, {
         method: "POST",
         body: JSON.stringify(request),
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["quality-gate-runs"] });
+      void queryClient.invalidateQueries({ queryKey: ["runs", origin] });
     },
   });
 }
@@ -50,17 +65,17 @@ export interface QualityGateRunStatus {
 const RUNS_POLL_MS = 10_000;
 
 /**
- * Quality Gate runs launched from the Hub that are active or recent (read from GitHub).
+ * Runs of an origin launched from the Hub that are active or recent (read from GitHub).
  * Polls every 10 seconds while a run is active, or while a just-launched run
  * (`pendingCorrelationId`) has not been listed by GitHub yet. When a run that was
  * active completes, the NRT lists and suite cards are refreshed to show its report.
  */
-export function useQualityGateRuns(pendingCorrelationId?: string) {
+export function useRuns(origin: RunOrigin, pendingCorrelationId?: string) {
   const queryClient = useQueryClient();
   const previouslyActive = useRef<Set<string>>(new Set());
   const query = useQuery({
-    queryKey: ["quality-gate-runs"],
-    queryFn: () => apiClient<QualityGateRunStatus[]>("/api/v1/quality-gate/runs"),
+    queryKey: ["runs", origin],
+    queryFn: () => apiClient<QualityGateRunStatus[]>(`${RUN_API[origin]}/runs`),
     refetchInterval: (q) => {
       const runs = q.state.data ?? [];
       const hasActive = runs.some((r) => r.state !== "completed");
@@ -85,12 +100,12 @@ export function useQualityGateRuns(pendingCorrelationId?: string) {
   return query;
 }
 
-/** Deletes a Quality Gate test run (the backend refuses any other origin). */
-export function useDeleteQualityGateRun() {
+/** Deletes a test run of the given origin (the backend refuses runs of any other origin). */
+export function useDeleteRun(origin: RunOrigin) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (runId: string) =>
-      apiClient<void>(`/api/v1/quality-gate/test-runs/${runId}`, { method: "DELETE" }),
+      apiClient<void>(`${RUN_API[origin]}/test-runs/${runId}`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["nrts"] });
       void queryClient.invalidateQueries({ queryKey: ["suites"] });
@@ -150,5 +165,20 @@ export function useQualityGateSuites() {
     queryKey: ["quality-gate-suites"],
     staleTime: 60_000,
     queryFn: () => apiClient<QualityGateSuites>("/api/v1/quality-gate/suites"),
+  });
+}
+
+export interface NrtLaunchOptions {
+  /** False when the backend could not read the NRT registry: do not restrict the choice then. */
+  available: boolean;
+  suites: { id: string; label: string; envs: string[] }[];
+}
+
+/** Suites the NRT workflow can run, with the environments each one supports. */
+export function useNrtLaunchOptions() {
+  return useQuery({
+    queryKey: ["nrt-launch-options"],
+    staleTime: 60_000,
+    queryFn: () => apiClient<NrtLaunchOptions>(`${RUN_API.NRT}/launch-options`),
   });
 }

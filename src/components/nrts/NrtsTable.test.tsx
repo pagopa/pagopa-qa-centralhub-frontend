@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NrtsListObject } from "@/types";
@@ -8,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   can: vi.fn(),
   updateMutate: vi.fn(),
   deleteMutate: vi.fn(),
+  deleteHookArgs: vi.fn(),
 }));
 
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: { user: { email: "me@x.it" } } }) }));
@@ -18,12 +20,10 @@ vi.mock("@/hooks/useNrts", () => ({
   useSaveFlakyScenarios: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("@/hooks/useQualityGate", () => ({
-  useDeleteQualityGateRun: () => ({
-    mutate: mocks.deleteMutate,
-    reset: vi.fn(),
-    isError: false,
-    isPending: false,
-  }),
+  useDeleteRun: (...args: unknown[]) => {
+    mocks.deleteHookArgs(...args);
+    return { mutate: mocks.deleteMutate, reset: vi.fn(), isError: false, isPending: false };
+  },
 }));
 
 function makeRun(overrides: Partial<NrtsListObject["test_run"]> = {}): NrtsListObject {
@@ -56,7 +56,7 @@ function makeRun(overrides: Partial<NrtsListObject["test_run"]> = {}): NrtsListO
   };
 }
 
-function renderTable(origin: "TAS" | "QG", runs: NrtsListObject[] = [makeRun()], isTasOnly = true) {
+function renderTable(origin: "TAS" | "QG" | "NRT", runs: NrtsListObject[] = [makeRun()], isTasOnly = true, selectedNrt?: string) {
   const onNrtsChange = vi.fn();
   const onRowClick = vi.fn();
   render(
@@ -65,6 +65,7 @@ function renderTable(origin: "TAS" | "QG", runs: NrtsListObject[] = [makeRun()],
       onNrtsChange={onNrtsChange}
       totalPages={1}
       onRowClick={onRowClick}
+      selectedNrt={selectedNrt}
       onModifiedChange={vi.fn()}
       page={1}
       setPage={vi.fn()}
@@ -81,6 +82,7 @@ describe("NrtsTable (Quality Gate)", () => {
     mocks.can.mockReset().mockReturnValue(true);
     mocks.updateMutate.mockReset();
     mocks.deleteMutate.mockReset();
+    mocks.deleteHookArgs.mockReset();
   });
 
   it("lists the Quality Gate columns in the requested order", () => {
@@ -204,14 +206,100 @@ describe("NrtsTable (Quality Gate)", () => {
     expect(mocks.deleteMutate).not.toHaveBeenCalled();
   });
 
-  it("hides the delete icon without the run:qg permission and on the TAS list", () => {
+  it("hides the delete icon without the run:qg permission", () => {
     mocks.can.mockReturnValue(false);
     renderTable("QG");
     expect(screen.queryByRole("button", { name: /Elimina la run/ })).not.toBeInTheDocument();
   });
 
-  it("never offers deletion on the TAS list", () => {
-    renderTable("TAS");
+  it.each([
+    ["QG", "run:qg", true],
+    ["TAS", "run:tas", true],
+    ["NRT", "run:nrt", false],
+  ] as const)("offers deletion on the %s list only with %s", async (origin, action, isTasOnly) => {
+    mocks.can.mockImplementation((a: string) => a === action);
+    renderTable(origin, [makeRun({ test_origin: origin === "NRT" ? "GHA" : origin })], isTasOnly);
+    expect(mocks.deleteHookArgs).toHaveBeenCalledWith(origin);
+    await userEvent.click(screen.getByRole("button", { name: /Elimina la run checkout/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Elimina" }));
+    expect(mocks.deleteMutate.mock.calls[0][0]).toBe("run-1");
+  });
+
+  it.each([
+    ["QG", "run:tas", true],
+    ["TAS", "run:qg", true],
+    ["TAS", "run:nrt", true],
+    ["NRT", "run:tas", false],
+    ["NRT", "run:qg", false],
+  ] as const)("hides deletion on the %s list when only %s is granted", (origin, action, isTasOnly) => {
+    mocks.can.mockImplementation((a: string) => a === action);
+    renderTable(origin, [makeRun()], isTasOnly);
     expect(screen.queryByRole("button", { name: /Elimina la run/ })).not.toBeInTheDocument();
+  });
+
+  it("closes the details of the deleted run and refreshes the list once the delete succeeds", async () => {
+    mocks.deleteMutate.mockImplementation((_id: string, options: { onSuccess: () => void }) => options.onSuccess());
+    const { onRowClick, onNrtsChange } = renderTable("TAS", [makeRun()], true);
+    await userEvent.click(screen.getByRole("button", { name: /Elimina la run checkout/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Elimina" }));
+    expect(onNrtsChange).toHaveBeenCalledWith([]);
+    expect(screen.queryByText("Eliminare la run?")).not.toBeInTheDocument();
+    // The details are closed through onRowClick only when the deleted run was the selected one.
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("closes the details when the deleted run was the open one", async () => {
+    mocks.deleteMutate.mockImplementation((_id: string, options: { onSuccess: () => void }) => options.onSuccess());
+    const { onRowClick } = renderTable("NRT", [makeRun({ test_origin: "GHA" })], false, "run-1");
+    await userEvent.click(screen.getByRole("button", { name: /Elimina la run checkout/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Elimina" }));
+    expect(onRowClick).toHaveBeenCalledWith(undefined);
+  });
+});
+
+describe("NrtsTable run note", () => {
+  beforeEach(() => {
+    mocks.can.mockReset().mockReturnValue(true);
+    mocks.updateMutate.mockReset();
+  });
+
+  // The page keeps the edited rows in its state: the table only reports changes.
+  function Harness() {
+    const [runs, setRuns] = useState<NrtsListObject[]>([makeRun({ test_origin: "GHA", note: "old" })]);
+    return (
+      <NrtsTable
+        runs={runs}
+        onNrtsChange={(next) => { if (next.length > 0) setRuns(next); }}
+        totalPages={1}
+        selectedNrt="run-1"
+        onModifiedChange={vi.fn()}
+        modified
+        page={1}
+        setPage={vi.fn()}
+        isTasOnly={false}
+        origin="NRT"
+        flakyScenariosData={[]}
+      />
+    );
+  }
+
+  it("saves the edited note with the run through the existing Save button", async () => {
+    render(<Harness />);
+    const note = screen.getByRole("textbox", { name: "Note della run" });
+    expect(note).toHaveValue("old");
+    fireEvent.change(note, { target: { value: "edited" } });
+    expect(note).toHaveValue("edited");
+    // The table and the open details each show a Save button: both run the same save.
+    await userEvent.click(screen.getAllByRole("button", { name: "Salva modifiche" })[0]);
+    expect(mocks.updateMutate).toHaveBeenCalledTimes(1);
+    expect(mocks.updateMutate.mock.calls[0][0].test_runs[0]).toMatchObject({ id: "run-1", note: "edited", revisioned_by: "me@x.it" });
+  });
+
+  it("sends an empty note when the user clears it", async () => {
+    render(<Harness />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Note della run" }), { target: { value: "" } });
+    // The table and the open details each show a Save button: both run the same save.
+    await userEvent.click(screen.getAllByRole("button", { name: "Salva modifiche" })[0]);
+    expect(mocks.updateMutate.mock.calls[0][0].test_runs[0]).toMatchObject({ id: "run-1", note: "" });
   });
 });
