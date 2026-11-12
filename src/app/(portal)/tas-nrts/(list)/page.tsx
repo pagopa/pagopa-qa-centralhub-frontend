@@ -6,7 +6,7 @@ export default function TasNrtsPage() {
   return (
     <OriginNrtsPage
       origin="TAS"
-      title="TAS NRTs (Test automation services - Non-regression tests)"
+      title="TAS (Test Automation Services)"
     />
   );
 }
