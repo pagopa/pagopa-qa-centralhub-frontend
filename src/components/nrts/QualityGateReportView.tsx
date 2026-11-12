@@ -173,6 +173,13 @@ export function QualityGateReportView({ run, kind = "qg" }: QualityGateReportVie
                 </Field>
               </dl>
 
+              {run.test_run.note?.trim() && (
+                <section aria-label="Note">
+                  <SectionTitle tone="text-text-muted">Note</SectionTitle>
+                  <p className="whitespace-pre-wrap break-words text-[13px] text-text-dim">{run.test_run.note}</p>
+                </section>
+              )}
+
               <section aria-label="Scenari KO">
                 <SectionTitle tone="text-danger">Scenari KO ({report.koScenarios.length})</SectionTitle>
                 {report.koScenarios.length === 0 ? (

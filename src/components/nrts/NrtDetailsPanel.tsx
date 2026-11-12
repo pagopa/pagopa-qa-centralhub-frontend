@@ -35,6 +35,7 @@ export function NrtDetailsPanel({
   fetchJiraIssue,
   handleIssueInputChange,
   handleRevisionNoteChange,
+  handleRunNoteChange,
   isTasOnly,
   origin = "TAS",
 }: {
@@ -51,6 +52,8 @@ export function NrtDetailsPanel({
   fetchJiraIssue: (issueId: string, testRun: TestRun, isQaIssue: boolean) => Promise<boolean>;
   handleIssueInputChange: (event: ChangeEvent<HTMLInputElement>, runId: string, field: "product" | "qa") => void;
   handleRevisionNoteChange: (updatedNrt: NrtsListObject, scenario: TestExecution, scenarios: TestExecution[], event: ChangeEvent<HTMLTextAreaElement>) => void;
+  /** Edits the general note of the run (NRT only). */
+  handleRunNoteChange: (updatedNrt: NrtsListObject, event: ChangeEvent<HTMLTextAreaElement>) => void;
   isTasOnly: boolean;
   origin?: RunOrigin;
 }) {
@@ -175,6 +178,22 @@ export function NrtDetailsPanel({
           </dl>
         )}
       </div>
+
+      {!isTasOnly && (
+        <div className="mt-5">
+          <label htmlFor={`run-note-${details.test_run.id}`} className="mb-2 block text-[12px] font-semibold uppercase text-text-muted">
+            Note della run
+          </label>
+          <textarea
+            id={`run-note-${details.test_run.id}`}
+            value={details.test_run.note ?? ""}
+            onChange={(event) => { handleRunNoteChange(details, event); onModifiedChange(true); }}
+            rows={2}
+            placeholder="Nota generale facoltativa sulla run"
+            className="w-full rounded-[var(--radius-sm)] border border-border bg-surface text-text text-[12px] px-2 py-1"
+          />
+        </div>
+      )}
 
       <div className="mt-5">
         <h2 className="mb-2 text-[12px] font-semibold uppercase text-text-muted">

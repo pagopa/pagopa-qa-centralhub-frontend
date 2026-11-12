@@ -88,7 +88,7 @@ function getAllureSubfolder(testObject: string): string {
         ?? `${normalizedTestObject}-tests`;
 }
 
-export type RunOrigin = "TAS" | "QG";
+export type RunOrigin = "TAS" | "QG" | "NRT";
 
 // TAS and QG reports are published as <origin>/<suite>/<timestamp>/.
 function buildRunFolder(testObject: string, isTasOnly: boolean, origin: RunOrigin): string {

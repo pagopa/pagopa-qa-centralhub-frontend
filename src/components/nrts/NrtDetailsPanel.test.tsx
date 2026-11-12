@@ -37,16 +37,18 @@ const details: NrtsListObject = {
   test_execution: [],
 };
 
-function renderPanel(isTasOnly = false, origin?: "TAS" | "QG") {
+function renderPanel(isTasOnly = false, origin?: "TAS" | "QG", note: string | null = null) {
   const fetchJiraIssue = vi.fn().mockResolvedValue(false);
   const handleIssueInputChange = vi.fn();
+  const handleRunNoteChange = vi.fn();
+  const onModifiedChange = vi.fn();
   render(
     <NrtDetailsPanel
-      details={details}
+      details={note === null ? details : { ...details, test_run: { ...details.test_run, note } }}
       isLoading={false}
       hasError={false}
       modified={false}
-      onModifiedChange={vi.fn()}
+      onModifiedChange={onModifiedChange}
       onSave={vi.fn()}
       isSaving={false}
       hasSaveError={false}
@@ -55,11 +57,12 @@ function renderPanel(isTasOnly = false, origin?: "TAS" | "QG") {
       fetchJiraIssue={fetchJiraIssue}
       handleIssueInputChange={handleIssueInputChange}
       handleRevisionNoteChange={vi.fn()}
+      handleRunNoteChange={handleRunNoteChange}
       isTasOnly={isTasOnly}
       origin={origin}
     />,
   );
-  return { fetchJiraIssue, handleIssueInputChange };
+  return { fetchJiraIssue, handleIssueInputChange, handleRunNoteChange, onModifiedChange };
 }
 
 function getTicketField(label: string) {
@@ -132,5 +135,35 @@ describe("NrtDetailsPanel", () => {
     renderPanel(isTasOnly, origin);
     const heading = screen.getByRole("heading", { name: title });
     expect(heading.parentElement).toHaveClass("mt-5");
+  });
+
+  it("lets the user write a general note on an NRT run", () => {
+    const { handleRunNoteChange, onModifiedChange } = renderPanel(false, undefined, "existing note");
+    const note = screen.getByRole("textbox", { name: "Note della run" });
+    expect(note).toHaveValue("existing note");
+    fireEvent.change(note, { target: { value: "new note" } });
+    expect(handleRunNoteChange).toHaveBeenCalledTimes(1);
+    expect(handleRunNoteChange.mock.calls[0][0]).toMatchObject({ test_run: { id: "run-1" } });
+    expect(onModifiedChange).toHaveBeenCalledWith(true);
+  });
+
+  it("shows an empty note field for a run without note", () => {
+    renderPanel(false);
+    expect(screen.getByRole("textbox", { name: "Note della run" })).toHaveValue("");
+  });
+
+  it.each([
+    ["TAS", "TAS"],
+    ["Quality Gate", "QG"],
+  ] as const)("has no run note on the %s detail", (_name, origin) => {
+    renderPanel(true, origin);
+    expect(screen.queryByRole("textbox", { name: "Note della run" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the note above the scenarios title", () => {
+    renderPanel(false);
+    const note = screen.getByRole("textbox", { name: "Note della run" });
+    const heading = screen.getByRole("heading", { name: /^Scenari/ });
+    expect(note.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

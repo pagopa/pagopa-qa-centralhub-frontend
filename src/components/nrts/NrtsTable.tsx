@@ -21,7 +21,7 @@ import {
 } from "@/utils/nrtsCostants";
 import { BarChart3, Bot, Check, FileText, Trash2, X } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useDeleteQualityGateRun } from "@/hooks/useQualityGate";
+import { useDeleteRun } from "@/hooks/useQualityGate";
 import { DeleteRunDialog } from "./DeleteRunDialog";
 import Link from "next/link";
 import { RunModal } from "./RunModal";
@@ -68,6 +68,9 @@ function NrtColumnHeader({ label, description }: { label: string; description: s
   );
 }
 
+/** Permission that lets a user launch and delete the runs of each list. */
+const DELETE_ACTION: Record<RunOrigin, string> = { QG: "run:qg", TAS: "run:tas", NRT: "run:nrt" };
+
 interface NrtsTableProps {
   runs: NrtsListObject[];
   onNrtsChange: (nrts: NrtsListObject[]) => void;
@@ -111,8 +114,8 @@ const visibleColumns: ReadonlyArray<{ id: string; label: string; description: st
 const visibleColumnIds = new Set<string>(visibleColumns.map((column) => column.id));
 const resultOptions = isQualityGate ? QG_REVISION_RESULT_OPTIONS : NRT_REVISION_RESULT_OPTIONS;
 const { can } = usePermissions();
-const canDeleteRuns = isQualityGate && can("run:qg");
-const deleteRun = useDeleteQualityGateRun();
+const canDeleteRuns = can(DELETE_ACTION[origin]);
+const deleteRun = useDeleteRun(origin);
 const [runToDelete, setRunToDelete] = useState<NrtsListObject | null>(null);
 // Every list (Quality Gate, TAS, NRT) has the actions column, with the report of its own kind.
 const report = isQualityGate
@@ -237,6 +240,15 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
       }
       return nrt;
     });
+    setModifiedRunIds(new Set([...modifiedRunIds, runId]));
+    onNrtsChange(details);
+  }
+
+  function handleRunNoteChange(updatedNrt: NrtsListObject, event: ChangeEvent<HTMLTextAreaElement>) {
+    const runId = updatedNrt.test_run.id;
+    const details = runs.map((nrt) =>
+      nrt.test_run.id === runId ? { ...nrt, test_run: { ...nrt.test_run, note: event.target.value } } : nrt,
+    );
     setModifiedRunIds(new Set([...modifiedRunIds, runId]));
     onNrtsChange(details);
   }
@@ -415,6 +427,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                             fetchJiraIssue={handleJiraIssueBlur}
                             handleIssueInputChange={handleIssueInputChange}
                             handleRevisionNoteChange={handleScenarioRevisionNoteChange}
+                            handleRunNoteChange={handleRunNoteChange}
                             isTasOnly={isTasOnly}
                             origin={origin}
                           />

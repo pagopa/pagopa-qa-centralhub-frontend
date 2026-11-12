@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useNrts, useNrtDetailsScenarios, useNrtsSuites } from "@/hooks/useNrts";
+import { useNrts, useNrtDetailsScenarios, useNrtsSuites, useFlakyScenarios } from "@/hooks/useNrts";
 import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
 import type { NrtsListObject } from "@/types";
@@ -25,6 +25,9 @@ function isEmptyResult(error: unknown): boolean {
 }
 
 export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPageProps) {
+  // NRT runs are the ones that belong to neither TAS nor QG: the backend lists them without an origin.
+  const isNrt = origin === "NRT";
+  const queryOrigin = isNrt ? undefined : origin;
   const [page, setPage] = useState(1);
   const [selectedNrtId, setSelectedNrtId] = useState<string | undefined>();
   const {
@@ -34,17 +37,23 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
   } = useNrtDetailsScenarios(selectedNrtId);
   const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
   const { data: nrtsData, isLoading, error, refetch: refetchNrts, isFetching: isFetchingNrts } = useNrts({
-        origin,
+        origin: queryOrigin,
         test_object: selectedSuite,
         page: page
     });
   const { data: suitesList, isLoading: isLoadingSuites } = useSuites(
-    { origin }
+    { origin: queryOrigin }
   );
-  const totalPages = Math.ceil((nrtsData?.total ?? 0) / NRT_PAGE_SIZE);
+  // Flaky scenarios are only tracked for NRT runs.
+  const { data: flakyScenariosData } = useFlakyScenarios({ enabled: isNrt });
+  // The backend answers 404 for an empty list, and React Query keeps the previous data when a
+  // refetch fails: without this a deleted last run would stay on screen.
+  const isEmpty = isEmptyResult(error);
+  const total = isEmpty ? 0 : nrtsData?.total ?? 0;
+  const totalPages = Math.ceil(total / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
   const { data: suitesData, isLoading: suitesLoading, refetch: refetchSuites, isFetching: isFetchingSuites } = useNrtsSuites({
-    origin
+    origin: queryOrigin
   });
   const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState<NrtsListObject[]>([]);
     
@@ -70,7 +79,7 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
       setNrtsWithSelectedDetails([]);
   }
     
-    let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? nrtsData?.items ?? [] : nrtsWithSelectedDetails;
+    let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? (isEmpty ? [] : nrtsData?.items ?? []) : nrtsWithSelectedDetails;
     if (selectedNrtId !== undefined && selectedNrtDetails !== undefined) {
       nrtsToUse = nrtsToUse.map((nrt) => {
         if (nrt.test_run.id !== selectedNrtId) return nrt;
@@ -96,7 +105,7 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
     <div className="flex flex-col gap-6"> 
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-semibold text-text">{title}</h1>
-        <span className="text-[13px] text-text-muted font-mono">({nrtsData?.total ?? 0} totali)</span>
+        <span className="text-[13px] text-text-muted font-mono">({total} totali)</span>
       </div>
       {children}
       <div>
@@ -120,6 +129,11 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
                   onClick={() => handleSuiteCardClick(suite.test_object)}
                 />
               ))}
+            {isNrt && suitesData?.length === 0 && (
+              <p className="text-text-muted text-[13px]">
+                Nessuna suite configurata. Vai in Settings → Integrations.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -156,10 +170,10 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
       hasDetailsError={hasDetailsError} 
       modified={modified} 
       onModifiedChange={setIsModified} 
-      flakyScenariosData={[]}
+      flakyScenariosData={isNrt ? flakyScenariosData ?? [] : []}
       page={page}
       setPage={setPage}
-      isTasOnly={true}
+      isTasOnly={!isNrt}
       origin={origin}
     />
     )}

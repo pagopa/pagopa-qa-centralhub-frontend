@@ -675,6 +675,8 @@ export interface TestRun {
   qa_issue: string | null;
   qa_issue_status: string | null;
   gha_run_url?: string | null;
+  /** General note on the whole run (NRT), as opposed to the per-scenario `revision_note`. */
+  note?: string | null;
 }
 
 export interface TestExecution {
