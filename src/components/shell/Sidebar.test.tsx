@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "./Sidebar";
 
@@ -78,13 +78,37 @@ describe("Sidebar feature visibility", () => {
     renderSidebar();
 
     const link = await screen.findByRole("link", { name: "NRT Metrics" });
-    expect(link).toHaveAttribute("href", "https://grafana.example.com/d/nrt?orgId=1&kiosk");
+    expect(link).toHaveAttribute("href", "https://grafana.example.com/d/nrt?orgId=1&kiosk&theme=light");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveAttribute("title", "NRT Metrics (si apre in una nuova scheda)");
     expect(link.querySelector(".lucide-external-link")).toBeInTheDocument();
     const labels = screen.getAllByRole("link").map((item) => item.textContent?.trim());
     expect(labels.indexOf("NRT Metrics")).toBe(labels.indexOf("SANP Health") + 1);
+  });
+
+  it("opens NRT Metrics with the theme the user is using, following later changes", async () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    mocks.apiClient.mockResolvedValue({
+      items: featureItems.map(([key, label, route, action, external]) => ({
+        key, label, route, action, external, enabled: true,
+      })),
+    });
+    try {
+      renderSidebar();
+      const link = await screen.findByRole("link", { name: "NRT Metrics" });
+      expect(link).toHaveAttribute("href", "https://grafana.example.com/d/nrt?orgId=1&kiosk&theme=dark");
+
+      act(() => document.documentElement.removeAttribute("data-theme"));
+      await waitFor(() =>
+        expect(screen.getByRole("link", { name: "NRT Metrics" })).toHaveAttribute(
+          "href",
+          "https://grafana.example.com/d/nrt?orgId=1&kiosk&theme=light",
+        ),
+      );
+    } finally {
+      document.documentElement.removeAttribute("data-theme");
+    }
   });
 
   it("opens API Docs as an internal page, not as a link to the backend", async () => {

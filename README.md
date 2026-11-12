@@ -138,6 +138,9 @@ La voce **NRT Metrics** in **Test Results** (feature `nrt_metrics`, permesso
 senza pagina intermedia o iframe. L'icona di link esterno e il tooltip indicano
 l'apertura in una nuova scheda anche con il menu ridotto.
 L'autenticazione Microsoft avviene direttamente su Grafana.
+Il link passa a Grafana il parametro `theme` (`light` o `dark`) in base al tema
+in uso nel portale, aggiornandolo quando l'utente cambia tema; se l'URL
+configurato non lo contiene, viene aggiunto.
 
 Se `NEXT_PUBLIC_NRT_METRICS_URL` non e' impostata, e' vuota o contiene solo spazi,
 viene utilizzata la dashboard Grafana di DEV riportata sotto.
