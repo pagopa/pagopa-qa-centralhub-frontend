@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,7 +25,7 @@ vi.mock("@/hooks/useSuites", () => ({ useSuites: (...a: unknown[]) => mocks.useS
 vi.mock("@/components/nrts/NrtsTable", () => ({
   default: (props: Record<string, unknown>) => {
     mocks.tableProps(props);
-    return <div data-testid="table" />;
+    return <div data-testid="table">{props.toolbar as ReactNode}</div>;
   },
 }));
 vi.mock("@/components/nrts/SuiteCard", () => ({
@@ -111,9 +111,29 @@ describe("OriginNrtsPage", () => {
     expect(mocks.useNrts).toHaveBeenLastCalledWith(expect.objectContaining({ test_object: "wisp", page: 1 }));
   });
 
-  it("renders the slot content between the title and the suites", () => {
+  it("renders the summary charts first, then the slot content, then the list", () => {
     renderPage("NRT", <div>slot</div>);
-    expect(screen.getByText("slot")).toBeInTheDocument();
+    const order = (el: HTMLElement) => el;
+    const charts = order(screen.getByText("Suite — ultimo run"));
+    const slot = order(screen.getByText("slot"));
+    const list = order(screen.getByText("Elenco run"));
+    expect(charts.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(slot.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("puts the suite filter and the refresh button in the toolbar of the list", () => {
+    renderPage("NRT");
+    const table = screen.getByTestId("table");
+    expect(within(table).getByRole("combobox")).toHaveValue("");
+    expect(within(table).getByRole("button", { name: "Aggiorna elenco" })).toBeInTheDocument();
+  });
+
+  it("keeps the filter and the refresh button available when the list fails to load", async () => {
+    setup(new ApiError(500, null));
+    renderPage("NRT");
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Aggiorna elenco" }));
+    expect(mocks.refetchNrts).toHaveBeenCalledTimes(1);
   });
 
   it("shows an empty list, not the deleted rows, when the refetch after a delete answers 404", () => {

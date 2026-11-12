@@ -54,7 +54,8 @@ describe("NrtLaunchPanel", () => {
 
   it("selects every suite by default and asks for confirmation before launching them all", async () => {
     render(<NrtLaunchPanel />);
-    expect(screen.getByRole("checkbox", { name: "Tutte le suite" })).toBeChecked();
+    expect(screen.getByLabelText("Suite")).toHaveValue("all");
+    expect(screen.queryByLabelText("Tipo di test")).not.toBeInTheDocument();
     await userEvent.click(launchButton());
     expect(mocks.mutate).not.toHaveBeenCalled();
     const dialog = await screen.findByRole("dialog");
@@ -70,32 +71,28 @@ describe("NrtLaunchPanel", () => {
     expect(mocks.mutate).not.toHaveBeenCalled();
   });
 
-  it("launches the selected suites without confirmation", async () => {
+  it("lists 'Tutte le suite' first, then the suites of the environment", () => {
     render(<NrtLaunchPanel />);
-    await userEvent.click(screen.getByRole("checkbox", { name: "Tutte le suite" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "WISP" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Checkout E2E" }));
+    const labels = within(screen.getByLabelText("Suite")).getAllByRole("option").map((o) => o.textContent);
+    expect(labels).toEqual(["Tutte le suite", "WISP", "Checkout E2E"]);
+  });
+
+  it("launches a single suite without confirmation", async () => {
+    render(<NrtLaunchPanel />);
+    await userEvent.selectOptions(screen.getByLabelText("Suite"), "checkout");
     await userEvent.click(launchButton());
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(mocks.mutate).toHaveBeenCalledWith({ suites: ["wisp", "checkout"], target_env: "uat" });
+    expect(mocks.mutate).toHaveBeenCalledWith({ suites: ["checkout"], target_env: "uat" });
   });
 
-  it("disables the launch while no suite is selected", async () => {
+  it("offers only the suites the environment supports and goes back to all when the chosen one is not offered", async () => {
     render(<NrtLaunchPanel />);
-    await userEvent.click(screen.getByRole("checkbox", { name: "Tutte le suite" }));
-    expect(launchButton()).toBeDisabled();
-  });
-
-  it("offers only the suites the environment supports and drops selections that no longer apply", async () => {
-    render(<NrtLaunchPanel />);
-    await userEvent.click(screen.getByRole("checkbox", { name: "Tutte le suite" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Checkout E2E" }));
+    await userEvent.selectOptions(screen.getByLabelText("Suite"), "checkout");
     await userEvent.selectOptions(screen.getByLabelText("Ambiente"), "dev");
-    expect(screen.queryByRole("checkbox", { name: "Checkout E2E" })).not.toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "WISP" })).toBeInTheDocument();
-    // The hidden suite is not sent and nothing else is selected, so the launch is blocked.
-    expect(launchButton()).toBeDisabled();
-    await userEvent.click(screen.getByRole("checkbox", { name: "WISP" }));
+    const labels = within(screen.getByLabelText("Suite")).getAllByRole("option").map((o) => o.textContent);
+    expect(labels).toEqual(["Tutte le suite", "WISP"]);
+    expect(screen.getByLabelText("Suite")).toHaveValue("all");
+    await userEvent.selectOptions(screen.getByLabelText("Suite"), "wisp");
     await userEvent.click(launchButton());
     expect(mocks.mutate).toHaveBeenCalledWith({ suites: ["wisp"], target_env: "dev" });
   });
@@ -103,18 +100,18 @@ describe("NrtLaunchPanel", () => {
   it("falls back to typing the suite ids when the registry could not be read", async () => {
     mocks.options = { available: false, suites: [] };
     render(<NrtLaunchPanel />);
-    await userEvent.click(screen.getByRole("checkbox", { name: "Tutte le suite" }));
-    const input = screen.getByLabelText(/Suite \(id separati da virgola\)/);
-    await userEvent.type(input, "wisp, checkout");
+    await userEvent.selectOptions(screen.getByLabelText("Suite"), "typed");
+    await userEvent.type(screen.getByLabelText(/Id delle suite/), "wisp, checkout");
     await userEvent.click(launchButton());
     expect(mocks.mutate).toHaveBeenCalledWith({ suites: ["wisp", "checkout"], target_env: "uat" });
   });
 
-  it("blocks typed suite ids that are not valid", async () => {
+  it("blocks typed suite ids that are not valid or missing", async () => {
     mocks.options = { available: false, suites: [] };
     render(<NrtLaunchPanel />);
-    await userEvent.click(screen.getByRole("checkbox", { name: "Tutte le suite" }));
-    await userEvent.type(screen.getByLabelText(/Suite \(id separati da virgola\)/), "Bad Suite");
+    await userEvent.selectOptions(screen.getByLabelText("Suite"), "typed");
+    expect(launchButton()).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Id delle suite/), "Bad Suite");
     expect(launchButton()).toBeDisabled();
   });
 

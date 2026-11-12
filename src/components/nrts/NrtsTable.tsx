@@ -26,7 +26,7 @@ import { DeleteRunDialog } from "./DeleteRunDialog";
 import Link from "next/link";
 import { RunModal } from "./RunModal";
 import { useSession } from "next-auth/react";
-import { ChangeEvent, Fragment, type MouseEvent, useState } from "react";
+import { ChangeEvent, Fragment, type MouseEvent, type ReactNode, useState } from "react";
 import { NrtDetailsPanel } from "./NrtDetailsPanel";
 import NrtSaveButton from "./NrtSaveButton";
 
@@ -86,6 +86,8 @@ interface NrtsTableProps {
   isTasOnly: boolean;
   origin?: RunOrigin;
   flakyScenariosData: FlakyScenario[];
+  /** Controls that act on this list (filter, refresh): shown in the header of the list card. */
+  toolbar?: ReactNode;
 }
 
 export default function NrtsTable({
@@ -103,6 +105,7 @@ export default function NrtsTable({
   isTasOnly,
   origin = "TAS",
   flakyScenariosData,
+  toolbar,
 }: NrtsTableProps) {
 const jiraIssue = useJiraIssue();
 const updateNrt = useUpdateNrt();
@@ -279,19 +282,23 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
 
    return (
         <>
-           <div className="mt-3 flex w-full items-end justify-between gap-3">
-                    <span className="text-[13px] text-text-muted font-mono">({runs?.length ?? 0} totali)</span>
-                    {(!isTasOnly && 
-                    <NrtSaveButton
-                    hasSaveError={updateNrt.isError}
-                    onSave={() => handleSave()}
-                    isSaving={updateNrt.isPending}
-                    modified={modified}
-                  />  
-                    )}   
+          <div className="rounded-[var(--radius)] border border-border bg-surface">
+          <div className="flex w-full flex-wrap items-center justify-between gap-3 border-b border-border p-3">
+            <div>{toolbar}</div>
+            <div className="flex items-center gap-4">
+              <span className="text-[13px] text-text-muted font-mono">({runs?.length ?? 0} totali)</span>
+              <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
+              {(!isTasOnly &&
+                <NrtSaveButton
+                  hasSaveError={updateNrt.isError}
+                  onSave={() => handleSave()}
+                  isSaving={updateNrt.isPending}
+                  modified={modified}
+                />
+              )}
+            </div>
           </div>
-          <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
-          <div className="rounded-[var(--radius)] border border-border overflow-x-auto bg-surface">
+          <div className="overflow-x-auto">
             <TooltipProvider>
             <table className="w-full table-auto border-collapse text-[13px] [&>thead>tr>th]:px-2 [&>tbody>tr>td:not([colspan])]:px-2 [&>tbody>tr>td:not([colspan])]:whitespace-nowrap">
               <thead>
@@ -441,8 +448,10 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
             </table>
             </TooltipProvider>
           </div>
-
-          <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
+          <div className="border-t border-border py-2 empty:hidden">
+            <NrtPagination page={page} totalPages={totalPages} setPage={setPage} />
+          </div>
+          </div>
           <RunModal
             run={activeReport?.run ?? null}
             open={activeReport !== null}

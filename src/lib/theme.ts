@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 const KEY = "qa-hub-theme";
@@ -36,4 +36,30 @@ function apply(theme: Theme) {
   } else {
     document.documentElement.removeAttribute("data-theme");
   }
+}
+
+function subscribeToTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
+
+/** The theme currently applied to the page, whoever changed it (toggle, stored choice, system). */
+export function useActiveTheme(): Theme {
+  return useSyncExternalStore(
+    subscribeToTheme,
+    () => (document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"),
+    () => "light",
+  );
+}
+
+/** Sets the `theme` query parameter of an external URL (e.g. Grafana), keeping everything else as is. */
+export function withTheme(url: string, theme: Theme): string {
+  if (!url) return url;
+  const hashAt = url.indexOf("#");
+  const hash = hashAt === -1 ? "" : url.slice(hashAt);
+  const base = hashAt === -1 ? url : url.slice(0, hashAt);
+  const param = /([?&])theme=[^&]*/;
+  if (param.test(base)) return base.replace(param, `$1theme=${theme}`) + hash;
+  return `${base}${base.includes("?") ? "&" : "?"}theme=${theme}${hash}`;
 }

@@ -28,6 +28,7 @@ import {
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
 import { useStoredFlag } from "@/lib/stored-flag";
+import { useActiveTheme, withTheme } from "@/lib/theme";
 
 const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
@@ -108,6 +109,7 @@ export function Sidebar() {
     && ["https:", "http:"].includes(new URL(configuredDashboardUrl).protocol)
     ? configuredDashboardUrl
     : "";
+  const activeTheme = useActiveTheme();
   const pathname = usePathname();
   const { can, role, isLoading } = usePermissions();
   const featuresQuery = useFeatureVisibility();
@@ -187,7 +189,7 @@ export function Sidebar() {
                 </div>
               )}
               {items.map((item) => {
-                const href = item.featureKey === "nrt_metrics" ? dashboardUrl : item.href;
+                const href = item.featureKey === "nrt_metrics" ? withTheme(dashboardUrl, activeTheme) : item.href;
                 const isActive =
                   !item.external &&
                   (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));

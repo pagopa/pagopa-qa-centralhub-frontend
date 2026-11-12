@@ -9,7 +9,7 @@ import { SuiteCard } from "@/components/nrts/SuiteCard";
 import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
 import type { RunOrigin } from "@/utils/nrtUtils";
 import { ApiError } from "@/lib/api";
-import { SELECT_CLASS, PRIMARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { SELECT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { RefreshCw } from "lucide-react";
 
 export interface OriginNrtsPageProps {
@@ -99,6 +99,33 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
     }
 
 
+  // Filter and refresh act on the list: they live in the toolbar of the list card.
+  const listToolbar = (
+    <div className="flex items-center gap-2">
+      <select
+        aria-label="Filtra per suite"
+        className={`${SELECT_CLASS} w-52`}
+        value={selectedSuite ?? ""}
+        onChange={(e) => handleSuiteCardClick(e.target.value)}
+      >
+        <option value="">Tutte le suite</option>
+        {suitesList?.map((s) => (
+          <option key={s} value={s}>{s.toUpperCase()}</option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        aria-label="Aggiorna elenco"
+        title="Aggiorna elenco"
+        className={`${SECONDARY_BUTTON_CLASS} px-2.5`}
+      >
+        <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
+      </button>
+    </div>
+  );
+
   if (isLoading || isLoadingSuites) return <p className="text-text-muted text-[13px]">Caricamento...</p>;
 
   return (
@@ -107,7 +134,6 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
         <h1 className="text-xl font-semibold text-text">{title}</h1>
         <span className="text-[13px] text-text-muted font-mono">({total} totali)</span>
       </div>
-      {children}
       <div>
         <p
           className="font-mono uppercase text-text-muted mb-3"
@@ -137,46 +163,40 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
           </div>
         )}
       </div>
-      <div className="flex w-full items-center gap-3">
-          <select
-            className={`${SELECT_CLASS} w-56`}
-            value={selectedSuite ?? ""}
-            onChange={(e) => handleSuiteCardClick(e.target.value)}
-          >
-            <option value="">Tutte le suite</option>
-            {suitesList?.map((s) => (
-              <option key={s} value={s}>{s.toUpperCase()}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            aria-label="Aggiorna elenco"
-            className={PRIMARY_BUTTON_CLASS}
-          >
-            <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden />
-            Aggiorna
-          </button>
-    </div>
-    {(error != null && !isEmptyResult(error) ? <div className="text-text-muted text-[13px]">Errore nel caricamento degli NRT</div> : 
-    <NrtsTable
-      runs={nrtsToUse} 
-      onNrtsChange={handleNrtsChange}
-      totalPages={totalPages} 
-      onRowClick={setSelectedNrtId} 
-      selectedNrt={selectedNrtId} 
-      isDetailsLoading={isDetailsLoading} 
-      hasDetailsError={hasDetailsError} 
-      modified={modified} 
-      onModifiedChange={setIsModified} 
-      flakyScenariosData={isNrt ? flakyScenariosData ?? [] : []}
-      page={page}
-      setPage={setPage}
-      isTasOnly={!isNrt}
-      origin={origin}
-    />
-    )}
+      {children}
+      <section aria-labelledby="runs-list-title">
+        <p
+          id="runs-list-title"
+          className="font-mono uppercase text-text-muted mb-3"
+          style={{ fontSize: 10, letterSpacing: ".06em" }}
+        >
+          Elenco run
+        </p>
+        {error != null && !isEmptyResult(error) ? (
+          <div className="rounded-[var(--radius)] border border-border bg-surface">
+            <div className="border-b border-border p-3">{listToolbar}</div>
+            <p className="p-4 text-text-muted text-[13px]">Errore nel caricamento degli NRT</p>
+          </div>
+        ) : (
+          <NrtsTable
+            toolbar={listToolbar}
+            runs={nrtsToUse}
+            onNrtsChange={handleNrtsChange}
+            totalPages={totalPages}
+            onRowClick={setSelectedNrtId}
+            selectedNrt={selectedNrtId}
+            isDetailsLoading={isDetailsLoading}
+            hasDetailsError={hasDetailsError}
+            modified={modified}
+            onModifiedChange={setIsModified}
+            flakyScenariosData={isNrt ? flakyScenariosData ?? [] : []}
+            page={page}
+            setPage={setPage}
+            isTasOnly={!isNrt}
+            origin={origin}
+          />
+        )}
+      </section>
     </div>
   );
 }

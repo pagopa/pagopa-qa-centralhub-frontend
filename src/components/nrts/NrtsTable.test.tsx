@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import userEvent from "@testing-library/user-event";
@@ -56,7 +57,7 @@ function makeRun(overrides: Partial<NrtsListObject["test_run"]> = {}): NrtsListO
   };
 }
 
-function renderTable(origin: "TAS" | "QG" | "NRT", runs: NrtsListObject[] = [makeRun()], isTasOnly = true, selectedNrt?: string) {
+function renderTable(origin: "TAS" | "QG" | "NRT", runs: NrtsListObject[] = [makeRun()], isTasOnly = true, selectedNrt?: string, toolbar?: ReactNode) {
   const onNrtsChange = vi.fn();
   const onRowClick = vi.fn();
   render(
@@ -72,10 +73,19 @@ function renderTable(origin: "TAS" | "QG" | "NRT", runs: NrtsListObject[] = [mak
       isTasOnly={isTasOnly}
       origin={origin}
       flakyScenariosData={[]}
+      toolbar={toolbar}
     />,
   );
   return { onNrtsChange, onRowClick };
 }
+
+describe("NrtsTable toolbar", () => {
+  it("shows the toolbar in the same card as the table", () => {
+    renderTable("TAS", [makeRun()], true, undefined, <button type="button">filtro-test</button>);
+    const card = screen.getByRole("table").closest(".border");
+    expect(card).toContainElement(screen.getByRole("button", { name: "filtro-test" }));
+  });
+});
 
 describe("NrtsTable (Quality Gate)", () => {
   beforeEach(() => {

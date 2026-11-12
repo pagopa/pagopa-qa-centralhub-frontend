@@ -77,9 +77,10 @@ describe("NrtDetailsPanel", () => {
     expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
   });
 
-  it("keeps the product ticket for TAS runs", () => {
+  it("hides the product ticket for TAS runs, which are read-only", () => {
     renderPanel(true, "TAS");
-    expect(screen.getByText("Ticket prodotto:")).toBeInTheDocument();
+    expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ticket QA:")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -105,10 +106,10 @@ describe("NrtDetailsPanel", () => {
     expect(handleIssueInputChange).toHaveBeenLastCalledWith(expect.anything(), "run-1", field);
   });
 
-  it("renders test object details and hides the QA ticket in TAS mode", () => {
+  it("renders test object details and hides both tickets in TAS mode", () => {
     renderPanel(true);
 
-    expect(getTicketField("Ticket prodotto:").getByRole("textbox")).toHaveValue(" PROD-123 ");
+    expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
     expect(screen.queryByText("Ticket QA:")).not.toBeInTheDocument();
     expect(screen.getByText("Test object")).toBeInTheDocument();
     expect(screen.getByText("Test product")).toBeInTheDocument();

@@ -153,6 +153,7 @@ export function NrtDetailsPanel({
           <DetailField label="Test object" value={suite.test_object} />
           <DetailField label="Versione test object" value={suite.test_object_version} />
           <DetailField label="Team owner" value={suite.owner_team} />
+          {!isTasOnly && (
           <JiraIssueField
             field="product"
             value={details.test_run?.product_issue ?? ""}
@@ -160,6 +161,7 @@ export function NrtDetailsPanel({
             onBlur={(event) => checkJiraIssue(event.target.value, false)}
             onChange={(event) => { setJiraIssueNotFound((current) => ({ ...current, product: false })); handleIssueInputChange(event, details.test_run?.id ?? "", "product"); }}
           />
+          )}
           <DetailField label="Ambiente" value={details.test_run?.env} />
           <DetailField label="Versione test suite" value={details.test_run?.test_version} />
           <DetailField label="Inizio" value={formatNrtTimestamp(details.test_run?.timestamp_start ?? null)} />
