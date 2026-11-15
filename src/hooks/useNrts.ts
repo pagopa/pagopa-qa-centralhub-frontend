@@ -98,3 +98,17 @@ export function useNrtsAvgPassRate() {
         queryFn: () => apiClient<number>(`/api/v1/test-metrics/avg-pass-rate`),
     });
 }
+export interface PendingRuns {
+    total: number;
+    nrt: number;
+    qg: number;
+}
+
+/** NRT and Quality Gate runs still waiting for review (revision result PENDING). */
+export function usePendingRuns() {
+    return useQuery({
+        queryKey: ["nrts", "pending-runs"],
+        staleTime: 60_000,
+        queryFn: () => apiClient<PendingRuns>(`/api/v1/test-metrics/pending-runs`),
+    });
+}

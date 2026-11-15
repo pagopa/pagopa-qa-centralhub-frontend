@@ -126,6 +126,16 @@ src/
 
 Tokens live in `src/app/globals.css`. See `../design_handoff_qa_webportal/README.md` for full reference.
 
+## Overview
+
+La home (`/`, `view:overview`) è organizzata in tre riquadri, ognuno con titolo, indicatori e sezioni (`src/components/overview/`):
+
+- **Centro di Competenza QA**: issue Jira attive; sezioni Architettura, Docs & Decks, KPI Jira, API Docs.
+- **Testing**: pass rate medio NRT e **Run da analizzare** (run NRT e Quality Gate con esito di revisione `PENDING`, da `GET /api/v1/test-metrics/pending-runs`, con il dettaglio per origine); sezioni Quality Gate, NRTs, Scenari flaky, TAS, Gherkin Generator.
+- **Data Quality**: Posizioni Debitorie GPD con la variazione sullo snapshot precedente; sezioni Data Quality, Posizioni Debitorie GPD, PSP Commissioni.
+
+Le sezioni seguono gli stessi permessi e toggle di feature della sidebar (`useVisibleSections`): chi non può aprire una pagina non la vede.
+
 ## SANP Health
 
 La route `/sanp-health` apre l'ultimo report completo disponibile e permette di selezionare i run conservati negli ultimi sette giorni. La pagina mostra versione SANP, timestamp e link alla run GitHub, KPI aggregati e la matrice dei drift per SANP, Collaudo e Produzione; ricerca, filtri ed espansione delle righe consentono il drill-down fino alla singola differenza OpenAPI.
