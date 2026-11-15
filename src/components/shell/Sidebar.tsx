@@ -18,6 +18,7 @@ import {
   Radar,
   Receipt,
   ShieldCheck,
+  Shuffle,
   Sparkles,
   Users,
   Wallet,
@@ -63,6 +64,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
       { href: "/nrts", label: "Non-Regression Tests (NRT)", icon: ClipboardCheck, action: "view:nrts", featureKey: "nrts" },
+      { href: "/flaky-scenarios", label: "Scenari flaky", icon: Shuffle, action: "view:flaky", featureKey: "flaky_scenarios" },
       { href: "/tas-nrts", label: "Test Automation Service (TAS)", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts" },
       { href: "/quality-gate", label: "Quality Gate", icon: ShieldCheck, action: "view:qg_nrts", featureKey: "qg_nrts" },
       { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },

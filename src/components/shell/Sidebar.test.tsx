@@ -30,6 +30,11 @@ const featureItems = [
   ["api_docs", "API Docs", "/api-docs", "view:api_docs", false],
 ] as const;
 
+const nrtAndFlakyItems = [
+  ["nrts", "Non-Regression Tests (NRT)", "/nrts", "view:nrts", false],
+  ["flaky_scenarios", "Scenari flaky", "/flaky-scenarios", "view:flaky", false],
+] as const;
+
 function renderSidebar() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -165,6 +170,31 @@ describe("Sidebar feature visibility", () => {
     expect(await screen.findByRole("link", { name: "EA Map" })).toBeInTheDocument();
     const labels = screen.getAllByRole("link").map((link) => link.textContent?.trim());
     expect(labels.indexOf("EA Map")).toBe(labels.indexOf("Overview") + 1);
+  });
+
+  it("lists the flaky scenarios page right after the NRT page", async () => {
+    mocks.apiClient.mockResolvedValue({
+      items: [...featureItems, ...nrtAndFlakyItems].map(
+        ([key, label, route, action, external]) => ({ key, label, route, action, external, enabled: true }),
+      ),
+    });
+    renderSidebar();
+
+    expect(await screen.findByRole("link", { name: "Scenari flaky" })).toHaveAttribute("href", "/flaky-scenarios");
+    const labels = screen.getAllByRole("link").map((link) => link.textContent?.trim());
+    expect(labels.indexOf("Scenari flaky")).toBe(labels.indexOf("Non-Regression Tests (NRT)") + 1);
+  });
+
+  it("hides the flaky scenarios page when its feature is disabled", async () => {
+    mocks.apiClient.mockResolvedValue({
+      items: [...featureItems, ...nrtAndFlakyItems].map(([key, label, route, action, external]) => ({
+        key, label, route, action, external, enabled: key !== "flaky_scenarios",
+      })),
+    });
+    renderSidebar();
+
+    expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Scenari flaky" })).not.toBeInTheDocument();
   });
 
   it("hides disabled pages while preserving enabled navigation items", async () => {

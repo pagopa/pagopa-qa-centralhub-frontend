@@ -11,6 +11,7 @@ const FEATURE_ROUTES = [
   { route: "/ea-map", key: "ea_map" },
   { route: "/docs", key: "docs" },
   { route: "/api-docs", key: "api_docs" },
+  { route: "/flaky-scenarios", key: "flaky_scenarios" },
 ] as const;
 
 export function featureKeyForPath(pathname: string): string | null {
