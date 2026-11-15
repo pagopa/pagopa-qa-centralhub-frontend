@@ -19,7 +19,7 @@ describe("JiraIssueField", () => {
       </dl>,
     );
 
-    expect(screen.getByText(`${label}:`)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: label })).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toHaveValue("QA-123");
   });
 

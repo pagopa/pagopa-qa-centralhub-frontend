@@ -1,4 +1,5 @@
-import type { ChangeEventHandler, FocusEventHandler } from "react";
+import { useId, type ChangeEventHandler, type FocusEventHandler } from "react";
+import { INPUT_CLASS } from "@/components/ui/formStyles";
 
 interface JiraIssueFieldProps {
   field: "product" | "qa";
@@ -15,21 +16,25 @@ export function JiraIssueField({
   onBlur,
   onChange,
 }: JiraIssueFieldProps) {
-
   const label = field === "product" ? "Ticket prodotto" : "Ticket QA";
+  const inputId = `${useId()}-jira-issue-${field}`;
 
   return (
-    <div>
-      <dt className="text-text-muted">{label}:</dt>
-      <dd className="flex flex-wrap items-center gap-2">
+    <div className="min-w-0">
+      <dt className="text-[12px] text-text-dim">
+        <label htmlFor={inputId}>{label}</label>
+      </dt>
+      <dd className="mt-1 flex flex-col gap-1">
         <input
+          id={inputId}
           type="text"
           value={value}
           onBlur={onBlur}
           onChange={onChange}
-          className="border border-border bg-surface w-[80%] text-text text-base px-2 py-1"
+          placeholder={field === "product" ? "es. PIDM-1234" : "es. PQ-825"}
+          className={`${INPUT_CLASS} h-8 w-full text-[13px]`}
         />
-        {issueNotFound && <span className="text-danger text-[12px]">Nessuna issue Jira trovata</span>}
+        {issueNotFound && <span className="text-[12px] text-danger">Nessuna issue Jira trovata</span>}
       </dd>
     </div>
   );

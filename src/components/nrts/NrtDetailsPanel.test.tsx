@@ -1,9 +1,16 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import type { NrtsListObject } from "@/types";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FlakyScenarioRow } from "@/types/flaky";
+import type { FlakyScenario, NrtsListObject, TestExecution } from "@/types";
 import { NrtDetailsPanel } from "./NrtDetailsPanel";
 
 vi.mock("./RunModal", () => ({ RunModal: () => null }));
+
+const flaky = vi.hoisted(() => ({ scores: vi.fn() }));
+vi.mock("@/hooks/useFlaky", () => ({
+  useRunScenarioScores: flaky.scores,
+  flakyScoreKey: (testType: string, name: string) => `${testType}|${name}`,
+}));
 
 const details: NrtsListObject = {
   test_suite: {
@@ -37,14 +44,21 @@ const details: NrtsListObject = {
   test_execution: [],
 };
 
-function renderPanel(isTasOnly = false, origin?: "TAS" | "QG", note: string | null = null) {
+function renderPanel(
+  isTasOnly = false,
+  origin?: "TAS" | "QG",
+  note: string | null = null,
+  panelDetails: NrtsListObject = details,
+  flakyScenarios: FlakyScenario[] = [],
+) {
+  const setFlakyScenarios = vi.fn();
   const fetchJiraIssue = vi.fn().mockResolvedValue(false);
   const handleIssueInputChange = vi.fn();
   const handleRunNoteChange = vi.fn();
   const onModifiedChange = vi.fn();
   render(
     <NrtDetailsPanel
-      details={note === null ? details : { ...details, test_run: { ...details.test_run, note } }}
+      details={note === null ? panelDetails : { ...panelDetails, test_run: { ...panelDetails.test_run, note } }}
       isLoading={false}
       hasError={false}
       modified={false}
@@ -52,8 +66,8 @@ function renderPanel(isTasOnly = false, origin?: "TAS" | "QG", note: string | nu
       onSave={vi.fn()}
       isSaving={false}
       hasSaveError={false}
-      flakyScenarios={[]}
-      setFlakyScenarios={vi.fn()}
+      flakyScenarios={flakyScenarios}
+      setFlakyScenarios={setFlakyScenarios}
       fetchJiraIssue={fetchJiraIssue}
       handleIssueInputChange={handleIssueInputChange}
       handleRevisionNoteChange={vi.fn()}
@@ -62,7 +76,7 @@ function renderPanel(isTasOnly = false, origin?: "TAS" | "QG", note: string | nu
       origin={origin}
     />,
   );
-  return { fetchJiraIssue, handleIssueInputChange, handleRunNoteChange, onModifiedChange };
+  return { fetchJiraIssue, handleIssueInputChange, handleRunNoteChange, onModifiedChange, setFlakyScenarios };
 }
 
 function getTicketField(label: string) {
@@ -71,21 +85,26 @@ function getTicketField(label: string) {
   return within(container);
 }
 
+beforeEach(() => {
+  flaky.scores.mockReset();
+  flaky.scores.mockReturnValue({ scores: new Map(), env: "DEV", isLoading: false });
+});
+
 describe("NrtDetailsPanel", () => {
   it("hides the product ticket for Quality Gate runs", () => {
     renderPanel(true, "QG");
-    expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ticket prodotto")).not.toBeInTheDocument();
   });
 
   it("hides the product ticket for TAS runs, which are read-only", () => {
     renderPanel(true, "TAS");
-    expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ticket QA:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ticket prodotto")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ticket QA")).not.toBeInTheDocument();
   });
 
   it.each([
-    ["product", "Ticket prodotto:", "PROD-123", false, "Ticket QA:"],
-    ["qa", "Ticket QA:", "QA-456", true, "Ticket prodotto:"],
+    ["product", "Ticket prodotto", "PROD-123", false, "Ticket QA"],
+    ["qa", "Ticket QA", "QA-456", true, "Ticket prodotto"],
   ] as const)("checks the %s Jira ticket on blur and resets only its error", async (field, label, issueId, isQaIssue, otherLabel) => {
     const { fetchJiraIssue, handleIssueInputChange } = renderPanel();
     const ticket = getTicketField(label);
@@ -109,8 +128,8 @@ describe("NrtDetailsPanel", () => {
   it("renders test object details and hides both tickets in TAS mode", () => {
     renderPanel(true);
 
-    expect(screen.queryByText("Ticket prodotto:")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ticket QA:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ticket prodotto")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ticket QA")).not.toBeInTheDocument();
     expect(screen.getByText("Test object")).toBeInTheDocument();
     expect(screen.getByText("Test product")).toBeInTheDocument();
     expect(screen.getByText("Versione test object")).toBeInTheDocument();
@@ -166,5 +185,117 @@ describe("NrtDetailsPanel", () => {
     const note = screen.getByRole("textbox", { name: "Note della run" });
     const heading = screen.getByRole("heading", { name: /^Scenari/ });
     expect(note.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+function execution(
+  id: string,
+  name: string,
+  overrides: Partial<Omit<TestExecution, "status">> & { status?: string } = {},
+): TestExecution {
+  // The API sends upper-case statuses (PASSED, FAILED, BROKEN) although the type says lower case.
+  return {
+    id, run_id: "run-1", allure_id: null, status: "FAILED", scenario_name: name, duration_ms: 4120,
+    error_message: "AssertionError: expected 200 but was 503", retries: 1, revision_note: null,
+    allure_url: "https://allure/x", ...overrides,
+  } as TestExecution;
+}
+
+function scoreRow(name: string, overrides: Partial<FlakyScenarioRow> = {}): FlakyScenarioRow {
+  return {
+    test_object: "Test product", test_type: "NRT", scenario_name: name, env: "DEV", score: 62, level: 5,
+    state: "OK", flip_rate: 0.6, retry_pass_rate: 0.1, runs_analyzed: 25, last_failure_at: null,
+    recent_outcomes: [], last_suite_id: null, is_flaky: false, flagged_by: null, flagged_at: null,
+    hint: "to_mark", ...overrides,
+  };
+}
+
+const withScenarios: NrtsListObject = {
+  ...details,
+  test_execution: [
+    execution("e1", "Flaky one"),
+    execution("e2", "Already flagged", { status: "BROKEN", duration_ms: 30000 }),
+    execution("e3", "Stable one"),
+    execution("e4", "Passed one", { status: "PASSED" }),
+  ],
+};
+
+describe("NrtDetailsPanel redesign", () => {
+  beforeEach(() => {
+    flaky.scores.mockReturnValue({
+      env: "DEV",
+      isLoading: false,
+      scores: new Map([
+        ["NRT|Flaky one", scoreRow("Flaky one")],
+        ["NRT|Already flagged", scoreRow("Already flagged", { level: 4, score: 38, hint: "to_mark" })],
+        ["NRT|Stable one", scoreRow("Stable one", { level: 1, score: 0, hint: null })],
+      ]),
+    });
+  });
+
+  it("groups the run information in Suite, Run and Revisione cards", () => {
+    renderPanel();
+    for (const title of ["Suite", "Run", "Revisione"]) {
+      expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    }
+  });
+
+  it("asks the flakiness of the non-passed scenarios in the run environment", () => {
+    renderPanel(false, undefined, null, withScenarios);
+    expect(flaky.scores).toHaveBeenCalledWith({
+      env: "DEV", testObject: "Test product", scenarioNames: ["Flaky one", "Already flagged", "Stable one"],
+    });
+  });
+
+  it("shows the flakiness indicator per scenario and suggests marking the very flaky ones", () => {
+    const flagged: FlakyScenario = {
+      suite_id: "suite-1", test_object: "Test product", test_type: "NRT", scenario_name: "Already flagged",
+      test_object_version: "2.0", test_version: "1.0", inserted_at: null, is_flaky: true,
+    };
+    renderPanel(false, undefined, null, withScenarios, [flagged]);
+
+    expect(screen.getByRole("columnheader", { name: "Flakiness DEV" })).toBeInTheDocument();
+    const flakyRow = screen.getByRole("row", { name: /Flaky one/ });
+    expect(within(flakyRow).getByRole("img", { name: "Flakiness livello 5 su 5, punteggio 62" })).toBeInTheDocument();
+    expect(within(flakyRow).getByText("Da marcare")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /Already flagged/ })).queryByText("Da marcare")).not.toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /Passed one/ })).not.toBeInTheDocument();
+
+    expect(screen.getByText("1 da marcare flaky")).toBeInTheDocument();
+    expect(screen.getByText("1 già marcato")).toBeInTheDocument();
+    expect(screen.getByText("1 stabile: probabile regressione")).toBeInTheDocument();
+  });
+
+  it("shows Dati insuff. for scenarios without a score", () => {
+    flaky.scores.mockReturnValue({ env: "DEV", isLoading: false, scores: new Map() });
+    renderPanel(false, undefined, null, withScenarios);
+    expect(within(screen.getByRole("row", { name: /Flaky one/ })).getByText("Dati insuff.")).toBeInTheDocument();
+    expect(screen.queryByText(/da marcare flaky/)).not.toBeInTheDocument();
+  });
+
+  it.each([["TAS", "TAS"], ["Quality Gate", "QG"]] as const)(
+    "shows the indicator also in the %s detail, without flag and note",
+    (_name, origin) => {
+      renderPanel(true, origin, null, withScenarios);
+      expect(screen.getByRole("columnheader", { name: "Flakiness DEV" })).toBeInTheDocument();
+      expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    },
+  );
+
+  it("renders status badges, seconds and the full error on hover", () => {
+    renderPanel(false, undefined, null, withScenarios);
+    const row = screen.getByRole("row", { name: /Already flagged/ });
+    expect(within(row).getByText("BROKEN")).toHaveAttribute("data-status", "BROKEN");
+    expect(within(row).getByText("30,0 s")).toBeInTheDocument();
+    expect(within(row).getByText("AssertionError: expected 200 but was 503")).toHaveAttribute(
+      "title", "AssertionError: expected 200 but was 503",
+    );
+  });
+
+  it("toggles the flaky flag with a switch", () => {
+    const { setFlakyScenarios, onModifiedChange } = renderPanel(false, undefined, null, withScenarios);
+    fireEvent.click(screen.getByRole("switch", { name: "Flaky: Flaky one" }));
+    expect(setFlakyScenarios).toHaveBeenCalledWith([expect.objectContaining({ scenario_name: "Flaky one", is_flaky: true })]);
+    expect(onModifiedChange).toHaveBeenCalledWith(true);
   });
 });

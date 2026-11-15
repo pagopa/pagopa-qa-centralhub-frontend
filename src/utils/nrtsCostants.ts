@@ -20,6 +20,7 @@ export const NRT_TABLE_HEADERS = [
 export const NRT_SCENARIO_TABLE_HEADERS = [
   { id: "scenario", label: "Scenario", description: "Nome dello scenario", visibleInTas: true },
   { id: "status", label: "Stato", description: "Stato dello scenario", visibleInTas: true },
+  { id: "flakiness", label: "Flakiness", description: "Indice di flakiness nell'ambiente della run", visibleInTas: true },
   { id: "duration", label: "Durata", description: "Durata dello scenario", visibleInTas: true },
   { id: "retries", label: "Retry", description: "Numero di retry", visibleInTas: true },
   { id: "error", label: "Errore", description: "Errore dello scenario", visibleInTas: true },
