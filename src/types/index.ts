@@ -718,13 +718,17 @@ export interface NrtSuite{
 
 export interface FlakyScenario {
   id?: string;
-  suite_id: string;
+  /** Version fields are null on flags read back from the registry (version independent). */
+  suite_id: string | null;
   test_object: string;
+  test_type: string;
   scenario_name: string;
-  test_object_version: string;
-  test_version: string;
+  test_object_version: string | null;
+  test_version: string | null;
   inserted_at: string | null;
   is_flaky?: boolean | undefined;
+  /** Email of the reviewer saving the flag. */
+  user?: string;
 }
 
 
