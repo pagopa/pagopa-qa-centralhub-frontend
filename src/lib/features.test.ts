@@ -13,6 +13,7 @@ describe("featureKeyForPath", () => {
     ["/settings/bdd", "settings_gherkin"],
     ["/settings/users", null],
     ["/api-docs", "api_docs"],
+    ["/flaky-scenarios", "flaky_scenarios"],
   ])("maps %s to feature %s", (pathname, expectedKey) => {
     expect(featureKeyForPath(pathname)).toBe(expectedKey);
   });

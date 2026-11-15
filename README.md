@@ -84,6 +84,7 @@ src/
 │   │   │       ├── page.tsx         Scenario list for a project
 │   │   │       └── new/page.tsx     Generate wizard (3-step SSE)
 │   │   ├── sanp-health/    ← Drift OpenAPI SANP/Collaudo/Produzione — RouteGuard: view:sanp_health
+│   │   ├── flaky-scenarios/ ← Indice di flakiness e gestione flag — RouteGuard: view:flaky
 │   │   ├── jira/           ← 3 sezioni (Testing / SANP / Data), Monitoraggio + Insights — RouteGuard: view:jira
 │   │   ├── data-hub/       ← RouteGuard: view:data_hub
 │   │   │   ├── psp-fees/            Catalogo PSP/servizi pagoPA AFM (sync button: Gate sync:trigger)
@@ -130,6 +131,14 @@ Tokens live in `src/app/globals.css`. See `../design_handoff_qa_webportal/README
 La route `/sanp-health` apre l'ultimo report completo disponibile e permette di selezionare i run conservati negli ultimi sette giorni. La pagina mostra versione SANP, timestamp e link alla run GitHub, KPI aggregati e la matrice dei drift per SANP, Collaudo e Produzione; ricerca, filtri ed espansione delle righe consentono il drill-down fino alla singola differenza OpenAPI.
 
 I run parziali restano consultabili nello storico senza sostituire il report completo predefinito. Gli avvisi segnalano dati non aggiornati o report incompleti. Il pulsante **Sincronizza ora** è disponibile agli utenti con permesso `sync:trigger`; l'accesso alla route richiede `view:sanp_health`.
+
+## Scenari flaky
+
+La voce **Scenari flaky** in **Test Results** (feature `flaky_scenarios`, route `/flaky-scenarios`, permesso `view:flaky` attivo per tutti i ruoli, guest compreso) mostra per ambiente l'indice di flakiness calcolato dal backend sullo storico delle run: livello 1–5 con indicatore a 5 segmenti verde→rosso, punteggio, striscia delle ultime 30 run, flip rate, pass on retry e flag. I box **Da marcare**, **Da smarcare** e **Rotti** filtrano la lista e le righe corrispondenti hanno una barra colorata; il click su una riga apre lo storico delle run con i link ad Allure e al report. Il flag e il pulsante **Ricalcola ora** richiedono `manage:flaky` (tutti i ruoli tranne guest); la spiegazione del calcolo è nel popover **Come si calcola**.
+
+Il dettaglio di una run nelle liste NRT, TAS e Quality Gate (`NrtDetailsPanel`) riporta lo stesso indicatore nella colonna **Flakiness \<ambiente\>** per ogni scenario non passato, con il suggerimento «Da marcare» e un riepilogo (da marcare / già marcati / stabili: probabile regressione); i punteggi arrivano da `GET /api/v1/flaky/scenarios` filtrato per `scenario_name` nell'ambiente della run.
+
+Il flag è dello scenario (`test_object` + `test_type` + `scenario_name`) e non della versione: i pannelli NRT/TAS/QG (`isFlakyScenarioEqual` in `src/utils/nrtUtils.ts`) lo riconoscono su ogni versione e inviano l'email del revisore con il salvataggio.
 
 ## NRT Metrics
 

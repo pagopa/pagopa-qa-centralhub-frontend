@@ -20,6 +20,10 @@ vi.mock("@/hooks/useNrts", () => ({
   useUpdateNrt: () => ({ mutate: mocks.updateMutate, isError: false, isPending: false }),
   useSaveFlakyScenarios: () => ({ mutate: vi.fn() }),
 }));
+vi.mock("@/hooks/useFlaky", () => ({
+  useRunScenarioScores: () => ({ scores: new Map(), env: null, isLoading: false }),
+  flakyScoreKey: (testType: string, name: string) => `${testType}|${name}`,
+}));
 vi.mock("@/hooks/useQualityGate", () => ({
   useDeleteRun: (...args: unknown[]) => {
     mocks.deleteHookArgs(...args);

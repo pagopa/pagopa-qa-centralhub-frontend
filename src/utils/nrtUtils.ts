@@ -25,12 +25,11 @@ export function isFlakyScenarioEqual(
     scenarioA: FlakyScenario,
     scenarioB: FlakyScenario,
 ): boolean {
+    // A flag belongs to the scenario, whatever the product or test version (flaky registry key).
     return (
-        scenarioA.suite_id === scenarioB.suite_id &&
         scenarioA.test_object === scenarioB.test_object &&
-        scenarioA.scenario_name === scenarioB.scenario_name &&
-        scenarioA.test_object_version === scenarioB.test_object_version &&
-        scenarioA.test_version === scenarioB.test_version
+        scenarioA.test_type === scenarioB.test_type &&
+        scenarioA.scenario_name === scenarioB.scenario_name
     );
 }
 
@@ -42,6 +41,7 @@ export function createFlakyScenario(
     return {
         suite_id: suite.id,
         test_object: suite.test_object,
+        test_type: suite.test_type,
         scenario_name: scenario.scenario_name ?? "",
         test_object_version: suite.test_object_version,
         test_version: testVersion ?? "",

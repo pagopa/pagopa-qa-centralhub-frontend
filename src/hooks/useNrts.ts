@@ -1,3 +1,4 @@
+import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api";
 import type { FlakyScenario, NrtsListObject, NRTSuiteWithLatestRun, PaginatedResponse, TestExecution, UpdateNrtsObject } from "@/types/index";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,13 +55,16 @@ export function useUpdateNrt() {
 
 export function useSaveFlakyScenarios() {
     const queryClient = useQueryClient();
+    const { data: session } = useSession();
+    const user = session?.user?.email ?? undefined;
     return useMutation({
         mutationFn: (flakyScenarios: FlakyScenario[]) => apiClient<FlakyScenario[]>(`/api/v1/test-metrics/flaky-scenarios/save`, {
             method: "POST",
-            body: JSON.stringify(flakyScenarios),
+            body: JSON.stringify(flakyScenarios.map((flakyScenario) => ({ ...flakyScenario, user }))),
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["flaky-scenarios"] });
+            queryClient.invalidateQueries({ queryKey: ["flaky"] });
         },
     });
 }

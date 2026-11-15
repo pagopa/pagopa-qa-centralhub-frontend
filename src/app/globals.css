@@ -30,6 +30,12 @@
   --info: oklch(0.62 0.13 230);
   --info-soft: oklch(0.96 0.03 230);
   --neutral-soft: oklch(0.95 0.005 250);
+  /* flakiness levels 1-5 (green → red) */
+  --flaky-l1: var(--success);
+  --flaky-l2: oklch(0.76 0.15 120);
+  --flaky-l3: var(--warning);
+  --flaky-l4: oklch(0.7 0.17 55);
+  --flaky-l5: var(--danger);
 
   --radius: 0.625rem;
   --radius-sm: 6px;
@@ -98,6 +104,8 @@
   --info: oklch(0.72 0.13 230);
   --info-soft: oklch(0.26 0.06 230);
   --neutral-soft: oklch(0.22 0.005 250);
+  --flaky-l2: oklch(0.8 0.15 120);
+  --flaky-l4: oklch(0.75 0.16 55);
 
   --shadow-sm: 0 1px 0 rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.2);
   --shadow-md: 0 4px 14px rgba(0,0,0,.4);
