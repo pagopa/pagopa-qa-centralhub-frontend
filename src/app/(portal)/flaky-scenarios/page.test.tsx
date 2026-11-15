@@ -63,6 +63,7 @@ describe("Flaky scenarios page", () => {
     render(<FlakyScenariosPage />);
     expect(screen.getByRole("heading", { name: "Scenari flaky" })).toBeInTheDocument();
     expect(screen.getByText(/Ultimo ricalcolo:/)).toHaveTextContent(/14\/11\/2026.*automatico/);
+    expect(screen.getByText(/Ultimo ricalcolo:/)).toHaveTextContent("run NRT schedulate e TAS, senza manuali e Quality Gate");
     expect(screen.getByRole("button", { name: /Da marcare\s*7/ })).toBeInTheDocument();
   });
 

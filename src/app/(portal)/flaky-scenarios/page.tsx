@@ -100,7 +100,7 @@ export default function FlakyScenariosPage() {
           <h1 className="text-xl font-semibold text-text">Scenari flaky</h1>
           <p className="mt-1 text-sm text-text-dim">
             Ultimo ricalcolo: <strong>{lastRecomputeLabel(status.data)}</strong>
-            {" · "}finestra: ultimi 30 giorni, max 30 run · solo run CRON / CI / TAS
+            {" · "}finestra: ultimi 30 giorni, max 30 run · run NRT schedulate e TAS, senza manuali e Quality Gate
           </p>
         </div>
         <div className="flex items-start gap-2">
