@@ -7,8 +7,9 @@ export function FlakyHowItWorksContent() {
   return (
     <>
       <p>
-        <strong>Run considerate:</strong> solo CRON, CI_PIPELINE e TAS (escluse MANUAL e QA_GATE), per
-        ambiente, negli ultimi 30 giorni e al massimo 30 run per scenario. Gli scenari SKIPPED non contano.
+        <strong>Run considerate:</strong> run NRT schedulate e run TAS, escluse le run manuali e le Quality Gate
+        (che verificano una release candidate, dove un KO è di solito una regressione). Per ambiente, negli ultimi
+        30 giorni e al massimo 30 run per scenario. Gli scenari SKIPPED non contano.
       </p>
       <p>
         <strong>Flip rate:</strong> quante volte l&apos;esito passa da OK a KO o viceversa tra run consecutive.

@@ -11,7 +11,9 @@ describe("FlakyHowItWorks", () => {
   it("explains signals, window, levels and hints", () => {
     const { container } = render(<FlakyHowItWorksContent />);
     const text = container.textContent ?? "";
-    for (const expected of ["CRON", "MANUAL", "30 giorni", "30 run", "14 giorni", "Flip rate", "Pass on retry", "5 / 15 / 30 / 50", "Da marcare", "Da smarcare", "Rotto"]) {
+    expect(text).not.toContain("QA_GATE");
+    expect(text).toContain("escluse le run manuali e le Quality Gate");
+    for (const expected of ["NRT schedulate", "TAS", "30 giorni", "30 run", "14 giorni", "Flip rate", "Pass on retry", "5 / 15 / 30 / 50", "Da marcare", "Da smarcare", "Rotto"]) {
       expect(text).toContain(expected);
     }
   });
