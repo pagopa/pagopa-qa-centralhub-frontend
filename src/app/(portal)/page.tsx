@@ -1,253 +1,157 @@
 "use client";
 
-import Link from "next/link";
-import { useJiraOverview } from "@/hooks/useJira";
-import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
-import { useNrtsAvgPassRate } from "@/hooks/useNrts";
-import { Kpi } from "@/components/primitives/Kpi";
-import { fmtNumberIt } from "@/lib/format";
-import {  LayoutGrid, FileText, Sparkles, ArrowRight, CreditCard, BookOpen, Wallet, ShieldCheck, Network, ClipboardCheck, Workflow } from "lucide-react";
+import { Database, FlaskConical, Target } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
+import { OverviewKpi } from "@/components/overview/OverviewKpi";
+import { OverviewPillar } from "@/components/overview/OverviewPillar";
+import {
+  COMPETENCE_CENTRE_SECTIONS,
+  DATA_QUALITY_SECTIONS,
+  TESTING_SECTIONS,
+  useVisibleSections,
+} from "@/components/overview/sections";
+import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
+import { useJiraOverview } from "@/hooks/useJira";
+import { useNrtsAvgPassRate, usePendingRuns } from "@/hooks/useNrts";
+import { fmtNumberIt } from "@/lib/format";
 
+const NO_VALUE = "—";
 
-function NrtsAvgPassRateStatusCard() {
-  const { data, isLoading } = useNrtsAvgPassRate();
-
-  if (isLoading) return <Kpi label="NRTs Average Pass Rate" value="—" />;
-
-  const pass_rate = data ?? 0 ;
-  
-
-  if (pass_rate == undefined || pass_rate == null) return <Kpi label="NRTs Average Pass Rate" value="—" />;
-
-  return (
-    <Link href="/nrts" className="no-underline">
-      <Kpi label="NRTs Average Pass Rate" value={(pass_rate ?? 0) + "%"} percentage={pass_rate ?? 0} />
-    </Link>
-  );
+function passRateColor(passRate: number): string {
+  if (passRate >= 80) return "var(--success)";
+  if (passRate >= 50) return "var(--warning)";
+  return "var(--danger)";
 }
 
-function GpdPositionsStatusCard() {
-  const { data, isLoading } = useGpdPositionSnapshots();
-
-  if (isLoading) return <Kpi label="Posizioni GPD" value="—" />;
-
-  const items = data?.items ?? [];
-  const latest = items.length > 0 ? items[items.length - 1] : null;
-  const previous = items.length > 1 ? items[items.length - 2] : null;
-
-  if (!latest) return <Kpi label="Posizioni GPD" value="—" />;
-
-  const delta =
-    previous && previous.total !== 0
-      ? Math.round(((latest.total - previous.total) / previous.total) * 1000) / 10
-      : undefined;
-
-  return (
-    <Link href="/data-hub/gpd-positions" className="no-underline">
-      <Kpi label="Posizioni GPD" value={fmtNumberIt(latest.total)} delta={delta} />
-    </Link>
-  );
-}
-
-function JiraStatusCard() {
+function JiraIssuesKpi() {
   const { data, isLoading } = useJiraOverview();
-
-  if (isLoading) return <Kpi label="Jira Issues" value="—" />;
-
-  const total = data?.total ?? 0;
-  const blocked = data?.by_status.find((s) => s.name === "BLOCKED")?.count ?? 0;
-  const status = blocked > 0 ? "warning" : total > 0 ? "success" : "info";
-
+  const total = data?.total;
+  const blocked = data?.by_status.find((status) => status.name === "BLOCKED")?.count ?? 0;
   return (
-    <Link href="/jira" className="no-underline">
-      <Kpi label="Issue attive" value={total.toString()} status={status}>
-        {blocked > 0 && (
-          <span className="text-warning font-mono text-[11px]">{blocked} bloccate</span>
-        )}
-      </Kpi>
-    </Link>
+    <OverviewKpi
+      href="/jira"
+      label="Issue attive"
+      value={isLoading || total == null ? NO_VALUE : total.toString()}
+      valueColor={blocked > 0 ? "var(--warning)" : "var(--success)"}
+    >
+      {blocked > 0 && <span className="text-[12px] font-medium text-warning">{blocked} bloccate</span>}
+    </OverviewKpi>
   );
 }
 
-const NAV_TILES = [
-  {
-    href: "/ea-map",
-    icon: Network,
-    label: "Architettura",
-    description: "Mappa EA della piattaforma pagamenti: blueprint, prodotti, componenti, dipendenze e copertura dei test.",
-    color: "var(--accent)",
-    bg: "var(--accent-soft)",
-  },
-  {
-    href: "/bdd",
-    icon: Sparkles,
-    label: "Gherkin Generator",
-    description: "Genera scenari BDD da requisiti Confluence, PDF o testo libero con AI (Ollama o Claude).",
-    color: "var(--warning)",
-    bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
-  },
-  {
-    href: "/nrts",
-    icon: ClipboardCheck,
-    label: "NRTs",
-    description: "Gestione e monitoraggio dei test NRT.",
-    color: "var(--info)",
-    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
-  },
-  {
-    href: "/tas-nrts",
-    icon: Workflow,
-    label: "TAS (Test Automation Services)",
-    description: "Gestione e monitoraggio delle esecuzioni dei test TAS.",
-    color: "var(--warning)",
-    bg: "color-mix(in oklch, var(--warning) 10%, transparent)",
-  },
-  {
-    href: "/quality-gate",
-    icon: ShieldCheck,
-    label: "Quality Gate",
-    description: "Esecuzioni del Quality Gate e lancio del TAS come gate.",
-    color: "var(--success)",
-    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
-  },
-  {
-    href: "/jira",
-    icon: LayoutGrid,
-    label: "KPI Jira",
-    description: "Monitora issue per status, componente e fase. Alert e trend settimanale.",
-    color: "var(--info)",
-    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
-  },
-  {
-    href: "/data-hub/psp-fees",
-    icon: CreditCard,
-    label: "PSP Commissioni",
-    description: "Catalogo PSP/servizi pagoPA AFM: commissioni, soglie e canali, sincronizzato giornalmente.",
-    color: "var(--danger)",
-    bg: "color-mix(in oklch, var(--danger) 10%, transparent)",
-  },
-  {
-    href: "/data-hub/gpd-positions",
-    icon: Wallet,
-    label: "Posizioni Debitorie GPD",
-    description: "Andamento delle Posizioni Debitorie GPD, GPD4ACA, WISP e paCreatePosition, sincronizzato giornalmente.",
-    color: "var(--success)",
-    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
-  },
-  {
-    href: "/data-quality/catalog",
-    icon: ShieldCheck,
-    label: "Data Quality",
-    description: "Catalogo controlli e istanze per dominio: dimensioni, rischio, impatto e stato di implementazione.",
-    color: "var(--info)",
-    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
-  },
-  {
-    href: "/docs",
-    icon: FileText,
-    label: "Docs & Decks",
-    description: "Knowledge base del centro di competenza: guide, template e presentazioni.",
-    color: "var(--success)",
-    bg: "color-mix(in oklch, var(--success) 10%, transparent)",
-  },
-  {
-    href: "/api-docs",
-    icon: BookOpen,
-    label: "API Docs",
-    description: "Documentazione interattiva (Swagger UI) delle API del backend QA Hub.",
-    color: "var(--info)",
-    bg: "color-mix(in oklch, var(--info) 10%, transparent)",
-  },
-];
+function PassRateKpi() {
+  const { data, isLoading } = useNrtsAvgPassRate();
+  const passRate = isLoading ? undefined : data;
+  return (
+    <OverviewKpi
+      href="/nrts"
+      label="Pass rate medio NRT"
+      value={passRate == null ? NO_VALUE : `${passRate}%`}
+      valueColor={passRate == null ? "var(--text)" : passRateColor(passRate)}
+    >
+      {passRate != null && (
+        <span className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-soft">
+          <span className="block h-full rounded-full" style={{ width: `${Math.min(100, passRate)}%`, background: passRateColor(passRate) }} />
+        </span>
+      )}
+    </OverviewKpi>
+  );
+}
 
+function PendingRunsKpi() {
+  const { data, isLoading } = usePendingRuns();
+  const pending = isLoading ? undefined : data;
+  // Open the list that actually has runs waiting: the Quality Gate when only QG runs are pending.
+  const href = pending && pending.nrt === 0 && pending.qg > 0 ? "/quality-gate" : "/nrts";
+  return (
+    <OverviewKpi
+      href={href}
+      label="Run da analizzare"
+      value={pending ? pending.total.toString() : NO_VALUE}
+      valueColor={pending && pending.total > 0 ? "var(--warning)" : "var(--success)"}
+    >
+      {pending && pending.total > 0 && (
+        <span className="mt-1 flex gap-1.5">
+          <span className="rounded-full bg-warning-soft px-2 text-[11.5px] font-semibold text-warning">NRT {pending.nrt}</span>
+          <span className="rounded-full bg-warning-soft px-2 text-[11.5px] font-semibold text-warning">QG {pending.qg}</span>
+        </span>
+      )}
+    </OverviewKpi>
+  );
+}
+
+function GpdPositionsKpi() {
+  const { data, isLoading } = useGpdPositionSnapshots();
+  const items = data?.items ?? [];
+  const latest = isLoading ? undefined : items.at(-1);
+  const previous = items.length > 1 ? items.at(-2) : undefined;
+  const delta = latest && previous && previous.total !== 0
+    ? Math.round(((latest.total - previous.total) / previous.total) * 1000) / 10
+    : undefined;
+  return (
+    <OverviewKpi href="/data-hub/gpd-positions" label="Posizioni Debitorie GPD" value={latest ? fmtNumberIt(latest.total) : NO_VALUE}>
+      {delta !== undefined && (
+        <span className="text-[12px] text-text-dim">
+          <span className={`font-semibold ${delta >= 0 ? "text-success" : "text-danger"}`}>
+            {delta > 0 ? "+" : ""}{delta.toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+          </span>{" "}
+          rispetto allo snapshot precedente
+        </span>
+      )}
+    </OverviewKpi>
+  );
+}
 
 export default function OverviewPage() {
+  const competenceCentreSections = useVisibleSections(COMPETENCE_CENTRE_SECTIONS);
+  const testingSections = useVisibleSections(TESTING_SECTIONS);
+  const dataQualitySections = useVisibleSections(DATA_QUALITY_SECTIONS);
+
   return (
     <RouteGuard action="view:overview">
-    <div className="flex flex-col gap-8">
-
-      {/* Hero */}
-      <div className="rounded-[var(--radius)] border border-border bg-surface p-6 flex flex-col gap-3">
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[11px] uppercase text-text-muted" style={{ letterSpacing: ".08em" }}>
-                TS300 · Dipartimento Pagamenti
-              </span>
-            </div>
-            <h1 className="text-2xl font-semibold text-text" style={{ letterSpacing: "-0.02em" }}>
-              Centro di Competenza QA
-            </h1>
-            <p className="text-[13px] text-text-dim italic" style={{ color: "var(--accent)" }}>
-              &quot;Build Quality Together!&quot;
-            </p>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <NrtsAvgPassRateStatusCard />
-            <JiraStatusCard />
-            <GpdPositionsStatusCard />
-          </div>
-        </div>
-        <p className="text-[13px] text-text-dim max-w-2xl">
-          Il CC QA supporta i team del Dipartimento Pagamenti di pagoPA nel costruire software di qualità.
-          Due pilastri — <strong className="text-text">Testing</strong> e <strong className="text-text">Data Quality</strong> —
-          e un approccio trasversale che unisce engineering, processi e cultura.
-        </p>
-      </div>
-
-      {/* Two pillars */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-        <div className="rounded-[var(--radius)] border border-border bg-surface p-5 flex flex-col gap-2">
-          <div className="text-2xl">🧪</div>
-          <p className="font-semibold text-[14px] text-text">Testing</p>
-          <p className="text-[12px] text-text-dim">
-            Strategie di test, KPI di stabilità, report Allure e integrazione CI/CD.
+      <div className="flex flex-col gap-5">
+        <OverviewPillar
+          title="Centro di Competenza QA"
+          headingLevel={1}
+          eyebrow="TS300 · Dipartimento Pagamenti"
+          icon={Target}
+          color="var(--accent)"
+          softColor="var(--accent-soft)"
+          kpis={<JiraIssuesKpi />}
+          sections={competenceCentreSections}
+          sectionColumns={4}
+        >
+          <p className="text-[14px] text-accent italic">&quot;Build Quality Together!&quot;</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-text-dim">
+            Il CC QA supporta i team del Dipartimento Pagamenti di pagoPA nel costruire software di qualità.
+            Due pilastri, <strong className="text-text">Testing</strong> e <strong className="text-text">Data Quality</strong>,
+            e un approccio trasversale che unisce engineering, processi e cultura.
           </p>
-        </div>
-        <div className="rounded-[var(--radius)] border border-border bg-surface p-5 flex flex-col gap-2">
-          <div className="text-2xl">🗃️</div>
-          <p className="font-semibold text-[14px] text-text">Data Quality</p>
-          <p className="text-[12px] text-text-dim">
-            Monitoraggio della qualità dei dati, regole di validazione, metriche e governance dei dataset.
-          </p>
-        </div>
-      </div>
+        </OverviewPillar>
 
-      {/* Nav tiles */}
-      <div>
-        <p className="text-[12px] font-mono uppercase text-text-muted mb-3" style={{ letterSpacing: ".08em" }}>Sezioni</p>
-        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-          {NAV_TILES.map((tile) => {
-            const Icon = tile.icon;
-            const content = (
-              <div className="rounded-[var(--radius)] border border-border bg-surface p-4 flex flex-col gap-3 h-full transition-colors hover:bg-hover">
-                <div
-                  className="w-8 h-8 rounded-[var(--radius-sm)] grid place-items-center shrink-0"
-                  style={{ background: tile.bg }}
-                >
-                  <Icon size={16} style={{ color: tile.color }} strokeWidth={1.8} />
-                </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <p className="font-semibold text-[13px] text-text">{tile.label}</p>
-                  <p className="text-[12px] text-text-dim">{tile.description}</p>
-                </div>
-                <div className="flex items-center gap-1 text-[12px] font-medium" style={{ color: tile.color }}>
-                  Apri <ArrowRight size={12} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
-            );
-
-            return (
-              <Link key={tile.href} href={tile.href} className="no-underline group">
-                {content}
-              </Link>
-            );
-          })}
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <OverviewPillar
+            title="Testing"
+            icon={FlaskConical}
+            color="var(--success)"
+            softColor="var(--success-soft)"
+            kpis={<><PassRateKpi /><PendingRunsKpi /></>}
+            sections={testingSections}
+          >
+            <p className="text-[14px] text-text-dim">Strategie di test, KPI di stabilità, report Allure e integrazione CI/CD.</p>
+          </OverviewPillar>
+          <OverviewPillar
+            title="Data Quality"
+            icon={Database}
+            color="var(--info)"
+            softColor="var(--info-soft)"
+            kpis={<GpdPositionsKpi />}
+            sections={dataQualitySections}
+          >
+            <p className="text-[14px] text-text-dim">Monitoraggio della qualità dei dati, regole di validazione, metriche e governance dei dataset.</p>
+          </OverviewPillar>
         </div>
       </div>
-
-    </div>
     </RouteGuard>
   );
 }
