@@ -8,6 +8,7 @@ import { DeployTimeline } from "@/components/release-status/DeployTimeline";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApplicationDetail } from "@/hooks/useReleaseStatus";
+import { encodeRoute } from "@/lib/ea-map/graph";
 import { Gate } from "@/lib/permissions";
 import type { ApplicationDetail, Target } from "@/types/release-status";
 
@@ -52,7 +53,7 @@ function SheetBody({ detail }: { detail: ApplicationDetail }) {
             <ChartLine className="size-4" aria-hidden="true" /> Dashboard OpEx
           </a>
           {app.ea_node_id && (
-            <Link href="/ea-map" className={linkClass}>
+            <Link href={`/ea-map#${encodeRoute({ view: "map", nodeId: app.ea_node_id })}`} className={linkClass}>
               <MapIcon className="size-4" aria-hidden="true" /> {`EA Map: ${app.ea_node_id}`}
             </Link>
           )}
