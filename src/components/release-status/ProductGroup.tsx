@@ -1,7 +1,6 @@
 import { useId, useState } from "react";
 import { ChevronDown, CloudOff, RefreshCwOff } from "lucide-react";
 import { ApplicationRow, RELEASE_GRID } from "@/components/release-status/ApplicationRow";
-import { GithubMark } from "@/components/release-status/GithubMark";
 import type { ProductGroup as Product } from "@/types/release-status";
 
 interface ProductGroupProps {
@@ -9,9 +8,9 @@ interface ProductGroupProps {
   onOpen: (applicationId: string) => void;
 }
 
-/** Collapsible product section with a sticky header carrying counts and column titles. */
+/** Collapsible product section (collapsed on load) with a sticky header carrying counts and column titles. */
 export function ProductGroup({ product, onOpen }: ProductGroupProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const bodyId = useId();
   const drift = product.applications.filter((app) => app.flags.includes("DRIFT")).length;
   const unreachable = product.applications.filter((app) => app.flags.includes("UNREACHABLE")).length;
@@ -61,12 +60,10 @@ export function ProductGroup({ product, onOpen }: ProductGroupProps) {
             className={`${RELEASE_GRID} hidden border-t border-border bg-subtle/60 px-4 py-1.5 font-mono text-[10px] font-medium uppercase tracking-wider text-text-muted sm:grid`}
           >
             <span>Applicazione</span>
-            <span className="inline-flex items-center gap-1">
-              <GithubMark className="size-3" /> Repo
-            </span>
             <span>DEV</span>
             <span>UAT</span>
             <span>PROD</span>
+            <span>Link</span>
           </div>
         )}
       </div>

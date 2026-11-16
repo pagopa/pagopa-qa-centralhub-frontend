@@ -26,6 +26,24 @@ describe("VersionCell", () => {
     expect(screen.getByRole("img", { name: "allineata al repository" })).toBeInTheDocument();
   });
 
+  it("stacks the icons and the adornment above the full version", () => {
+    render(
+      <VersionCell
+        target="UAT"
+        cell={makeCell({ version: "1.4.2-SNAPSHOT-build.12345" })}
+        stacked
+        adornment={<span>markers</span>}
+      />,
+    );
+
+    const version = screen.getByText("1.4.2-SNAPSHOT-build.12345");
+    expect(version).toHaveClass("break-all");
+    expect(version).not.toHaveClass("truncate");
+    const iconLine = screen.getByRole("img", { name: "versione letta" }).closest("div");
+    expect(iconLine).toContainElement(screen.getByText("markers"));
+    expect(iconLine).not.toContainElement(version);
+  });
+
   it("greys out the last known version when the endpoint fails", () => {
     render(
       <VersionCell

@@ -73,7 +73,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Release",
-    items: [{ href: "/releases", label: "Release Status", icon: PackageCheck, action: "view:status_page", featureKey: "release_status" }],
+    items: [{ href: "/releases", label: "Status Page", icon: PackageCheck, action: "view:status_page", featureKey: "release_status" }],
   },
   {
     label: "Project Tracking",

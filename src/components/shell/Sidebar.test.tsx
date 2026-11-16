@@ -35,7 +35,7 @@ const nrtAndFlakyItems = [
   ["flaky_scenarios", "Scenari flaky", "/flaky-scenarios", "view:flaky", false],
 ] as const;
 
-const releaseStatusItem = ["release_status", "Release Status", "/releases", "view:status_page", false] as const;
+const releaseStatusItem = ["release_status", "Status Page", "/releases", "view:status_page", false] as const;
 
 function renderSidebar() {
   const queryClient = new QueryClient({
@@ -199,7 +199,7 @@ describe("Sidebar feature visibility", () => {
     expect(screen.queryByRole("link", { name: "Scenari flaky" })).not.toBeInTheDocument();
   });
 
-  it("shows Release Status linking to /releases", async () => {
+  it("shows Status Page linking to /releases", async () => {
     mocks.apiClient.mockResolvedValue({
       items: [...featureItems, releaseStatusItem].map(
         ([key, label, route, action, external]) => ({ key, label, route, action, external, enabled: true }),
@@ -207,12 +207,12 @@ describe("Sidebar feature visibility", () => {
     });
     renderSidebar();
 
-    const link = await screen.findByRole("link", { name: "Release Status" });
+    const link = await screen.findByRole("link", { name: "Status Page" });
     expect(link).toHaveAttribute("href", "/releases");
     expect(mocks.can).toHaveBeenCalledWith("view:status_page");
   });
 
-  it("hides Release Status when its feature is disabled", async () => {
+  it("hides Status Page when its feature is disabled", async () => {
     mocks.apiClient.mockResolvedValue({
       items: [...featureItems, releaseStatusItem].map(
         ([key, label, route, action, external]) => ({ key, label, route, action, external, enabled: key !== "release_status" }),
@@ -221,10 +221,10 @@ describe("Sidebar feature visibility", () => {
     renderSidebar();
 
     expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Release Status" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Status Page" })).not.toBeInTheDocument();
   });
 
-  it("hides Release Status when RBAC denies view:status_page", async () => {
+  it("hides Status Page when RBAC denies view:status_page", async () => {
     mocks.can.mockImplementation((action) => action !== "view:status_page");
     mocks.apiClient.mockResolvedValue({
       items: [...featureItems, releaseStatusItem].map(
@@ -234,7 +234,7 @@ describe("Sidebar feature visibility", () => {
     renderSidebar();
 
     expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Release Status" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Status Page" })).not.toBeInTheDocument();
   });
 
   it("hides disabled pages while preserving enabled navigation items", async () => {

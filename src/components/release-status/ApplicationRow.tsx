@@ -6,9 +6,9 @@ import { TestMarkers } from "@/components/release-status/TestMarkers";
 import { VersionCell } from "@/components/release-status/VersionCell";
 import type { ApplicationRow as Application, EnvTarget } from "@/types/release-status";
 
-/** Shared by the product header and the rows: name column plus REPO, DEV, UAT, PROD. */
+/** Shared by the product header and the rows: application (with the repo version), DEV, UAT, PROD, links. */
 export const RELEASE_GRID =
-  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(15rem,1.6fr)_repeat(4,minmax(0,1fr))] sm:items-center";
+  "grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-[minmax(14rem,1.4fr)_repeat(3,minmax(0,1fr))_5rem] sm:items-center";
 
 const ENV_TARGETS: readonly EnvTarget[] = ["DEV", "UAT", "PROD"];
 
@@ -42,11 +42,11 @@ function LinkIcon({ href, label, children }: { href: string; label: string; chil
 
 function CellSlot({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+    <div className="flex min-w-0 flex-col gap-0.5">
       <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-text-muted sm:hidden">
         {label}
       </span>
-      <div className="flex min-w-0 items-center gap-2">{children}</div>
+      {children}
     </div>
   );
 }
@@ -64,20 +64,43 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
       onClick={() => onOpen(app.id)}
       className={`${RELEASE_GRID} cursor-pointer border-t border-border px-4 py-3 transition-colors first:border-t-0 hover:bg-hover/60`}
     >
-      <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-1">
+      <div className="col-span-2 flex min-w-0 flex-col items-start gap-1 sm:col-span-1">
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             onOpen(app.id);
           }}
-          className="truncate rounded-sm text-left text-sm font-semibold text-text outline-none hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"
+          className="max-w-full truncate rounded-sm text-left text-sm font-semibold text-text outline-none hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"
         >
           {app.name}
         </button>
-        <span className="flex items-center gap-1">
-          <RuntimeChips app={app} />
-        </span>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="flex items-center gap-1">
+            <RuntimeChips app={app} />
+          </span>
+          <span className="flex min-w-0 items-center gap-1" title="Ultima release su GitHub">
+            <GithubMark className="size-3 shrink-0 text-text-muted" />
+            <VersionCell target="REPO" cell={app.repo} />
+          </span>
+        </div>
+      </div>
+
+      {ENV_TARGETS.map((target) => {
+        const cell = app.envs[target];
+        return (
+          <CellSlot key={target} label={target}>
+            <VersionCell
+              target={target}
+              cell={cell}
+              stacked
+              adornment={cell?.version && <TestMarkers tests={cell.tests} hasTestObject={hasTestObject} />}
+            />
+          </CellSlot>
+        );
+      })}
+
+      <CellSlot label="Link">
         <span className="flex items-center">
           <LinkIcon href={repoUrl(app.repository)} label={`Repository di ${app.name}`}>
             <LibraryBig className="size-4 text-info" aria-hidden="true" />
@@ -91,27 +114,7 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
             <ChartLine className="size-4 text-accent" aria-hidden="true" />
           </LinkIcon>
         </span>
-      </div>
-
-      <CellSlot
-        label={
-          <span className="inline-flex items-center gap-1">
-            <GithubMark className="size-2.5" /> Repo
-          </span>
-        }
-      >
-        <VersionCell target="REPO" cell={app.repo} />
       </CellSlot>
-
-      {ENV_TARGETS.map((target) => {
-        const cell = app.envs[target];
-        return (
-          <CellSlot key={target} label={target}>
-            <VersionCell target={target} cell={cell} />
-            {cell?.version && <TestMarkers tests={cell.tests} hasTestObject={hasTestObject} />}
-          </CellSlot>
-        );
-      })}
     </div>
   );
 }
