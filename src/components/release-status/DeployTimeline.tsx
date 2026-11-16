@@ -1,6 +1,6 @@
 import { ArrowUpRight, ChartColumn, Undo2, ArrowUp, CircleHelp, Flag, type LucideIcon } from "lucide-react";
 import { GithubMark } from "@/components/release-status/GithubMark";
-import { formatShortDateTime } from "@/components/release-status/format";
+import { formatDetectionWindow, formatShortDateTime } from "@/components/release-status/format";
 import { ACCENT_LINK_CLASS as linkClass, OUTCOME_COLOR, OUTCOME_LABEL } from "@/components/release-status/shared";
 import type { DeployEvent, RunRef } from "@/types/release-status";
 
@@ -62,7 +62,7 @@ function EventItem({ event, showRuns }: { event: DeployEvent; showRuns: boolean 
         {event.is_baseline
           ? "prima rilevazione"
           : event.previous_seen_at
-            ? `rilevato il ${formatShortDateTime(event.detected_at)} (tra ${formatShortDateTime(event.previous_seen_at).slice(-5)} e ${formatShortDateTime(event.detected_at).slice(-5)})`
+            ? `rilevato il ${formatShortDateTime(event.detected_at)} (tra ${formatDetectionWindow(event.previous_seen_at, event.detected_at)})`
             : `rilevato il ${formatShortDateTime(event.detected_at)}`}
         {event.is_baseline && ` · ${formatShortDateTime(event.detected_at)}`}
       </p>

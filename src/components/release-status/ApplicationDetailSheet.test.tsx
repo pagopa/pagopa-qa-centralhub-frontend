@@ -151,6 +151,16 @@ describe("ApplicationDetailSheet", () => {
     expect(items[1]).not.toHaveTextContent("tra ");
   });
 
+  it("dates the detection window when it spans midnight", () => {
+    setDetail({
+      history: {
+        DEV: [makeEvent({ detected_at: local(16, 0, 5), previous_seen_at: local(15, 23, 50) })],
+      },
+    });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByRole("listitem")).toHaveTextContent("rilevato il 16/11 00:05 (tra 15/11 23:50 e 16/11 00:05)");
+  });
+
   it("marks rollbacks with an accessible Undo2 icon", () => {
     setDetail({ history: { DEV: [makeEvent({ direction: "rollback" })] } });
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
