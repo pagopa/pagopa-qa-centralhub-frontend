@@ -120,12 +120,22 @@ describe("ApplicationForm", () => {
     expect(hooks.check).not.toHaveBeenCalled();
   });
 
-  it("runs the check on save and saves even when it fails", async () => {
+  it("saves without waiting for a check that never resolves", async () => {
+    hooks.check.mockReturnValue(new Promise(() => {}));
+    const { user, onSaved } = setup();
+    await fillValid(user);
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved, expect.any(Promise)));
+    expect(hooks.save).toHaveBeenCalled();
+  });
+
+  it("hands a failed check request to onSaved as null", async () => {
     hooks.check.mockRejectedValue(new ApiError(502, null));
     const { user, onSaved } = setup();
     await fillValid(user);
     await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
-    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    await expect(onSaved.mock.calls[0][1]).resolves.toBeNull();
     expect(hooks.check).toHaveBeenCalledWith({ product_key: "wallet", repository: "wallet-service" });
     expect(hooks.save).toHaveBeenCalledWith(
       expect.objectContaining({ product_id: "p1", name: "Service", pipeline_url: null, test_object: null, ea_node_id: null }),

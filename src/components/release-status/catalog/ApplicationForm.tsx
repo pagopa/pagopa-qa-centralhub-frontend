@@ -29,7 +29,8 @@ interface ApplicationFormProps {
   products: Product[];
   defaultProductId: string | null;
   onClose: () => void;
-  onSaved: (application: Application) => void;
+  /** `check` settles with the live check outcome, or null when the check request failed. */
+  onSaved: (application: Application, check: Promise<CheckResultData | null>) => void;
 }
 
 function useDebounced<T>(value: T, delay: number): T {
@@ -119,7 +120,10 @@ function ApplicationFormBody({
     setFormError(null);
     if (Object.keys(next).length > 0) return;
 
-    await runCheck(); // warnings never block saving
+    // The check runs alongside the save: it never blocks or delays it.
+    const checkOutcome: Promise<CheckResultData | null> = check
+      .mutateAsync({ product_key: productKey.trim(), repository: repository.trim() })
+      .catch(() => null);
 
     const body: Partial<ApplicationInput> & { id?: string } = {
       id: application?.id,
@@ -136,7 +140,7 @@ function ApplicationFormBody({
     };
     try {
       const saved = await save.mutateAsync(body);
-      onSaved(saved);
+      onSaved(saved, checkOutcome);
     } catch (error) {
       const { status, detail, field } = errorParts(error);
       if (field && detail) setErrors({ [field]: detail });

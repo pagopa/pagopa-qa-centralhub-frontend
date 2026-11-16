@@ -19,7 +19,36 @@ import {
   useProducts,
   useTriggerReleaseSync,
 } from "@/hooks/useReleaseStatus";
-import type { Application, Product } from "@/types/release-status";
+import type { Application, CheckResult, Product } from "@/types/release-status";
+
+type CheckNotice = "pending" | "unavailable" | CheckResult;
+
+function failedTargets(result: CheckResult): { name: string; detail: string }[] {
+  return [
+    { name: "REPO", target: result.repo },
+    ...Object.entries(result.envs).map(([name, target]) => ({ name, target })),
+  ]
+    .filter(({ target }) => !target.ok)
+    .map(({ name, target }) => ({ name, detail: target.detail ?? "non raggiungibile" }));
+}
+
+function CheckLine({ check }: { check: CheckNotice }) {
+  if (check === "pending") return <span className="text-xs">Verifica in corso…</span>;
+  if (check === "unavailable") return <span className="text-xs text-warning">Verifica non disponibile</span>;
+  const failed = failedTargets(check);
+  if (failed.length === 0) return null;
+  return (
+    <span
+      className="text-xs text-warning"
+      title={failed.map((f) => `${f.name}: ${f.detail}`).join("\n")}
+    >
+      Verifica: problemi su {failed.map((f) => f.name).join(", ")}
+      {" ("}
+      {failed.map((f) => `${f.name}: ${f.detail}`).join("; ")}
+      {")"}
+    </span>
+  );
+}
 
 function CatalogView() {
   const products = useProducts();
@@ -36,6 +65,7 @@ function CatalogView() {
   const [appToDelete, setAppToDelete] = useState<Application | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [notice, setNotice] = useState(false);
+  const [checkNotice, setCheckNotice] = useState<CheckNotice>("pending");
 
   const productList = useMemo(() => products.data ?? [], [products.data]);
   const productNames = useMemo(() => Object.fromEntries(productList.map((p) => [p.id, p.name])), [productList]);
@@ -97,7 +127,10 @@ function CatalogView() {
             role="status"
             className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-success/30 bg-success-soft px-4 py-2.5 text-sm text-success"
           >
-            <span>Applicazione salvata</span>
+            <span className="flex flex-col gap-0.5">
+              <span>Applicazione salvata</span>
+              <CheckLine check={checkNotice} />
+            </span>
             <span className="flex items-center gap-2">
               <Gate action="sync:trigger">
                 <button
@@ -150,9 +183,11 @@ function CatalogView() {
           products={productList}
           defaultProductId={selectedId}
           onClose={() => setAppDialog(null)}
-          onSaved={() => {
+          onSaved={(_saved, check) => {
             setAppDialog(null);
+            setCheckNotice("pending");
             setNotice(true);
+            void check.then((result) => setCheckNotice(result ?? "unavailable"));
           }}
         />
       )}

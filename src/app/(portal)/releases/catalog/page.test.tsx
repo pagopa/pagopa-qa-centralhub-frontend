@@ -13,6 +13,7 @@ const hooks = vi.hoisted(() => ({
   deleteProduct: vi.fn(),
   deleteApplication: vi.fn(),
   save: vi.fn(),
+  check: vi.fn(),
 }));
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
@@ -24,7 +25,7 @@ vi.mock("@/hooks/useReleaseStatus", () => ({
   useDeleteApplication: () => ({ mutateAsync: hooks.deleteApplication, isPending: false }),
   useSaveProduct: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSaveApplication: () => ({ mutateAsync: hooks.save, isPending: false }),
-  useCheckApplication: () => ({ mutateAsync: vi.fn().mockResolvedValue({ repo: { ok: true, version: "1", detail: null }, envs: {} }), isPending: false }),
+  useCheckApplication: () => ({ mutateAsync: hooks.check, isPending: false }),
   useTestObjects: () => ({ data: [] }),
   useEaComponents: () => ({ data: [] }),
 }));
@@ -68,6 +69,7 @@ beforeEach(() => {
   hooks.deleteProduct.mockResolvedValue(undefined);
   hooks.deleteApplication.mockResolvedValue(undefined);
   hooks.save.mockResolvedValue(app);
+  hooks.check.mockResolvedValue({ repo: { ok: true, version: "1", detail: null }, envs: { UAT: { ok: true, version: "1", detail: null } } });
 });
 
 async function saveNewApplication(user: ReturnType<typeof userEvent.setup>) {
@@ -149,5 +151,43 @@ describe("Catalog page", () => {
     await saveNewApplication(user);
     expect(await screen.findByText("Applicazione salvata")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sincronizza ora" })).not.toBeInTheDocument();
+  });
+
+  it("reports a failed UAT check in the saved notice", async () => {
+    hooks.check.mockResolvedValue({
+      repo: { ok: true, version: "1", detail: null },
+      envs: { UAT: { ok: false, version: null, detail: "HTTP 503" } },
+    });
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    await saveNewApplication(user);
+    expect(await screen.findByText(/Verifica: problemi su UAT/)).toBeInTheDocument();
+    expect(screen.getByText("Applicazione salvata")).toBeInTheDocument();
+  });
+
+  it("shows no warning when every target is ok", async () => {
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    await saveNewApplication(user);
+    await screen.findByText("Applicazione salvata");
+    await waitFor(() => expect(screen.queryByText("Verifica in corso…")).not.toBeInTheDocument());
+    expect(screen.queryByText(/Verifica:/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Verifica non disponibile")).not.toBeInTheDocument();
+  });
+
+  it("shows the check as in progress while it is pending", async () => {
+    hooks.check.mockReturnValue(new Promise(() => {}));
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    await saveNewApplication(user);
+    expect(await screen.findByText("Verifica in corso…")).toBeInTheDocument();
+  });
+
+  it("shows 'Verifica non disponibile' when the check request fails", async () => {
+    hooks.check.mockRejectedValue(new ApiError(502, null));
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    await saveNewApplication(user);
+    expect(await screen.findByText("Verifica non disponibile")).toBeInTheDocument();
   });
 });
