@@ -109,6 +109,14 @@ describe("cellVisual", () => {
     expect(cellVisual(makeCell({ version: "main-abc", drift: null }), "REPO").icon).toBe("info");
   });
 
+  it.each(["EMPTY_BODY", "NO_VERSION", "NO_RELEASE", "ERROR"] as const)(
+    "greys the last known version on %s",
+    (readStatus) => {
+      expect(cellVisual(makeCell({ read_status: readStatus, version: "1.4.2", drift: null }), "DEV").muted).toBe(true);
+      expect(cellVisual(makeCell({ read_status: readStatus, version: null, drift: null }), "DEV").muted).toBe(false);
+    },
+  );
+
   it("reports drift for OK cells", () => {
     const v = cellVisual(makeCell({ drift: "BEHIND" }), "PROD");
     expect(v.icon).toBe("ok");

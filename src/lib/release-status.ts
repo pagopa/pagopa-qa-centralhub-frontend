@@ -76,6 +76,8 @@ export function cellVisual(cell: Cell | null, target: Target): CellVisual {
     return { icon: "loading", drift: null, muted: false, tooltip: `${target}: in attesa del primo controllo` };
   }
 
+  // A failed read keeps the last known version, shown greyed.
+  const muted = Boolean(cell.version);
   switch (cell.read_status) {
     case "ERROR": {
       const last = cell.version ? ` Ultima versione nota: ${cell.version}.` : "";
@@ -83,16 +85,16 @@ export function cellVisual(cell: Cell | null, target: Target): CellVisual {
       return {
         icon: "error",
         drift: null,
-        muted: true,
+        muted,
         tooltip: `${target} non raggiungibile${detail}.${last}`.trim(),
       };
     }
     case "EMPTY_BODY":
-      return { icon: "warning", drift: null, muted: false, tooltip: `${target}: risposta vuota` };
+      return { icon: "warning", drift: null, muted, tooltip: `${target}: risposta vuota` };
     case "NO_VERSION":
-      return { icon: "warning", drift: null, muted: false, tooltip: `${target}: versione assente nella risposta` };
+      return { icon: "warning", drift: null, muted, tooltip: `${target}: versione assente nella risposta` };
     case "NO_RELEASE":
-      return { icon: "warning", drift: null, muted: false, tooltip: `${target}: nessuna release trovata` };
+      return { icon: "warning", drift: null, muted, tooltip: `${target}: nessuna release trovata` };
     default:
       break;
   }
