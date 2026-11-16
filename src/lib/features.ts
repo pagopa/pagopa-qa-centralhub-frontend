@@ -12,6 +12,7 @@ const FEATURE_ROUTES = [
   { route: "/docs", key: "docs" },
   { route: "/api-docs", key: "api_docs" },
   { route: "/flaky-scenarios", key: "flaky_scenarios" },
+  { route: "/releases", key: "release_status" },
 ] as const;
 
 export function featureKeyForPath(pathname: string): string | null {

@@ -14,6 +14,8 @@ describe("featureKeyForPath", () => {
     ["/settings/users", null],
     ["/api-docs", "api_docs"],
     ["/flaky-scenarios", "flaky_scenarios"],
+    ["/releases", "release_status"],
+    ["/releases/catalog", "release_status"],
   ])("maps %s to feature %s", (pathname, expectedKey) => {
     expect(featureKeyForPath(pathname)).toBe(expectedKey);
   });

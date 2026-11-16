@@ -12,6 +12,7 @@ import {
   FileText,
   Home,
   LayoutGrid,
+  PackageCheck,
   PanelLeftClose,
   PanelLeftOpen,
   Network,
@@ -69,6 +70,10 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/quality-gate", label: "Quality Gate", icon: ShieldCheck, action: "view:qg_nrts", featureKey: "qg_nrts" },
       { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },
     ],
+  },
+  {
+    label: "Release",
+    items: [{ href: "/releases", label: "Release Status", icon: PackageCheck, action: "view:status_page", featureKey: "release_status" }],
   },
   {
     label: "Project Tracking",

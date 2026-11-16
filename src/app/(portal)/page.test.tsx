@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   passRate: vi.fn(),
   pending: vi.fn(),
   gpd: vi.fn(),
+  summary: vi.fn(),
 }));
 
 vi.mock("@/components/auth/RouteGuard", () => ({ RouteGuard: ({ children }: { children: ReactNode }) => <>{children}</> }));
@@ -17,6 +18,7 @@ vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: mocks.c
 vi.mock("@/hooks/useFeatureVisibility", () => ({ useFeatureVisibility: mocks.features }));
 vi.mock("@/hooks/useJira", () => ({ useJiraOverview: mocks.jira }));
 vi.mock("@/hooks/useNrts", () => ({ useNrtsAvgPassRate: mocks.passRate, usePendingRuns: mocks.pending }));
+vi.mock("@/hooks/useReleaseStatus", () => ({ useReleaseSummary: mocks.summary }));
 vi.mock("@/hooks/useGpdPositions", () => ({ useGpdPositionSnapshots: mocks.gpd }));
 
 const FEATURES = [
@@ -57,6 +59,7 @@ beforeEach(() => {
   mocks.jira.mockReturnValue({ isLoading: false, data: { total: 183, by_status: [{ name: "BLOCKED", count: 2 }] } });
   mocks.passRate.mockReturnValue({ isLoading: false, data: 85 });
   mocks.pending.mockReturnValue({ isLoading: false, data: { total: 7, nrt: 5, qg: 2 } });
+  mocks.summary.mockReturnValue({ isLoading: false, data: { total: 53, aligned: 41, drift: 7, unreachable: 3, untested: 2, last_success_at: null } });
   mocks.gpd.mockReturnValue({ isLoading: false, data: { items: [{ total: 368_741_000 }, { total: 374_271_713 }] } });
 });
 
@@ -120,5 +123,31 @@ describe("OverviewPage", () => {
     render(<OverviewPage />);
     expect(pillar("Testing").getByText("Run da analizzare").closest("[data-kpi]")).toHaveTextContent("—");
     expect(pillar("Testing").getByText("Pass rate medio NRT").closest("[data-kpi]")).toHaveTextContent("—");
+  });
+
+  it("shows the aligned releases with deep links to the filtered list", () => {
+    render(<OverviewPage />);
+    const tile = kpi("Testing", "Release allineate");
+    expect(tile).toHaveTextContent("41/53");
+    expect(tile).toHaveAttribute("href", "/releases");
+    const testing = pillar("Testing");
+    expect(testing.getByRole("link", { name: "7 con versioni diverse" })).toHaveAttribute("href", "/releases?filter=drift");
+    expect(testing.getByRole("link", { name: "3 non raggiungibili" })).toHaveAttribute("href", "/releases?filter=unreachable");
+    expect(testing.getByRole("link", { name: "2 non testati" })).toHaveAttribute("href", "/releases?filter=untested");
+    expect(tile.querySelector("a")).toBeNull();
+  });
+
+  it("shows a dash for the release status while loading", () => {
+    mocks.summary.mockReturnValue({ isLoading: true, data: undefined });
+    render(<OverviewPage />);
+    expect(kpi("Testing", "Release allineate")).toHaveTextContent("—");
+  });
+
+  it("hides the release status KPI without view:status_page", () => {
+    mocks.can.mockImplementation((action: string) => action !== "view:status_page");
+    mocks.summary.mockClear();
+    render(<OverviewPage />);
+    expect(pillar("Testing").queryByText("Release allineate")).not.toBeInTheDocument();
+    expect(mocks.summary).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,9 @@ import {
   TESTING_SECTIONS,
   useVisibleSections,
 } from "@/components/overview/sections";
+import Link from "next/link";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useReleaseSummary } from "@/hooks/useReleaseStatus";
 import { useGpdPositionSnapshots } from "@/hooks/useGpdPositions";
 import { useJiraOverview } from "@/hooks/useJira";
 import { useNrtsAvgPassRate, usePendingRuns } from "@/hooks/useNrts";
@@ -80,6 +83,49 @@ function PendingRunsKpi() {
   );
 }
 
+function ReleaseStatusKpi() {
+  const { can } = usePermissions();
+  // Gate before fetching: users without the permission must not request the summary.
+  if (!can("view:status_page")) return null;
+  return <ReleaseStatusKpiContent />;
+}
+
+function ReleaseStatusKpiContent() {
+  const { data, isLoading } = useReleaseSummary();
+  const summary = isLoading ? undefined : data;
+  const links = summary
+    ? [
+        { count: summary.drift, text: "con versioni diverse", filter: "drift", color: "text-warning" },
+        { count: summary.unreachable, text: "non raggiungibili", filter: "unreachable", color: "text-danger" },
+        { count: summary.untested, text: "non testati", filter: "untested", color: "text-text-dim" },
+      ]
+    : [];
+  // The counts are links of their own, so they sit beside the tile link instead of inside it (no nested anchors).
+  return (
+    <div className="flex min-w-44 flex-1 flex-col gap-1.5">
+      <OverviewKpi
+        href="/releases"
+        label="Release allineate"
+        value={summary ? `${summary.aligned}/${summary.total}` : NO_VALUE}
+        valueColor={summary && summary.aligned === summary.total ? "var(--success)" : "var(--text)"}
+      />
+      {links.length > 0 && (
+        <div className="flex flex-col gap-0.5 px-1">
+          {links.map((item) => (
+            <Link
+              key={item.filter}
+              href={`/releases?filter=${item.filter}`}
+              className={`text-[12px] font-medium no-underline hover:underline ${item.color}`}
+            >
+              {item.count} {item.text}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GpdPositionsKpi() {
   const { data, isLoading } = useGpdPositionSnapshots();
   const items = data?.items ?? [];
@@ -135,7 +181,7 @@ export default function OverviewPage() {
             icon={FlaskConical}
             color="var(--success)"
             softColor="var(--success-soft)"
-            kpis={<><PassRateKpi /><PendingRunsKpi /></>}
+            kpis={<><PassRateKpi /><PendingRunsKpi /><ReleaseStatusKpi /></>}
             sections={testingSections}
           >
             <p className="text-[14px] text-text-dim">Strategie di test, KPI di stabilità, report Allure e integrazione CI/CD.</p>
