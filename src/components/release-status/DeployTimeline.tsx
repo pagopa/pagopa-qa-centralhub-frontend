@@ -1,7 +1,8 @@
 import { ArrowUpRight, ChartColumn, Undo2, ArrowUp, CircleHelp, Flag, type LucideIcon } from "lucide-react";
 import { GithubMark } from "@/components/release-status/GithubMark";
 import { formatShortDateTime } from "@/components/release-status/format";
-import type { DeployEvent, RunOutcome, RunRef } from "@/types/release-status";
+import { ACCENT_LINK_CLASS as linkClass, OUTCOME_COLOR, OUTCOME_LABEL } from "@/components/release-status/shared";
+import type { DeployEvent, RunRef } from "@/types/release-status";
 
 const DIRECTION: Record<DeployEvent["direction"], { icon: LucideIcon; label: string; color: string }> = {
   upgrade: { icon: ArrowUp, label: "aggiornamento", color: "text-success" },
@@ -10,23 +11,13 @@ const DIRECTION: Record<DeployEvent["direction"], { icon: LucideIcon; label: str
   baseline: { icon: Flag, label: "prima rilevazione", color: "text-info" },
 };
 
-const OUTCOME: Record<RunOutcome, { label: string; color: string }> = {
-  PASSED: { label: "superata", color: "text-success" },
-  FAILED: { label: "fallita", color: "text-danger" },
-  NEUTRAL: { label: "senza esito", color: "text-text-dim" },
-};
-
-const linkClass =
-  "inline-flex items-center gap-1 rounded-sm text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent";
-
 function RunItem({ run }: { run: RunRef }) {
-  const outcome = OUTCOME[run.outcome];
   return (
     <li className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
       <span className="font-mono font-medium text-text">{run.kind}</span>
       {run.trigger_type && <span className="text-text-muted">{run.trigger_type}</span>}
       <span className="text-text-muted">{formatShortDateTime(run.timestamp_start)}</span>
-      <span className={`font-medium ${outcome.color}`}>{outcome.label}</span>
+      <span className={`font-medium ${OUTCOME_COLOR[run.outcome]}`}>{OUTCOME_LABEL[run.outcome]}</span>
       {run.needs_review && <span className="text-warning">da revisionare</span>}
       {run.passed !== null && run.failed !== null && (
         <span className="text-text-dim">

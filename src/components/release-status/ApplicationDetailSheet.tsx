@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { ChartLine, LibraryBig, Map as MapIcon, Pencil, Rocket, X } from "lucide-react";
-import { Chip } from "@/components/primitives/Chip";
 import { opexDashboardUrl } from "@/components/release-status/ApplicationRow";
+import { RuntimeChips, ACCENT_LINK_CLASS, repoUrl } from "@/components/release-status/shared";
 import { DeployTimeline } from "@/components/release-status/DeployTimeline";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,8 +18,7 @@ const TABS: { target: Target; label: string }[] = [
   { target: "REPO", label: "Release GitHub" },
 ];
 
-const linkClass =
-  "inline-flex items-center gap-1 rounded-sm text-sm text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent";
+const linkClass = `text-sm ${ACCENT_LINK_CLASS}`;
 
 function SheetBody({ detail }: { detail: ApplicationDetail }) {
   const app = detail.application;
@@ -38,11 +37,10 @@ function SheetBody({ detail }: { detail: ApplicationDetail }) {
           <DialogDescription>{detail.product_name}</DialogDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Chip variant="status" value={app.runtime === "AKS" ? "running" : "skipped"} label={app.runtime} />
-          <Chip variant="status" value={app.ci === "GHA" ? "running" : "skipped"} label={app.ci} />
+          <RuntimeChips app={app} />
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <a href={`https://github.com/pagopa/${app.repository}`} target="_blank" rel="noopener noreferrer" className={linkClass}>
+          <a href={repoUrl(app.repository)} target="_blank" rel="noopener noreferrer" className={linkClass}>
             <LibraryBig className="size-4" aria-hidden="true" /> Repository
           </a>
           {app.pipeline_url && (

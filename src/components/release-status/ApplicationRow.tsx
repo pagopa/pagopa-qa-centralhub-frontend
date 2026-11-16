@@ -1,7 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { ChartLine, LibraryBig, Rocket } from "lucide-react";
-import { Chip } from "@/components/primitives/Chip";
 import { GithubMark } from "@/components/release-status/GithubMark";
+import { RuntimeChips, repoUrl } from "@/components/release-status/shared";
 import { TestMarkers } from "@/components/release-status/TestMarkers";
 import { VersionCell } from "@/components/release-status/VersionCell";
 import type { ApplicationRow as Application, EnvTarget } from "@/types/release-status";
@@ -76,11 +76,10 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
           {app.name}
         </button>
         <span className="flex items-center gap-1">
-          <Chip variant="status" value={app.runtime === "AKS" ? "running" : "skipped"} label={app.runtime} />
-          <Chip variant="status" value={app.ci === "GHA" ? "running" : "skipped"} label={app.ci} />
+          <RuntimeChips app={app} />
         </span>
         <span className="flex items-center">
-          <LinkIcon href={`https://github.com/pagopa/${app.repository}`} label={`Repository di ${app.name}`}>
+          <LinkIcon href={repoUrl(app.repository)} label={`Repository di ${app.name}`}>
             <LibraryBig className="size-4 text-info" aria-hidden="true" />
           </LinkIcon>
           {app.pipeline_url && (

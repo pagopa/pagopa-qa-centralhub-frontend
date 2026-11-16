@@ -1,22 +1,11 @@
 import { Bot, FlaskConical, ShieldCheck, type LucideIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime } from "@/components/release-status/format";
-import type { RunKind, RunOutcome, RunRef } from "@/types/release-status";
+import { OUTCOME_COLOR, OUTCOME_LABEL } from "@/components/release-status/shared";
+import type { RunKind, RunRef } from "@/types/release-status";
 
 const KIND_ICON: Record<RunKind, LucideIcon> = { NRT: FlaskConical, QG: ShieldCheck, TAS: Bot };
 const KIND_ORDER: readonly RunKind[] = ["NRT", "QG", "TAS"];
-
-const OUTCOME_LABEL: Record<RunOutcome, string> = {
-  PASSED: "superata",
-  FAILED: "fallita",
-  NEUTRAL: "senza esito",
-};
-
-const OUTCOME_COLOR: Record<RunOutcome, string> = {
-  PASSED: "text-success",
-  FAILED: "text-danger",
-  NEUTRAL: "text-text-dim",
-};
 
 function markerLabel(run: RunRef): string {
   const base = `${run.kind}: ${OUTCOME_LABEL[run.outcome]}`;
