@@ -85,8 +85,13 @@ function PendingRunsKpi() {
 
 function ReleaseStatusKpi() {
   const { can } = usePermissions();
-  const { data, isLoading } = useReleaseSummary();
+  // Gate before fetching: users without the permission must not request the summary.
   if (!can("view:status_page")) return null;
+  return <ReleaseStatusKpiContent />;
+}
+
+function ReleaseStatusKpiContent() {
+  const { data, isLoading } = useReleaseSummary();
   const summary = isLoading ? undefined : data;
   const links = summary
     ? [

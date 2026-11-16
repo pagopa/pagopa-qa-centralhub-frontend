@@ -147,5 +147,6 @@ describe("OverviewPage", () => {
     mocks.can.mockImplementation((action: string) => action !== "view:status_page");
     render(<OverviewPage />);
     expect(pillar("Testing").queryByText("Release allineate")).not.toBeInTheDocument();
+    expect(mocks.summary).not.toHaveBeenCalled();
   });
 });
