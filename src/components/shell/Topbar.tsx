@@ -14,7 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/jira": "KPI Jira",
   "/sanp-health": "SANP Health",
   "/bugs": "Defect Tracker",
-  "/releases": "Releases",
+  "/releases": "Release Status",
   "/docs": "Docs & Decks",
   "/api-docs": "API Docs",
   "/ea-map": "EA Map",

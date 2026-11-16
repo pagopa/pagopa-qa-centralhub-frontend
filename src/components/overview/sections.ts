@@ -5,6 +5,7 @@ import {
   FileText,
   LayoutGrid,
   Network,
+  PackageCheck,
   ShieldCheck,
   Shuffle,
   Sparkles,
@@ -43,6 +44,7 @@ export const TESTING_SECTIONS: OverviewSection[] = [
   { href: "/flaky-scenarios", label: "Scenari flaky", description: "Indice di flakiness sullo storico delle run e gestione dei flag.", icon: Shuffle, action: "view:flaky", featureKey: "flaky_scenarios", badge: "NEW", ...tone("danger") },
   { href: "/tas-nrts", label: "TAS (Test Automation Services)", description: "Gestione e monitoraggio delle esecuzioni dei test TAS.", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts", ...tone("warning") },
   { href: "/bdd", label: "Gherkin Generator", description: "Scenari BDD da requisiti Confluence, PDF o testo libero con AI.", icon: Sparkles, action: "view:bdd", featureKey: "bdd", ...tone("warning") },
+  { href: "/releases", label: "Release Status", description: "Versioni in DEV, UAT e PROD, storico dei deploy e test eseguiti.", icon: PackageCheck, action: "view:status_page", featureKey: "release_status", badge: "NEW", ...tone("accent") },
 ];
 
 export const DATA_QUALITY_SECTIONS: OverviewSection[] = [
