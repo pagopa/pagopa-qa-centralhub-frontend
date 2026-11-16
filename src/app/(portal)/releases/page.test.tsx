@@ -16,6 +16,7 @@ const hooks = vi.hoisted(() => ({
   status: vi.fn(),
   syncStatus: vi.fn(),
   trigger: vi.fn(),
+  detail: vi.fn(() => ({ data: undefined, isLoading: true, isError: false })),
 }));
 
 const nav = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
 vi.mock("@/hooks/useReleaseStatus", () => ({
   useReleaseStatus: hooks.status,
+  useApplicationDetail: hooks.detail,
   useReleaseSyncStatus: hooks.syncStatus,
   useTriggerReleaseSync: hooks.trigger,
 }));
@@ -224,7 +226,8 @@ describe("Releases page", () => {
 
     await user.click(screen.getByRole("button", { name: "AFM-Calculator" }));
 
-    expect(await screen.findByText("Dettaglio applicazione")).toBeInTheDocument();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(hooks.detail).toHaveBeenCalledWith("id-AFM-Calculator");
   });
 
   it("hides the sync button without sync:trigger", () => {
