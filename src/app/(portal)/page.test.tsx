@@ -145,6 +145,7 @@ describe("OverviewPage", () => {
 
   it("hides the release status KPI without view:status_page", () => {
     mocks.can.mockImplementation((action: string) => action !== "view:status_page");
+    mocks.summary.mockClear();
     render(<OverviewPage />);
     expect(pillar("Testing").queryByText("Release allineate")).not.toBeInTheDocument();
     expect(mocks.summary).not.toHaveBeenCalled();
