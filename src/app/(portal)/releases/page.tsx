@@ -11,7 +11,14 @@ import { ReleaseHeader } from "@/components/release-status/ReleaseHeader";
 import { ReleaseKpis } from "@/components/release-status/ReleaseKpis";
 import { ReleaseToolbar } from "@/components/release-status/ReleaseToolbar";
 import { useReleaseStatus, useReleaseSyncStatus, useTriggerReleaseSync } from "@/hooks/useReleaseStatus";
-import { filterApplications, filterParams, parseFilterParams, type FilterState } from "@/lib/release-status";
+import {
+  areaForFilter,
+  countFilterMatches,
+  filterApplications,
+  filterParams,
+  parseFilterParams,
+  type FilterState,
+} from "@/lib/release-status";
 import type { AreaGroup } from "@/types/release-status";
 
 function byName<T extends { name: string }>(a: T, b: T): number {
@@ -68,7 +75,12 @@ function ReleasesSkeleton() {
 function ReleasesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [state, setState] = useState<FilterState>(() => parseFilterParams(new URLSearchParams(searchParams.toString())));
+  const [initialParams] = useState(() => new URLSearchParams(searchParams.toString()));
+  const [state, setState] = useState<FilterState>(() => parseFilterParams(initialParams));
+  // A link with a filter but no area (e.g. from the overview) opens the first area with matches.
+  const [pickArea, setPickArea] = useState(
+    () => !initialParams.has("area") && parseFilterParams(initialParams).filter !== "all",
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const statusQuery = useReleaseStatus();
@@ -76,20 +88,24 @@ function ReleasesView() {
   const syncStatusQuery = useReleaseSyncStatus({ onFinished: trigger.reset });
 
   const areas = useMemo(() => sortAreas(statusQuery.data?.areas ?? []), [statusQuery.data]);
+  const area = pickArea && statusQuery.data ? areaForFilter(areas, state.filter) : state.area;
+  const view = useMemo(() => ({ ...state, area }), [state, area]);
+  const matches = useMemo(() => countFilterMatches(areas, view.filter), [areas, view.filter]);
   const areaApplications = useMemo(
     () =>
       areas
-        .filter((group) => group.area === state.area)
+        .filter((group) => group.area === view.area)
         .flatMap((group) => group.products.flatMap((product) => product.applications)),
-    [areas, state.area],
+    [areas, view.area],
   );
   const visible = useMemo(
-    () => filterApplications(areas, state.area, state.q, state.filter).flatMap((group) => group.products),
-    [areas, state],
+    () => filterApplications(areas, view.area, view.q, view.filter).flatMap((group) => group.products),
+    [areas, view],
   );
 
   const update = (patch: Partial<FilterState>) => {
-    const next = { ...state, ...patch };
+    const next = { ...view, ...patch };
+    setPickArea(false);
     setState(next);
     const query = filterParams(next).toString();
     router.replace(query ? `/releases?${query}` : "/releases", { scroll: false });
@@ -122,14 +138,15 @@ function ReleasesView() {
 
         <ReleaseKpis
           applications={areaApplications}
-          filter={state.filter}
+          filter={view.filter}
           onFilterChange={(filter) => update({ filter })}
         />
 
         <ReleaseToolbar
-          area={state.area}
-          query={state.q}
-          filter={state.filter}
+          area={view.area}
+          areaMatches={view.filter === "all" ? null : matches}
+          query={view.q}
+          filter={view.filter}
           onAreaChange={(area) => update({ area })}
           onQueryChange={(q) => update({ q })}
           onFilterChange={(filter) => update({ filter })}
@@ -156,7 +173,7 @@ function ReleasesView() {
                 ? "Nessuna applicazione censita in quest'area."
                 : "Prova a cambiare la ricerca o il filtro."}
             </p>
-            {(state.q || state.filter !== "all") && (
+            {(view.q || view.filter !== "all") && (
               <button
                 type="button"
                 onClick={() => update({ q: "", filter: "all" })}

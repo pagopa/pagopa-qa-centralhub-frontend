@@ -272,6 +272,54 @@ describe("Releases page", () => {
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the area that matches a filter from the overview link", () => {
+    nav.search = "filter=unreachable";
+    hooks.status.mockReturnValue(
+      queryResult({
+        ...data,
+        areas: [
+          data.areas[0],
+          {
+            area: "TOUCHPOINT",
+            products: [
+              {
+                id: "p-io",
+                name: "IO Touchpoint",
+                applications: [makeApp("IO-Checkout", ["UNREACHABLE"]), makeApp("IO-Wallet", ["UNREACHABLE"])],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    render(<ReleasesPage />);
+
+    expect(screen.getByRole("tab", { name: /TouchPoint/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("IO-Checkout")).toBeInTheDocument();
+    expect(screen.getByText("IO-Wallet")).toBeInTheDocument();
+  });
+
+  it("keeps the area from the query string even without matches", () => {
+    nav.search = "area=CORE&filter=unreachable";
+    render(<ReleasesPage />);
+
+    expect(screen.getByRole("tab", { name: /Core/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("shows the matches of the active filter on each area tab", () => {
+    nav.search = "filter=drift";
+    render(<ReleasesPage />);
+
+    expect(within(screen.getByRole("tab", { name: /Core/ })).getByLabelText("1 risultati")).toBeInTheDocument();
+    expect(within(screen.getByRole("tab", { name: /TouchPoint/ })).getByLabelText("0 risultati")).toBeInTheDocument();
+  });
+
+  it("hides the area counts without a filter", () => {
+    render(<ReleasesPage />);
+
+    expect(screen.queryByLabelText(/risultati$/)).not.toBeInTheDocument();
+  });
+
   it("explains a 409 as a sync already in progress", () => {
     hooks.trigger.mockReturnValue(
       mutationResult({ isError: true, error: new ApiError(409, { detail: "conflict" }) }),

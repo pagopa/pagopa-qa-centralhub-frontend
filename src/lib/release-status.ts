@@ -41,6 +41,25 @@ export function filterApplications(
     }));
 }
 
+const AREAS: readonly Area[] = ["CORE", "TOUCHPOINT"];
+
+/** Number of applications matching `filter` in each area (search query ignored). */
+export function countFilterMatches(groups: AreaGroup[], filter: StatusFilter): Record<Area, number> {
+  const counts: Record<Area, number> = { CORE: 0, TOUCHPOINT: 0 };
+  for (const area of AREAS) {
+    counts[area] = filterApplications(groups, area, "", filter)
+      .flatMap((group) => group.products)
+      .reduce((total, product) => total + product.applications.length, 0);
+  }
+  return counts;
+}
+
+/** First area (CORE, then TOUCHPOINT) with at least one match for `filter`; CORE when none. */
+export function areaForFilter(groups: AreaGroup[], filter: StatusFilter): Area {
+  const counts = countFilterMatches(groups, filter);
+  return AREAS.find((area) => counts[area] > 0) ?? "CORE";
+}
+
 export type CellIcon = "loading" | "ok" | "error" | "warning" | "info";
 
 export interface CellVisual {

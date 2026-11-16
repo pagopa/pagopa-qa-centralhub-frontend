@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  areaForFilter,
   cellVisual,
+  countFilterMatches,
   filterApplications,
   filterParams,
   parseFilterParams,
@@ -167,6 +169,28 @@ describe("syncLabel", () => {
 
   it("is stale when failed", () => {
     expect(syncLabel({ ...base, status: "FAILED" }, now).stale).toBe(true);
+  });
+});
+
+describe("area filter matches", () => {
+  const unreachable: AreaGroup[] = [
+    { area: "CORE", products: [{ id: "c", name: "Core", applications: [makeApp("a", ["ALIGNED"])] }] },
+    {
+      area: "TOUCHPOINT",
+      products: [{ id: "t", name: "Tp", applications: [makeApp("b", ["UNREACHABLE"]), makeApp("c", ["UNREACHABLE"])] }],
+    },
+  ];
+
+  it("counts the matches of a filter per area", () => {
+    expect(countFilterMatches(groups, "drift")).toEqual({ CORE: 1, TOUCHPOINT: 1 });
+    expect(countFilterMatches(unreachable, "unreachable")).toEqual({ CORE: 0, TOUCHPOINT: 2 });
+  });
+
+  it("picks the first area with a match, falling back to CORE", () => {
+    expect(areaForFilter(groups, "drift")).toBe("CORE");
+    expect(areaForFilter(unreachable, "unreachable")).toBe("TOUCHPOINT");
+    expect(areaForFilter(unreachable, "untested")).toBe("CORE");
+    expect(areaForFilter([], "drift")).toBe("CORE");
   });
 });
 

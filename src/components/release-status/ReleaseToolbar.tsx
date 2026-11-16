@@ -11,6 +11,8 @@ const FILTER_CHIPS: { value: StatusFilter; label: string; tone: string }[] = [
 
 interface ReleaseToolbarProps {
   area: Area;
+  /** Matches of the active filter per area; null when no filter is active. */
+  areaMatches?: Record<Area, number> | null;
   query: string;
   filter: StatusFilter;
   onAreaChange: (area: Area) => void;
@@ -18,8 +20,20 @@ interface ReleaseToolbarProps {
   onFilterChange: (filter: StatusFilter) => void;
 }
 
+function MatchCount({ count }: { count: number }) {
+  return (
+    <span
+      aria-label={`${count} risultati`}
+      className="ml-0.5 rounded-full bg-neutral-soft px-1.5 font-mono text-[10px] font-medium tabular-nums text-text-dim"
+    >
+      {count}
+    </span>
+  );
+}
+
 export function ReleaseToolbar({
   area,
+  areaMatches = null,
   query,
   filter,
   onAreaChange,
@@ -34,10 +48,12 @@ export function ReleaseToolbar({
             <TabsTrigger value="CORE" className="px-3">
               <WalletMinimal aria-hidden="true" />
               Core
+              {areaMatches && <MatchCount count={areaMatches.CORE} />}
             </TabsTrigger>
             <TabsTrigger value="TOUCHPOINT" className="px-3">
               <Landmark aria-hidden="true" />
               TouchPoint
+              {areaMatches && <MatchCount count={areaMatches.TOUCHPOINT} />}
             </TabsTrigger>
           </TabsList>
         </Tabs>
