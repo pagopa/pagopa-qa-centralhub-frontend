@@ -116,7 +116,7 @@ describe("ApplicationDetailSheet", () => {
     expect(within(dialog).getByText("1.4.1")).toBeInTheDocument();
   });
 
-  it("shows the EA Map link only when ea_node_id is set", () => {
+  it("links the EA Map component only when ea_node_id is set", () => {
     const { unmount } = render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.queryByRole("link", { name: /EA Map/ })).not.toBeInTheDocument();
     unmount();
@@ -124,7 +124,7 @@ describe("ApplicationDetailSheet", () => {
     setDetail({ application: makeApp({ ea_node_id: "node-42" }) });
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     const link = screen.getByRole("link", { name: "EA Map: node-42" });
-    expect(link).toHaveAttribute("href", "/ea-map");
+    expect(link).toHaveAttribute("href", "/ea-map#c-node-42");
   });
 
   it("offers DEV, UAT, PROD and Release GitHub tabs", () => {

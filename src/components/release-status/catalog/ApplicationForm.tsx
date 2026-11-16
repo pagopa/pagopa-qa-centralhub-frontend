@@ -156,110 +156,113 @@ function ApplicationFormBody({
       : components;
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Prodotto" error={errors.product_id}>
-          <select className={SELECT_CLASS} value={productId} onChange={(e) => setProductId(e.target.value)}>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+    <form onSubmit={onSubmit} noValidate className="flex min-w-0 flex-col gap-4">
+      {/* only the fields scroll: the footer stays outside, at the bottom of the dialog */}
+      <div className="flex max-h-[65vh] min-w-0 flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Prodotto" error={errors.product_id}>
+            <select className={SELECT_CLASS} value={productId} onChange={(e) => setProductId(e.target.value)}>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Nome applicazione" error={errors.name}>
+            <input className={INPUT_CLASS} value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Chiave prodotto" error={errors.product_key} hint="Usata per leggere /shared/statuspage/v1/info">
+            <input className={INPUT_CLASS} value={productKey} onChange={(e) => setProductKey(e.target.value)} />
+          </Field>
+          <Field label="Repository" error={errors.repository} hint="Nome del repository GitHub (organizzazione pagopa)">
+            <input className={INPUT_CLASS} value={repository} onChange={(e) => setRepository(e.target.value)} />
+          </Field>
+        </div>
+
+        <Field label="URL pipeline" error={errors.pipeline_url}>
+          <input
+            className={INPUT_CLASS}
+            type="url"
+            placeholder="https://"
+            value={pipelineUrl}
+            onChange={(e) => setPipelineUrl(e.target.value)}
+          />
         </Field>
-        <Field label="Nome applicazione" error={errors.name}>
-          <input className={INPUT_CLASS} value={name} onChange={(e) => setName(e.target.value)} />
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Runtime" error={errors.runtime}>
+            <select className={SELECT_CLASS} value={runtime} onChange={(e) => setRuntime(e.target.value as Runtime)}>
+              <option value="AKS">AKS</option>
+              <option value="AZ">AZ</option>
+            </select>
+          </Field>
+          <Field label="CI" error={errors.ci}>
+            <select className={SELECT_CLASS} value={ci} onChange={(e) => setCi(e.target.value as Ci)}>
+              <option value="GHA">GHA</option>
+              <option value="AZDO">AZDO</option>
+            </select>
+          </Field>
+          <Field label="Tipo" error={errors.kind}>
+            <select className={SELECT_CLASS} value={kind} onChange={(e) => setKind(e.target.value as AppKind)}>
+              <option value="backend">backend</option>
+              <option value="frontend">frontend</option>
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Test object" error={errors.test_object} hint="Scegli un valore esistente o scrivine uno nuovo">
+          <input
+            className={INPUT_CLASS}
+            role="combobox"
+            aria-expanded={false}
+            aria-controls="test-object-options"
+            list="test-object-options"
+            value={testObject}
+            onChange={(e) => setTestObject(e.target.value)}
+          />
         </Field>
-        <Field label="Chiave prodotto" error={errors.product_key} hint="Usata per leggere /shared/statuspage/v1/info">
-          <input className={INPUT_CLASS} value={productKey} onChange={(e) => setProductKey(e.target.value)} />
-        </Field>
-        <Field label="Repository" error={errors.repository} hint="Nome del repository GitHub (organizzazione pagopa)">
-          <input className={INPUT_CLASS} value={repository} onChange={(e) => setRepository(e.target.value)} />
-        </Field>
+        <datalist id="test-object-options">
+          {(testObjects.data ?? []).map((value) => (
+            <option key={value} value={value} />
+          ))}
+        </datalist>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Cerca componente EA">
+            <input className={INPUT_CLASS} type="search" value={eaSearch} onChange={(e) => setEaSearch(e.target.value)} />
+          </Field>
+          <Field label="Componente EA" error={errors.ea_node_id}>
+            <select
+              className={SELECT_CLASS}
+              value={effectiveEaId}
+              onChange={(e) => {
+                setEaNodeId(e.target.value);
+                setEaTouched(true);
+              }}
+            >
+              <option value="">Nessuno</option>
+              {eaOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        {result && <CheckResult result={result} />}
+        {checkError && (
+          <p role="alert" className="text-xs text-warning">
+            {checkError}
+          </p>
+        )}
+        {formError && (
+          <p role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
+            {formError}
+          </p>
+        )}
       </div>
-
-      <Field label="URL pipeline" error={errors.pipeline_url}>
-        <input
-          className={INPUT_CLASS}
-          type="url"
-          placeholder="https://"
-          value={pipelineUrl}
-          onChange={(e) => setPipelineUrl(e.target.value)}
-        />
-      </Field>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Runtime" error={errors.runtime}>
-          <select className={SELECT_CLASS} value={runtime} onChange={(e) => setRuntime(e.target.value as Runtime)}>
-            <option value="AKS">AKS</option>
-            <option value="AZ">AZ</option>
-          </select>
-        </Field>
-        <Field label="CI" error={errors.ci}>
-          <select className={SELECT_CLASS} value={ci} onChange={(e) => setCi(e.target.value as Ci)}>
-            <option value="GHA">GHA</option>
-            <option value="AZDO">AZDO</option>
-          </select>
-        </Field>
-        <Field label="Tipo" error={errors.kind}>
-          <select className={SELECT_CLASS} value={kind} onChange={(e) => setKind(e.target.value as AppKind)}>
-            <option value="backend">backend</option>
-            <option value="frontend">frontend</option>
-          </select>
-        </Field>
-      </div>
-
-      <Field label="Test object" error={errors.test_object} hint="Scegli un valore esistente o scrivine uno nuovo">
-        <input
-          className={INPUT_CLASS}
-          role="combobox"
-          aria-expanded={false}
-          aria-controls="test-object-options"
-          list="test-object-options"
-          value={testObject}
-          onChange={(e) => setTestObject(e.target.value)}
-        />
-      </Field>
-      <datalist id="test-object-options">
-        {(testObjects.data ?? []).map((value) => (
-          <option key={value} value={value} />
-        ))}
-      </datalist>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Cerca componente EA">
-          <input className={INPUT_CLASS} type="search" value={eaSearch} onChange={(e) => setEaSearch(e.target.value)} />
-        </Field>
-        <Field label="Componente EA" error={errors.ea_node_id}>
-          <select
-            className={SELECT_CLASS}
-            value={effectiveEaId}
-            onChange={(e) => {
-              setEaNodeId(e.target.value);
-              setEaTouched(true);
-            }}
-          >
-            <option value="">Nessuno</option>
-            {eaOptions.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-
-      {result && <CheckResult result={result} />}
-      {checkError && (
-        <p role="alert" className="text-xs text-warning">
-          {checkError}
-        </p>
-      )}
-      {formError && (
-        <p role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
-          {formError}
-        </p>
-      )}
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onVerify} disabled={busy}>
