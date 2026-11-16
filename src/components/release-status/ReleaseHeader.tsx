@@ -36,7 +36,7 @@ export function ReleaseHeader({ sync, syncInProgress, onSync, syncError }: Relea
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-text">Release Status</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-text">Status Page</h1>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
             <Clock className={`size-3.5 ${syncInProgress ? "animate-pulse text-accent" : ""}`} aria-hidden="true" />
             <span>{label.text}</span>

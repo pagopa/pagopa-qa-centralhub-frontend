@@ -116,10 +116,10 @@ function CatalogView() {
         <div>
           <Link href="/releases" className="inline-flex items-center gap-1 text-xs text-accent hover:underline">
             <ArrowLeft className="size-3.5" aria-hidden="true" />
-            Release Status
+            Status Page
           </Link>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-text">Catalogo</h1>
-          <p className="mt-1 text-xs text-text-muted">Prodotti e applicazioni monitorati nella pagina Release Status.</p>
+          <p className="mt-1 text-xs text-text-muted">Prodotti e applicazioni monitorati nella Status Page.</p>
         </div>
 
         {notice && (

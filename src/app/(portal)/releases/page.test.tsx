@@ -156,7 +156,7 @@ describe("Releases page", () => {
     render(<ReleasesPage />);
 
     expect(screen.getByTestId("route-guard")).toHaveAttribute("data-action", "view:status_page");
-    expect(screen.getByRole("heading", { level: 1, name: "Release Status" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Status Page" })).toBeInTheDocument();
   });
 
   it("renders the Core products sorted by name", () => {
@@ -408,6 +408,20 @@ describe("Releases page", () => {
       "href",
       "https://portal.azure.com/#@pagopait.onmicrosoft.com/dashboard/arm/subscriptions/b9fc9419-6097-45fe-9f74-ba0641c91912/resourceGroups/dashboards/providers/Microsoft.Portal/dashboards/pagopa-p-opex_pagopa-afm-calculator",
     );
+  });
+
+  it("starts with every product collapsed and expands the one clicked", async () => {
+    const user = userEvent.setup();
+    render(<ReleasesPage />);
+
+    const toggles = screen.getAllByRole("button", { expanded: false });
+    expect(toggles.length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole("button", { expanded: true })).toHaveLength(0);
+
+    await user.click(toggles[0]);
+
+    expect(toggles[0]).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(1);
   });
 
   it("renders skeleton rows while loading", () => {
