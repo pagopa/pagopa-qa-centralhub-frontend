@@ -117,6 +117,17 @@ describe("cellVisual", () => {
     },
   );
 
+  it.each(["1.2.3.4", "1.2.3_SNAPSHOT", "1.2", "main-abc"])("treats %s as non-standard", (version) => {
+    expect(cellVisual(makeCell({ version, drift: null }), "REPO").icon).toBe("info");
+  });
+
+  it.each(["V1.2.3", "v1.2.3", "1.4.3-1-feature", "1.2.3+build.5", "Release 1.2.3"])(
+    "treats %s as semver",
+    (version) => {
+      expect(cellVisual(makeCell({ version }), "REPO").icon).toBe("ok");
+    },
+  );
+
   it("reports drift for OK cells", () => {
     const v = cellVisual(makeCell({ drift: "BEHIND" }), "PROD");
     expect(v.icon).toBe("ok");

@@ -69,7 +69,14 @@ export interface CellVisual {
   tooltip: string;
 }
 
-const SEMVER = /^v?\d+\.\d+\.\d+/;
+/** Same grammar as the backend parser: optional v/V, MAJOR.MINOR.PATCH, pre-release and build. */
+const SEMVER = /^[vV]?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const RELEASE_PREFIX = "Release ";
+
+function isSemver(version: string): boolean {
+  const trimmed = version.trim();
+  return SEMVER.test(trimmed.startsWith(RELEASE_PREFIX) ? trimmed.slice(RELEASE_PREFIX.length) : trimmed);
+}
 
 export function cellVisual(cell: Cell | null, target: Target): CellVisual {
   if (cell === null) {
@@ -100,7 +107,7 @@ export function cellVisual(cell: Cell | null, target: Target): CellVisual {
   }
 
   const version = cell.version ?? "";
-  if (!SEMVER.test(version)) {
+  if (!isSemver(version)) {
     return { icon: "info", drift: null, muted: false, tooltip: `${target}: ${version || "versione sconosciuta"}` };
   }
 
