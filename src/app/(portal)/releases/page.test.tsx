@@ -320,6 +320,38 @@ describe("Releases page", () => {
     expect(screen.queryByLabelText(/risultati$/)).not.toBeInTheDocument();
   });
 
+  it("shows no test marker on a target without a version", () => {
+    hooks.status.mockReturnValue(
+      queryResult({
+        ...data,
+        areas: [
+          {
+            area: "CORE",
+            products: [
+              {
+                id: "p-alpha",
+                name: "Alpha Fees",
+                applications: [
+                  makeApp("AFM-Calculator", [], {
+                    test_object: "afm-calculator",
+                    envs: {
+                      DEV: makeCell({ version: null, read_status: "NO_VERSION", drift: null }),
+                      UAT: makeCell({ version: null, read_status: "ERROR", drift: null }),
+                      PROD: makeCell({ version: null, read_status: "EMPTY_BODY", drift: null }),
+                    },
+                  }),
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    render(<ReleasesPage />);
+
+    expect(screen.queryByRole("img", { name: "non testata" })).not.toBeInTheDocument();
+  });
+
   it("explains a 409 as a sync already in progress", () => {
     hooks.trigger.mockReturnValue(
       mutationResult({ isError: true, error: new ApiError(409, { detail: "conflict" }) }),

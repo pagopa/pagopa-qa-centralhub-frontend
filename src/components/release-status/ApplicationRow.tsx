@@ -108,7 +108,7 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
         return (
           <CellSlot key={target} label={target}>
             <VersionCell target={target} cell={cell} />
-            {cell && <TestMarkers tests={cell.tests} hasTestObject={hasTestObject} />}
+            {cell?.version && <TestMarkers tests={cell.tests} hasTestObject={hasTestObject} />}
           </CellSlot>
         );
       })}
