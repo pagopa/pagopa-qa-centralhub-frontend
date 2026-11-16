@@ -19,6 +19,7 @@ export const releaseStatusQueryKey = ["release-status"] as const;
 
 const BASE = "/api/v1/releases";
 const SYNC_POLL_MS = 3000;
+const SYNC_IDLE_POLL_MS = 60_000;
 
 function useUserEmail(): string {
   const { data: session } = useSession();
@@ -47,27 +48,40 @@ export function useApplicationDetail(id: string | null) {
   });
 }
 
-export function useReleaseSyncStatus() {
+interface SyncStatusOptions {
+  /** Called once each time a sync finishes (its `finished_at` changes). */
+  onFinished?: () => void;
+}
+
+export function useReleaseSyncStatus({ onFinished }: SyncStatusOptions = {}) {
   const queryClient = useQueryClient();
   const query = useQuery<SyncStatus | null>({
     queryKey: [...releaseStatusQueryKey, "sync-status"],
     queryFn: () => apiClient(`${BASE}/sync-status`),
-    refetchInterval: (q) => {
-      const status = q.state.data?.status;
-      return status === "QUEUED" || status === "RUNNING" ? SYNC_POLL_MS : false;
-    },
+    // Fast polling only while the backend says a sync is in progress (a stale row is not);
+    // otherwise a slow background poll picks up scheduled syncs.
+    refetchInterval: (q) => (q.state.data?.in_progress ? SYNC_POLL_MS : SYNC_IDLE_POLL_MS),
   });
 
-  const status = query.data?.status;
-  const running = status === "QUEUED" || status === "RUNNING";
-  const wasRunning = useRef(false);
+  const loaded = query.data !== undefined;
+  const finishedAt = query.data?.finished_at ?? null;
+  const onFinishedRef = useRef(onFinished);
   useEffect(() => {
-    if (wasRunning.current && !running) {
-      queryClient.invalidateQueries({ queryKey: [...releaseStatusQueryKey, "status"] });
-      queryClient.invalidateQueries({ queryKey: [...releaseStatusQueryKey, "summary"] });
-    }
-    wasRunning.current = running;
-  }, [running, queryClient]);
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
+
+  // React to every new finished_at, not to a running -> idle edge that polling can miss.
+  const lastFinishedAt = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!loaded) return;
+    const previous = lastFinishedAt.current;
+    lastFinishedAt.current = finishedAt;
+    if (previous === undefined || finishedAt === null || finishedAt === previous) return;
+    queryClient.invalidateQueries({ queryKey: [...releaseStatusQueryKey, "status"] });
+    queryClient.invalidateQueries({ queryKey: [...releaseStatusQueryKey, "summary"] });
+    queryClient.invalidateQueries({ queryKey: [...releaseStatusQueryKey, "application"] });
+    onFinishedRef.current?.();
+  }, [loaded, finishedAt, queryClient]);
 
   return query;
 }

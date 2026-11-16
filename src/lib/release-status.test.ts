@@ -128,10 +128,27 @@ describe("syncLabel", () => {
     applications_checked: 0,
     reads_failed: 0,
     errors: [],
+    in_progress: false,
   };
 
   it("announces a running sync", () => {
-    expect(syncLabel({ ...base, status: "RUNNING" }, now).text).toBe("Sincronizzazione in corso…");
+    expect(syncLabel({ ...base, status: "RUNNING", in_progress: true }, now).text).toBe(
+      "Sincronizzazione in corso…",
+    );
+    expect(syncLabel({ ...base, status: "QUEUED", in_progress: true }, now).text).toBe(
+      "Sincronizzazione in coda…",
+    );
+  });
+
+  it("falls back to the last success when a queued or running sync is stale", () => {
+    for (const status of ["QUEUED", "RUNNING"] as const) {
+      expect(syncLabel({ ...base, status, in_progress: false }, now)).toEqual({
+        text: "Ultimo aggiornamento 10:15 · automatico",
+        stale: false,
+      });
+      const old = { ...base, status, in_progress: false, last_success_at: new Date(2026, 10, 16, 9, 30).toISOString() };
+      expect(syncLabel(old, now).stale).toBe(true);
+    }
   });
 
   it("labels an automatic sync", () => {

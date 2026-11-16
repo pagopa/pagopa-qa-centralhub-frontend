@@ -24,6 +24,8 @@ export interface SyncStatus {
   applications_checked: number;
   reads_failed: number;
   errors: unknown[];
+  /** QUEUED or RUNNING and not stale (computed by the backend). */
+  in_progress: boolean;
 }
 
 export interface RunRef {

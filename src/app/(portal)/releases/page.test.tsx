@@ -95,6 +95,7 @@ const syncOk: SyncStatus = {
   applications_checked: 4,
   reads_failed: 0,
   errors: [],
+  in_progress: false,
 };
 
 const data: ReleaseStatus = {
@@ -131,9 +132,10 @@ function queryResult<T>(value: T, overrides: Record<string, unknown> = {}) {
 }
 
 const mutate = vi.fn();
+const reset = vi.fn();
 
 function mutationResult(overrides: Record<string, unknown> = {}) {
-  return { mutate, isPending: false, isError: false, error: null, ...overrides };
+  return { mutate, reset, isPending: false, isError: false, error: null, ...overrides };
 }
 
 function productNames(): string[] {
@@ -247,10 +249,27 @@ describe("Releases page", () => {
   });
 
   it.each(["QUEUED", "RUNNING"] as const)("shows the sync in progress while %s", (state) => {
-    hooks.syncStatus.mockReturnValue(queryResult({ ...syncOk, status: state }));
+    hooks.syncStatus.mockReturnValue(queryResult({ ...syncOk, status: state, in_progress: true }));
     render(<ReleasesPage />);
 
     expect(screen.getByRole("button", { name: "Sincronizzazione…" })).toBeDisabled();
+  });
+
+  it.each(["QUEUED", "RUNNING"] as const)("re-enables the button when a %s sync is stale", (state) => {
+    hooks.syncStatus.mockReturnValue(queryResult({ ...syncOk, status: state, in_progress: false }));
+    render(<ReleasesPage />);
+
+    expect(screen.getByRole("button", { name: "Sincronizza ora" })).toBeEnabled();
+    expect(screen.queryByText(/Sincronizzazione in/)).not.toBeInTheDocument();
+  });
+
+  it("resets the trigger error when the sync finishes", () => {
+    render(<ReleasesPage />);
+
+    const options = hooks.syncStatus.mock.calls.at(-1)?.[0] as { onFinished?: () => void } | undefined;
+    options?.onFinished?.();
+
+    expect(reset).toHaveBeenCalledTimes(1);
   });
 
   it("explains a 409 as a sync already in progress", () => {

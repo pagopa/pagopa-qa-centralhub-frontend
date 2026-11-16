@@ -72,8 +72,8 @@ function ReleasesView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const statusQuery = useReleaseStatus();
-  const syncStatusQuery = useReleaseSyncStatus();
   const trigger = useTriggerReleaseSync();
+  const syncStatusQuery = useReleaseSyncStatus({ onFinished: trigger.reset });
 
   const areas = useMemo(() => sortAreas(statusQuery.data?.areas ?? []), [statusQuery.data]);
   const areaApplications = useMemo(
@@ -108,7 +108,7 @@ function ReleasesView() {
   }
 
   const sync = syncStatusQuery.data !== undefined ? syncStatusQuery.data : (statusQuery.data?.sync ?? null);
-  const syncRunning = sync?.status === "QUEUED" || sync?.status === "RUNNING";
+  const syncRunning = sync?.in_progress === true;
 
   return (
     <TooltipProvider>

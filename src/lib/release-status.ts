@@ -96,8 +96,11 @@ function hhmm(date: Date): string {
 
 export function syncLabel(sync: SyncStatus | null, now: Date): { text: string; stale: boolean } {
   if (!sync) return { text: "Mai sincronizzato", stale: true };
-  if (sync.status === "QUEUED") return { text: "Sincronizzazione in coda…", stale: false };
-  if (sync.status === "RUNNING") return { text: "Sincronizzazione in corso…", stale: false };
+  // A QUEUED/RUNNING row that is no longer in progress (dead worker) falls back to the last success.
+  if (sync.in_progress) {
+    const text = sync.status === "QUEUED" ? "Sincronizzazione in coda…" : "Sincronizzazione in corso…";
+    return { text, stale: false };
+  }
 
   const lastSuccess = sync.last_success_at ? new Date(sync.last_success_at) : null;
   const stale =
