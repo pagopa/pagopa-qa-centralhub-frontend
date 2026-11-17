@@ -81,6 +81,11 @@ describe("filterApplications", () => {
     expect(result[0].products[0].applications.map((a) => a.name)).toEqual(["alpha"]);
   });
 
+  it("keeps only ALIGNED-flagged apps with the aligned filter", () => {
+    const result = filterApplications(groups, "CORE", "", "aligned");
+    expect(result[0].products.flatMap((p) => p.applications.map((a) => a.name))).toEqual(["beta", "gamma"]);
+  });
+
   it("restricts to the requested area", () => {
     const result = filterApplications(groups, "TOUCHPOINT", "", "all");
     expect(result.map((g) => g.area)).toEqual(["TOUCHPOINT"]);
@@ -217,6 +222,8 @@ describe("filter params", () => {
   it("round-trips", () => {
     const state = { area: "TOUCHPOINT" as const, q: "pay", filter: "drift" as const };
     expect(parseFilterParams(filterParams(state))).toEqual(state);
+    const aligned = { area: "CORE" as const, q: "", filter: "aligned" as const };
+    expect(parseFilterParams(new URLSearchParams("filter=aligned"))).toEqual(aligned);
   });
 
   it("falls back to defaults on missing or invalid values", () => {

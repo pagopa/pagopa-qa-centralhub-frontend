@@ -8,6 +8,7 @@ import type {
 } from "@/types/release-status";
 
 const FLAG_BY_FILTER: Record<Exclude<StatusFilter, "all">, string> = {
+  aligned: "ALIGNED",
   drift: "DRIFT",
   unreachable: "UNREACHABLE",
   untested: "UNTESTED",
@@ -147,7 +148,7 @@ export interface FilterState {
   filter: StatusFilter;
 }
 
-const FILTERS: readonly StatusFilter[] = ["all", "drift", "unreachable", "untested"];
+const FILTERS: readonly StatusFilter[] = ["all", "aligned", "drift", "unreachable", "untested"];
 
 export function parseFilterParams(params: URLSearchParams): FilterState {
   const area = params.get("area") === "TOUCHPOINT" ? "TOUCHPOINT" : "CORE";

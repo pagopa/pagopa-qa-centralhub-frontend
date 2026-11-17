@@ -222,6 +222,17 @@ describe("Releases page", () => {
     expect(screen.queryByText("AFM-Calculator")).not.toBeInTheDocument();
   });
 
+  it("filters the aligned applications from the allineati KPI", async () => {
+    const user = userEvent.setup();
+    render(<ReleasesPage />);
+
+    await user.click(screen.getByRole("button", { name: "allineati: 2" }));
+
+    expect(screen.getByRole("button", { name: /^Allineati$/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("AFM-Calculator")).toBeInTheDocument();
+    expect(screen.queryByText("Zeta-Service")).not.toBeInTheDocument();
+  });
+
   it("opens the application detail when a row is clicked", async () => {
     const user = userEvent.setup();
     render(<ReleasesPage />);
