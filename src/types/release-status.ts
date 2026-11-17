@@ -1,6 +1,6 @@
 export type Target = "REPO" | "DEV" | "UAT" | "PROD";
 export type EnvTarget = "DEV" | "UAT" | "PROD";
-export type StatusFilter = "all" | "drift" | "unreachable" | "untested";
+export type StatusFilter = "all" | "aligned" | "drift" | "unreachable" | "untested";
 export type Area = "CORE" | "TOUCHPOINT";
 export type Runtime = "AKS" | "AZ";
 export type Ci = "GHA" | "AZDO";
