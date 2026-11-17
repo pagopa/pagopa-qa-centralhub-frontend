@@ -78,7 +78,7 @@ function SheetBody({ detail }: { detail: ApplicationDetail }) {
         )}
       </header>
 
-      <Tabs defaultValue="DEV">
+      <Tabs defaultValue="UAT">
         <TabsList variant="line" aria-label="Ambiente">
           {TABS.map(({ target, label }) => (
             <TabsTrigger key={target} value={target}>
