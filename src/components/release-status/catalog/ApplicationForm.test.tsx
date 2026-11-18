@@ -142,7 +142,7 @@ describe("ApplicationForm", () => {
     await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     await expect(onSaved.mock.calls[0][1]).resolves.toBeNull();
-    expect(hooks.check).toHaveBeenCalledWith({ product_key: "wallet", repository: "wallet-service" });
+    expect(hooks.check).toHaveBeenCalledWith({ product_key: "wallet", repository: "wallet-service", repo_only: false });
     expect(hooks.save).toHaveBeenCalledWith(
       expect.objectContaining({ product_id: "p1", name: "Service", pipeline_url: null, test_object: null, ea_node_id: null }),
     );
@@ -270,6 +270,16 @@ describe("ApplicationForm", () => {
     expect(await screen.findByText("✓ 1.4.2")).toBeInTheDocument();
     expect(screen.queryByText("✗ HTTP 503")).not.toBeInTheDocument();
     expect(screen.queryByText(/puoi comunque salvare/)).not.toBeInTheDocument();
+    expect(hooks.check).toHaveBeenLastCalledWith({ product_key: "wallet", repository: "wallet-service", repo_only: true });
+  });
+
+  it("asks for a repository-only check when saving a manual application", async () => {
+    const { user } = setup();
+    await fillValid(user);
+    await user.click(screen.getByLabelText("Versioni inserite a mano"));
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+    expect(hooks.check).toHaveBeenCalledWith({ product_key: "wallet", repository: "wallet-service", repo_only: true });
   });
 
   it("shows the 422 manual_versions error on the versions block", async () => {

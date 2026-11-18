@@ -118,7 +118,7 @@ function ApplicationFormBody({
   const runCheck = async (): Promise<void> => {
     setCheckError(null);
     try {
-      setResult(await check.mutateAsync({ product_key: productKey.trim(), repository: repository.trim() }));
+      setResult(await check.mutateAsync({ product_key: productKey.trim(), repository: repository.trim(), repo_only: manual }));
     } catch {
       setResult(null);
       setCheckError("Impossibile eseguire la verifica");
@@ -141,7 +141,7 @@ function ApplicationFormBody({
 
     // The check runs alongside the save: it never blocks or delays it.
     const checkOutcome: Promise<CheckResultData | null> = check
-      .mutateAsync({ product_key: productKey.trim(), repository: repository.trim() })
+      .mutateAsync({ product_key: productKey.trim(), repository: repository.trim(), repo_only: manual })
       .catch(() => null);
 
     const body: Partial<ApplicationInput> & { id?: string } = {
