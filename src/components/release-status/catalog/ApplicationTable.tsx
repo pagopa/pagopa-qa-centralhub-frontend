@@ -7,6 +7,8 @@ import type { Application } from "@/types/release-status";
 interface ApplicationTableProps {
   applications: Application[];
   productNames: Record<string, string>;
+  /** Ids of the hidden products: their applications are hidden too. */
+  hiddenProductIds?: ReadonlySet<string>;
   query: string;
   onQueryChange: (q: string) => void;
   canAdd: boolean;
@@ -18,6 +20,7 @@ interface ApplicationTableProps {
 export function ApplicationTable({
   applications,
   productNames,
+  hiddenProductIds,
   query,
   onQueryChange,
   canAdd,
@@ -87,7 +90,16 @@ export function ApplicationTable({
               {rows.map((app) => (
                 <tr key={app.id} className="border-t border-border first:border-t-0">
                   <td className="px-3 py-2">
-                    <div className="font-medium text-text">{app.name}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-medium text-text">{app.name}</span>
+                      {app.hidden ? (
+                        <Chip variant="status" value="skipped" label="nascosta" />
+                      ) : (
+                        hiddenProductIds?.has(app.product_id) && (
+                          <Chip variant="status" value="skipped" label="nascosta (prodotto)" />
+                        )
+                      )}
+                    </div>
                     <div className="text-xs text-text-muted">{app.product_key}</div>
                   </td>
                   <td className="px-3 py-2 text-text-muted">{productNames[app.product_id] ?? "—"}</td>

@@ -177,4 +177,108 @@ describe("ApplicationForm", () => {
     await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
     expect(await screen.findByText("Componente EA non trovato")).toBeInTheDocument();
   });
+
+  it("sends hidden when the checkbox is ticked", async () => {
+    const { user } = setup();
+    await fillValid(user);
+    await user.click(screen.getByLabelText("Nascondi dalla status page"));
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalledWith(expect.objectContaining({ hidden: true })));
+  });
+
+  it("sends neither version_source nor manual_versions for an untouched AUTO application", async () => {
+    const { user } = setup(saved);
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+    const body = hooks.save.mock.calls[0][0];
+    expect(body).not.toHaveProperty("version_source");
+    expect(body).not.toHaveProperty("manual_versions");
+    expect(screen.queryByLabelText("Versione DEV")).not.toBeInTheDocument();
+  });
+
+  it("sends MANUAL and the typed versions when the toggle is switched on", async () => {
+    const { user } = setup();
+    await fillValid(user);
+    await user.click(screen.getByLabelText("Versioni inserite a mano"));
+    await user.type(screen.getByLabelText("Versione DEV"), "  1.2.3 ");
+    await user.type(screen.getByLabelText("Versione PROD"), "1.0.0");
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+    const body = hooks.save.mock.calls[0][0];
+    expect(body.version_source).toBe("MANUAL");
+    expect(body.manual_versions).toEqual({ DEV: "1.2.3", PROD: "1.0.0" });
+  });
+
+  it("prefills the manual versions and sends only the changed keys, null for an emptied one", async () => {
+    const manual: Application = {
+      ...saved,
+      version_source: "MANUAL",
+      manual_versions: { DEV: "1.0.0", UAT: "1.1.0", PROD: null },
+    };
+    const { user } = setup(manual);
+    expect(screen.getByLabelText("Versioni inserite a mano")).toBeChecked();
+    expect(screen.getByLabelText("Versione DEV")).toHaveValue("1.0.0");
+    expect(screen.getByLabelText("Versione UAT")).toHaveValue("1.1.0");
+    expect(screen.getByLabelText("Versione PROD")).toHaveValue("");
+    await user.clear(screen.getByLabelText("Versione UAT"));
+    await user.type(screen.getByLabelText("Versione PROD"), "2.0.0");
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+    const body = hooks.save.mock.calls[0][0];
+    expect(body.version_source).toBe("MANUAL");
+    expect(body.manual_versions).toEqual({ UAT: null, PROD: "2.0.0" });
+  });
+
+  it("omits manual_versions on a manual application when nothing changed", async () => {
+    const manual: Application = { ...saved, version_source: "MANUAL", manual_versions: { DEV: "1.0.0", UAT: null, PROD: null } };
+    const { user } = setup(manual);
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+    expect(hooks.save.mock.calls[0][0]).not.toHaveProperty("manual_versions");
+  });
+
+  it("sends AUTO and no versions when a manual application is switched off", async () => {
+    const manual: Application = { ...saved, version_source: "MANUAL", manual_versions: { DEV: "1.0.0", UAT: null, PROD: null } };
+    const { user } = setup(manual);
+    await user.click(screen.getByLabelText("Versioni inserite a mano"));
+    expect(screen.queryByLabelText("Versione DEV")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+    const body = hooks.save.mock.calls[0][0];
+    expect(body.version_source).toBe("AUTO");
+    expect(body).not.toHaveProperty("manual_versions");
+  });
+
+  it("limits each manual version to 100 characters", async () => {
+    const { user } = setup();
+    await user.click(screen.getByLabelText("Versioni inserite a mano"));
+    expect(screen.getByLabelText("Versione DEV")).toHaveAttribute("maxlength", "100");
+  });
+
+  it("shows only the repository result when verifying a manual application", async () => {
+    hooks.check.mockResolvedValue({
+      repo: { ok: true, version: "1.4.2", detail: null },
+      envs: { DEV: { ok: false, version: null, detail: "HTTP 503" } },
+    });
+    const { user } = setup();
+    await fillValid(user);
+    await user.click(screen.getByLabelText("Versioni inserite a mano"));
+    await user.click(screen.getByRole("button", { name: "Verifica" }));
+    expect(await screen.findByText("✓ 1.4.2")).toBeInTheDocument();
+    expect(screen.queryByText("✗ HTTP 503")).not.toBeInTheDocument();
+    expect(screen.queryByText(/puoi comunque salvare/)).not.toBeInTheDocument();
+  });
+
+  it("shows the 422 manual_versions error on the versions block", async () => {
+    hooks.save.mockRejectedValue(
+      new ApiError(422, { detail: "Le versioni manuali richiedono un'applicazione manuale", field: "manual_versions" }),
+    );
+    const { user } = setup();
+    await fillValid(user);
+    await user.click(screen.getByLabelText("Versioni inserite a mano"));
+    await user.type(screen.getByLabelText("Versione DEV"), "1.0.0");
+    await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+    const message = await screen.findByText("Le versioni manuali richiedono un'applicazione manuale");
+    expect(screen.getByRole("group", { name: "Versioni manuali" })).toContainElement(message);
+  });
 });

@@ -16,12 +16,15 @@ import type {
   AppKind,
   Ci,
   CheckResult as CheckResultData,
+  EnvTarget,
   Product,
   Runtime,
 } from "@/types/release-status";
 
 const REPOSITORY_PATTERN = /^[A-Za-z0-9._-]+$/;
 const DEBOUNCE_MS = 300;
+const MANUAL_TARGETS: EnvTarget[] = ["DEV", "UAT", "PROD"];
+const MAX_VERSION_LENGTH = 100;
 
 interface ApplicationFormProps {
   open: boolean;
@@ -65,6 +68,13 @@ function ApplicationFormBody({
   const [eaNodeId, setEaNodeId] = useState(application?.ea_node_id ?? "");
   const [eaTouched, setEaTouched] = useState(false);
   const [eaSearch, setEaSearch] = useState("");
+  const [hidden, setHidden] = useState(application?.hidden ?? false);
+  const [manual, setManual] = useState(application?.version_source === "MANUAL");
+  const [versions, setVersions] = useState<Record<EnvTarget, string>>({
+    DEV: application?.manual_versions?.DEV ?? "",
+    UAT: application?.manual_versions?.UAT ?? "",
+    PROD: application?.manual_versions?.PROD ?? "",
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckResultData | null>(null);
@@ -137,13 +147,28 @@ function ApplicationFormBody({
       kind,
       test_object: testObject.trim() || null,
       ea_node_id: effectiveEaId || null,
+      hidden,
     };
+    const wasManual = application?.version_source === "MANUAL";
+    if (manual) {
+      body.version_source = "MANUAL";
+      // only the keys that differ from what is stored are sent; an emptied field clears that environment
+      const changed: Partial<Record<EnvTarget, string | null>> = {};
+      for (const target of MANUAL_TARGETS) {
+        const next = versions[target].trim();
+        if (next !== (application?.manual_versions?.[target] ?? "")) changed[target] = next || null;
+      }
+      if (Object.keys(changed).length > 0) body.manual_versions = changed;
+    } else if (wasManual) {
+      body.version_source = "AUTO";
+    }
     try {
       const saved = await save.mutateAsync(body);
       onSaved(saved, checkOutcome);
     } catch (error) {
       const { status, detail, field } = errorParts(error);
-      if (field && detail) setErrors({ [field]: detail });
+      if (field === "manual_versions" && !manual) setFormError(detail);
+      else if (field && detail) setErrors({ [field]: detail });
       else if (status === 404) setErrors({ ea_node_id: detail ?? "Componente EA non trovato" });
       else setFormError(detail ?? "Impossibile salvare l'applicazione");
     }
@@ -251,7 +276,51 @@ function ApplicationFormBody({
           </Field>
         </div>
 
-        {result && <CheckResult result={result} />}
+        <label className="flex items-center gap-2 text-sm text-text">
+          <input
+            type="checkbox"
+            className="size-4 accent-[var(--accent)]"
+            checked={hidden}
+            onChange={(e) => setHidden(e.target.checked)}
+          />
+          Nascondi dalla status page
+        </label>
+
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--accent)]"
+              checked={manual}
+              onChange={(e) => setManual(e.target.checked)}
+            />
+            Versioni inserite a mano
+          </label>
+          {manual && (
+            <fieldset aria-label="Versioni manuali" className="flex flex-col gap-2 rounded-md border border-border bg-subtle p-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {MANUAL_TARGETS.map((target) => (
+                  <Field key={target} label={`Versione ${target}`}>
+                    <input
+                      className={`${INPUT_CLASS} font-mono`}
+                      maxLength={MAX_VERSION_LENGTH}
+                      value={versions[target]}
+                      onChange={(e) => setVersions((current) => ({ ...current, [target]: e.target.value }))}
+                    />
+                  </Field>
+                ))}
+              </div>
+              <p className="text-xs text-text-muted">Lascia vuoto un ambiente per non indicare alcuna versione.</p>
+              {errors.manual_versions && (
+                <p role="alert" className="text-xs text-danger">
+                  {errors.manual_versions}
+                </p>
+              )}
+            </fieldset>
+          )}
+        </div>
+
+        {result && <CheckResult result={result} repoOnly={manual} />}
         {checkError && (
           <p role="alert" className="text-xs text-warning">
             {checkError}

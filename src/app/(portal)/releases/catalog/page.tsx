@@ -23,19 +23,19 @@ import type { Application, CheckResult, Product } from "@/types/release-status";
 
 type CheckNotice = "pending" | "unavailable" | CheckResult;
 
-function failedTargets(result: CheckResult): { name: string; detail: string }[] {
+function failedTargets(result: CheckResult, repoOnly: boolean): { name: string; detail: string }[] {
   return [
     { name: "REPO", target: result.repo },
-    ...Object.entries(result.envs).map(([name, target]) => ({ name, target })),
+    ...Object.entries(repoOnly ? {} : result.envs).map(([name, target]) => ({ name, target })),
   ]
     .filter(({ target }) => !target.ok)
     .map(({ name, target }) => ({ name, detail: target.detail ?? "non raggiungibile" }));
 }
 
-function CheckLine({ check }: { check: CheckNotice }) {
+function CheckLine({ check, repoOnly }: { check: CheckNotice; repoOnly: boolean }) {
   if (check === "pending") return <span className="text-xs">Verifica in corso…</span>;
   if (check === "unavailable") return <span className="text-xs text-warning">Verifica non disponibile</span>;
-  const failed = failedTargets(check);
+  const failed = failedTargets(check, repoOnly);
   if (failed.length === 0) return null;
   return (
     <span
@@ -66,9 +66,12 @@ function CatalogView() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [notice, setNotice] = useState(false);
   const [checkNotice, setCheckNotice] = useState<CheckNotice>("pending");
+  const [noticeManual, setNoticeManual] = useState(false);
 
   const productList = useMemo(() => products.data ?? [], [products.data]);
   const productNames = useMemo(() => Object.fromEntries(productList.map((p) => [p.id, p.name])), [productList]);
+
+  const hiddenProductIds = useMemo(() => new Set(productList.filter((p) => p.hidden).map((p) => p.id)), [productList]);
 
   const closeDelete = () => {
     setProductToDelete(null);
@@ -129,7 +132,7 @@ function CatalogView() {
           >
             <span className="flex flex-col gap-0.5">
               <span>Applicazione salvata</span>
-              <CheckLine check={checkNotice} />
+              <CheckLine check={checkNotice} repoOnly={noticeManual} />
             </span>
             <span className="flex items-center gap-2">
               <Gate action="sync:trigger">
@@ -163,6 +166,7 @@ function CatalogView() {
           <ApplicationTable
             applications={applications.data ?? []}
             productNames={productNames}
+            hiddenProductIds={hiddenProductIds}
             query={query}
             onQueryChange={setQuery}
             canAdd={productList.length > 0}
@@ -183,8 +187,9 @@ function CatalogView() {
           products={productList}
           defaultProductId={selectedId}
           onClose={() => setAppDialog(null)}
-          onSaved={(_saved, check) => {
+          onSaved={(saved, check) => {
             setAppDialog(null);
+            setNoticeManual(saved.version_source === "MANUAL");
             setCheckNotice("pending");
             setNotice(true);
             void check.then((result) => setCheckNotice(result ?? "unavailable"));
