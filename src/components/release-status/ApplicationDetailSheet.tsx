@@ -40,7 +40,7 @@ function SheetBody({ detail }: { detail: ApplicationDetail }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RuntimeChips app={app} />
-          {app.hidden && <Chip variant="status" value="blocked" label="nascosta" />}
+          {app.hidden && <Chip variant="status" value="skipped" label="nascosta" />}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <a href={repoUrl(app.repository)} target="_blank" rel="noopener noreferrer" className={linkClass}>
