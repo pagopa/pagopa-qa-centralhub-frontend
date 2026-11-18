@@ -10,6 +10,7 @@ const hooks = vi.hoisted(() => ({
   check: vi.fn(),
   testObjects: vi.fn(),
   ea: vi.fn(),
+  detail: vi.fn(),
 }));
 
 vi.mock("@/hooks/useReleaseStatus", () => ({
@@ -17,6 +18,7 @@ vi.mock("@/hooks/useReleaseStatus", () => ({
   useCheckApplication: () => ({ mutateAsync: hooks.check, isPending: false }),
   useTestObjects: hooks.testObjects,
   useEaComponents: hooks.ea,
+  useApplicationDetail: hooks.detail,
 }));
 
 const products: Product[] = [{ id: "p1", name: "Wallet", area: "CORE", application_count: 1, hidden: false }];
@@ -61,6 +63,7 @@ beforeEach(() => {
   hooks.check.mockResolvedValue(okCheck);
   hooks.testObjects.mockReturnValue({ data: ["wallet-api", "helpdesk"] });
   hooks.ea.mockReturnValue({ data: [] });
+  hooks.detail.mockReturnValue({ data: undefined, isLoading: false });
 });
 
 describe("ApplicationForm", () => {
@@ -280,5 +283,66 @@ describe("ApplicationForm", () => {
     await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
     const message = await screen.findByText("Le versioni manuali richiedono un'applicazione manuale");
     expect(screen.getByRole("group", { name: "Versioni manuali" })).toContainElement(message);
+  });
+
+  describe("switching an existing AUTO application to manual", () => {
+    const detailWith = (versions: Record<string, string | null>) => ({
+      isLoading: false,
+      data: {
+        product_name: "Wallet",
+        history: {},
+        application: {
+          ...saved,
+          envs: Object.fromEntries(
+            Object.entries(versions).map(([target, version]) => [target, version ? { version } : null]),
+          ),
+        },
+      },
+    });
+
+    it("fetches the detail only once the toggle is on and prefills the current versions", async () => {
+      hooks.detail.mockImplementation((id: string | null) =>
+        id ? detailWith({ DEV: "1.0.0", UAT: "1.1.0", PROD: "1.2.0" }) : { data: undefined, isLoading: false },
+      );
+      const { user } = setup(saved);
+      expect(hooks.detail).toHaveBeenLastCalledWith(null);
+      await user.click(screen.getByLabelText("Versioni inserite a mano"));
+      expect(hooks.detail).toHaveBeenLastCalledWith("a1");
+      expect(screen.getByLabelText("Versione DEV")).toHaveValue("1.0.0");
+      expect(screen.getByLabelText("Versione UAT")).toHaveValue("1.1.0");
+      expect(screen.getByLabelText("Versione PROD")).toHaveValue("1.2.0");
+    });
+
+    it("sends version_source MANUAL and no manual_versions when saved without edits", async () => {
+      hooks.detail.mockImplementation((id: string | null) =>
+        id ? detailWith({ DEV: "1.0.0", UAT: null, PROD: "1.2.0" }) : { data: undefined, isLoading: false },
+      );
+      const { user } = setup(saved);
+      await user.click(screen.getByLabelText("Versioni inserite a mano"));
+      await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+      await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+      const body = hooks.save.mock.calls[0][0];
+      expect(body.version_source).toBe("MANUAL");
+      expect(body).not.toHaveProperty("manual_versions");
+    });
+
+    it("sends null for an emptied environment and only that key", async () => {
+      hooks.detail.mockImplementation((id: string | null) =>
+        id ? detailWith({ DEV: "1.0.0", UAT: "1.1.0", PROD: "1.2.0" }) : { data: undefined, isLoading: false },
+      );
+      const { user } = setup(saved);
+      await user.click(screen.getByLabelText("Versioni inserite a mano"));
+      await user.clear(screen.getByLabelText("Versione PROD"));
+      await user.click(screen.getByRole("button", { name: "Salva applicazione" }));
+      await waitFor(() => expect(hooks.save).toHaveBeenCalled());
+      expect(hooks.save.mock.calls[0][0].manual_versions).toEqual({ PROD: null });
+    });
+
+    it("disables the inputs while the current versions are loading", async () => {
+      hooks.detail.mockReturnValue({ data: undefined, isLoading: true });
+      const { user } = setup(saved);
+      await user.click(screen.getByLabelText("Versioni inserite a mano"));
+      expect(screen.getByLabelText("Versione DEV")).toBeDisabled();
+    });
   });
 });

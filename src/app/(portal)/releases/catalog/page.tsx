@@ -6,6 +6,7 @@ import { ArrowLeft, CircleAlert, X } from "lucide-react";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Gate } from "@/lib/permissions";
+import { ApplicationDetailSheet } from "@/components/release-status/ApplicationDetailSheet";
 import { ApplicationForm } from "@/components/release-status/catalog/ApplicationForm";
 import { ApplicationTable } from "@/components/release-status/catalog/ApplicationTable";
 import { ConfirmDelete } from "@/components/release-status/catalog/ConfirmDelete";
@@ -58,6 +59,7 @@ function CatalogView() {
   const deleteProduct = useDeleteProduct();
   const deleteApplication = useDeleteApplication();
 
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [productDialog, setProductDialog] = useState<{ product: Product | null } | null>(null);
   const [appDialog, setAppDialog] = useState<{ application: Application | null } | null>(null);
@@ -171,12 +173,14 @@ function CatalogView() {
             onQueryChange={setQuery}
             canAdd={productList.length > 0}
             onAdd={() => setAppDialog({ application: null })}
+            onOpen={(application) => setDetailId(application.id)}
             onEdit={(application) => setAppDialog({ application })}
             onDelete={(application) => setAppToDelete(application)}
           />
         </div>
       </div>
 
+      <ApplicationDetailSheet applicationId={detailId} onClose={() => setDetailId(null)} />
       {productDialog && (
         <ProductForm open product={productDialog.product} onClose={() => setProductDialog(null)} />
       )}

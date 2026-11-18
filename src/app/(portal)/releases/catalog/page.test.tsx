@@ -15,6 +15,7 @@ const hooks = vi.hoisted(() => ({
   save: vi.fn(),
   check: vi.fn(),
   saveProduct: vi.fn(),
+  detail: vi.fn(),
 }));
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
@@ -29,6 +30,7 @@ vi.mock("@/hooks/useReleaseStatus", () => ({
   useCheckApplication: () => ({ mutateAsync: hooks.check, isPending: false }),
   useTestObjects: () => ({ data: [] }),
   useEaComponents: () => ({ data: [] }),
+  useApplicationDetail: hooks.detail,
 }));
 
 vi.mock("@/lib/permissions", () => ({
@@ -70,6 +72,7 @@ beforeEach(() => {
   permissions.allowed = new Set(["manage:status_page", "sync:trigger"]);
   hooks.products.mockReturnValue({ data: products, isLoading: false, error: null });
   hooks.applications.mockReturnValue({ data: [app] });
+  hooks.detail.mockReturnValue({ data: undefined, isLoading: true, isError: false });
   hooks.deleteProduct.mockResolvedValue(undefined);
   hooks.deleteApplication.mockResolvedValue(undefined);
   hooks.save.mockResolvedValue(app);
@@ -236,5 +239,15 @@ describe("Catalog page", () => {
     expect(within(row("Hidden App")).getByText("nascosta")).toBeInTheDocument();
     expect(within(row("Product Hidden App")).getByText("nascosta (prodotto)")).toBeInTheDocument();
     expect(within(row("Plain App")).queryByText(/nascosta|manuale/)).not.toBeInTheDocument();
+  });
+
+  it("opens the detail of a hidden application from its row", async () => {
+    hooks.applications.mockReturnValue({ data: [{ ...app, id: "h1", name: "Hidden App", hidden: true }] });
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    expect(hooks.detail).not.toHaveBeenCalledWith("h1");
+    await user.click(screen.getByRole("button", { name: "Dettaglio di Hidden App" }));
+    expect(hooks.detail).toHaveBeenCalledWith("h1");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

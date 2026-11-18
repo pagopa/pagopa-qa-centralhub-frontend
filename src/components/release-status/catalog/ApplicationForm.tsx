@@ -7,6 +7,7 @@ import { Field, errorParts } from "@/components/release-status/catalog/Field";
 import {
   useCheckApplication,
   useEaComponents,
+  useApplicationDetail,
   useSaveApplication,
   useTestObjects,
 } from "@/hooks/useReleaseStatus";
@@ -70,11 +71,15 @@ function ApplicationFormBody({
   const [eaSearch, setEaSearch] = useState("");
   const [hidden, setHidden] = useState(application?.hidden ?? false);
   const [manual, setManual] = useState(application?.version_source === "MANUAL");
-  const [versions, setVersions] = useState<Record<EnvTarget, string>>({
-    DEV: application?.manual_versions?.DEV ?? "",
-    UAT: application?.manual_versions?.UAT ?? "",
-    PROD: application?.manual_versions?.PROD ?? "",
-  });
+  const [edits, setEdits] = useState<Partial<Record<EnvTarget, string>>>({});
+  // An existing AUTO application has no stored manual versions: its last read versions are the
+  // starting point, fetched only once the toggle is switched on.
+  const wasAuto = application !== null && application.version_source !== "MANUAL";
+  const detail = useApplicationDetail(wasAuto && manual ? application.id : null);
+  const loadingBaseline = wasAuto && manual && detail.isLoading;
+  const baselineOf = (target: EnvTarget): string =>
+    wasAuto ? (detail.data?.application.envs[target]?.version ?? "") : (application?.manual_versions?.[target] ?? "");
+  const versionOf = (target: EnvTarget): string => edits[target] ?? baselineOf(target);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckResultData | null>(null);
@@ -155,8 +160,8 @@ function ApplicationFormBody({
       // only the keys that differ from what is stored are sent; an emptied field clears that environment
       const changed: Partial<Record<EnvTarget, string | null>> = {};
       for (const target of MANUAL_TARGETS) {
-        const next = versions[target].trim();
-        if (next !== (application?.manual_versions?.[target] ?? "")) changed[target] = next || null;
+        const next = versionOf(target).trim();
+        if (next !== baselineOf(target)) changed[target] = next || null;
       }
       if (Object.keys(changed).length > 0) body.manual_versions = changed;
     } else if (wasManual) {
@@ -304,13 +309,14 @@ function ApplicationFormBody({
                     <input
                       className={`${INPUT_CLASS} font-mono`}
                       maxLength={MAX_VERSION_LENGTH}
-                      value={versions[target]}
-                      onChange={(e) => setVersions((current) => ({ ...current, [target]: e.target.value }))}
+                      value={versionOf(target)}
+                      disabled={loadingBaseline}
+                      onChange={(e) => setEdits((current) => ({ ...current, [target]: e.target.value }))}
                     />
                   </Field>
                 ))}
               </div>
-              <p className="text-xs text-text-muted">Lascia vuoto un ambiente per non indicare alcuna versione.</p>
+              <p className="text-xs text-text-muted">Svuotare un campo cancella la versione di quell&apos;ambiente.</p>
               {errors.manual_versions && (
                 <p role="alert" className="text-xs text-danger">
                   {errors.manual_versions}

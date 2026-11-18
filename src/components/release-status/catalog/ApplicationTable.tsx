@@ -1,4 +1,4 @@
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Chip } from "@/components/primitives/Chip";
 import { INPUT_CLASS } from "@/components/ui/formStyles";
 import { ACCENT_LINK_CLASS, RuntimeChips, repoUrl } from "@/components/release-status/shared";
@@ -13,6 +13,7 @@ interface ApplicationTableProps {
   onQueryChange: (q: string) => void;
   canAdd: boolean;
   onAdd: () => void;
+  onOpen: (app: Application) => void;
   onEdit: (app: Application) => void;
   onDelete: (app: Application) => void;
 }
@@ -25,6 +26,7 @@ export function ApplicationTable({
   onQueryChange,
   canAdd,
   onAdd,
+  onOpen,
   onEdit,
   onDelete,
 }: ApplicationTableProps) {
@@ -117,6 +119,9 @@ export function ApplicationTable({
                   <td className="px-3 py-2 text-text-muted">{app.test_object ?? "—"}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
+                      <button type="button" className={iconButton} aria-label={`Dettaglio di ${app.name}`} onClick={() => onOpen(app)}>
+                        <Eye className="size-3.5" aria-hidden="true" />
+                      </button>
                       <button type="button" className={iconButton} aria-label={`Modifica ${app.name}`} onClick={() => onEdit(app)}>
                         <Pencil className="size-3.5" aria-hidden="true" />
                       </button>
