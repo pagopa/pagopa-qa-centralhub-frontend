@@ -42,6 +42,8 @@ function makeApp(overrides: Partial<ApplicationRow> = {}): ApplicationRow {
     kind: "backend",
     test_object: "checkout",
     ea_node_id: null,
+    version_source: "AUTO",
+    hidden: false,
     repo: makeCell("1.5.0"),
     envs: { DEV: makeCell("1.5.0"), UAT: makeCell("1.4.2"), PROD: makeCell("1.4.1") },
     flags: [],
@@ -205,6 +207,19 @@ describe("ApplicationDetailSheet", () => {
     permissions.allowed = new Set(["manage:status_page"]);
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.getByRole("link", { name: /Modifica/ })).toHaveAttribute("href", "/releases/catalog");
+  });
+
+  it("shows the manual and hidden chips in the header", () => {
+    setDetail({ application: makeApp({ version_source: "MANUAL", hidden: true }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("manuale")).toBeInTheDocument();
+    expect(screen.getByText("nascosta")).toBeInTheDocument();
+  });
+
+  it("shows no manual or hidden chip for a regular application", () => {
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.queryByText("manuale")).not.toBeInTheDocument();
+    expect(screen.queryByText("nascosta")).not.toBeInTheDocument();
   });
 
   it("closes on Escape", async () => {

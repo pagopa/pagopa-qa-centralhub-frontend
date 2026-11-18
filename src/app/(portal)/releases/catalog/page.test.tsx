@@ -42,9 +42,9 @@ vi.mock("@/components/auth/RouteGuard", () => ({
 }));
 
 const products: Product[] = [
-  { id: "p1", name: "Wallet", area: "CORE", application_count: 2 },
-  { id: "p2", name: "Empty", area: "CORE", application_count: 0 },
-  { id: "p3", name: "Touch", area: "TOUCHPOINT", application_count: 1 },
+  { id: "p1", name: "Wallet", area: "CORE", application_count: 2, hidden: false },
+  { id: "p2", name: "Empty", area: "CORE", application_count: 0, hidden: false },
+  { id: "p3", name: "Touch", area: "TOUCHPOINT", application_count: 1, hidden: false },
 ];
 
 const app: Application = {
@@ -59,6 +59,9 @@ const app: Application = {
   kind: "backend",
   test_object: "wallet-api",
   ea_node_id: null,
+  hidden: false,
+  version_source: "AUTO",
+  manual_versions: null,
 };
 
 beforeEach(() => {

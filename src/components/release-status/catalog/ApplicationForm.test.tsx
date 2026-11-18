@@ -19,7 +19,7 @@ vi.mock("@/hooks/useReleaseStatus", () => ({
   useEaComponents: hooks.ea,
 }));
 
-const products: Product[] = [{ id: "p1", name: "Wallet", area: "CORE", application_count: 1 }];
+const products: Product[] = [{ id: "p1", name: "Wallet", area: "CORE", application_count: 1, hidden: false }];
 
 const saved: Application = {
   id: "a1",
@@ -33,6 +33,9 @@ const saved: Application = {
   kind: "backend",
   test_object: null,
   ea_node_id: null,
+  hidden: false,
+  version_source: "AUTO",
+  manual_versions: null,
 };
 
 const okCheck = { repo: { ok: true, version: "1.4.2", detail: null }, envs: { DEV: { ok: true, version: "1.4.2", detail: null } } };

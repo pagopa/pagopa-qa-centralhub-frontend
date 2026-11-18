@@ -6,6 +6,7 @@ import {
   CloudOff,
   Equal,
   Info,
+  PencilLine,
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const STATUS_ICON: Record<CellIcon, { icon: LucideIcon; label: string; color: st
   ok: { icon: CircleCheck, label: "versione letta", color: "text-accent" },
   error: { icon: CloudOff, label: "endpoint non raggiungibile", color: "text-danger" },
   warning: { icon: TriangleAlert, label: "versione non disponibile", color: "text-warning" },
+  manual: { icon: PencilLine, label: "versione inserita a mano", color: "text-info" },
   info: { icon: Info, label: "versione non standard", color: "text-warning" },
 };
 

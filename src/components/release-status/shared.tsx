@@ -22,11 +22,12 @@ export function repoUrl(repository: string): string {
 }
 
 /** Runtime and CI chips of an application. */
-export function RuntimeChips({ app }: { app: Pick<ApplicationRow, "runtime" | "ci"> }) {
+export function RuntimeChips({ app }: { app: Pick<ApplicationRow, "runtime" | "ci" | "version_source"> }) {
   return (
     <>
       <Chip variant="status" value={app.runtime === "AKS" ? "running" : "skipped"} label={app.runtime} />
       <Chip variant="status" value={app.ci === "GHA" ? "running" : "skipped"} label={app.ci} />
+      {app.version_source === "MANUAL" && <Chip variant="status" value="inprogress" label="manuale" />}
     </>
   );
 }

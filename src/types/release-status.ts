@@ -6,7 +6,8 @@ export type Runtime = "AKS" | "AZ";
 export type Ci = "GHA" | "AZDO";
 export type AppKind = "backend" | "frontend";
 export type Drift = "EQUAL" | "BEHIND" | "AHEAD" | "UNKNOWN";
-export type ReadStatus = "OK" | "ERROR" | "EMPTY_BODY" | "NO_VERSION" | "NO_RELEASE";
+export type ReadStatus = "OK" | "ERROR" | "EMPTY_BODY" | "NO_VERSION" | "NO_RELEASE" | "MANUAL";
+export type VersionSource = "AUTO" | "MANUAL";
 export type AppFlag = "ALIGNED" | "DRIFT" | "UNREACHABLE" | "UNTESTED";
 export type RunKind = "NRT" | "QG" | "TAS";
 export type RunOutcome = "PASSED" | "FAILED" | "NEUTRAL";
@@ -65,6 +66,9 @@ export interface ApplicationRow {
   kind: AppKind;
   test_object: string | null;
   ea_node_id: string | null;
+  version_source: VersionSource;
+  /** Effective flag: the application or its product is hidden (always false in the status grid). */
+  hidden: boolean;
   repo: Cell | null;
   envs: Record<EnvTarget, Cell | null>;
   flags: AppFlag[];
@@ -116,11 +120,13 @@ export interface Product {
   name: string;
   area: Area;
   application_count: number;
+  hidden: boolean;
 }
 
 export interface ProductInput {
   name: string;
   area: Area;
+  hidden?: boolean;
 }
 
 export interface Application {
@@ -135,6 +141,10 @@ export interface Application {
   kind: AppKind;
   test_object: string | null;
   ea_node_id: string | null;
+  hidden: boolean;
+  version_source: VersionSource;
+  /** Null for automatic applications. */
+  manual_versions: Record<EnvTarget, string | null> | null;
 }
 
 export interface ApplicationInput {
@@ -148,6 +158,10 @@ export interface ApplicationInput {
   kind: AppKind;
   test_object?: string | null;
   ea_node_id?: string | null;
+  hidden?: boolean;
+  version_source?: VersionSource;
+  /** Only the keys sent change; an empty or null value clears the version. */
+  manual_versions?: Partial<Record<EnvTarget, string | null>>;
 }
 
 export interface CheckTarget {

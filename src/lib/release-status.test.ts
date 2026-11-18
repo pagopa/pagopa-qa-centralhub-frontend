@@ -37,6 +37,8 @@ function makeApp(name: string, flags: AppFlag[] = [], overrides: Partial<Applica
     kind: "backend",
     test_object: null,
     ea_node_id: null,
+    version_source: "AUTO",
+    hidden: false,
     repo: null,
     envs: { DEV: null, UAT: null, PROD: null },
     flags,
@@ -108,6 +110,24 @@ describe("cellVisual", () => {
   it("warns on empty body and missing version", () => {
     expect(cellVisual(makeCell({ read_status: "EMPTY_BODY", version: null }), "DEV").icon).toBe("warning");
     expect(cellVisual(makeCell({ read_status: "NO_VERSION", version: null }), "DEV").icon).toBe("warning");
+  });
+
+  it("marks a manual version with the manual icon and keeps the drift", () => {
+    const v = cellVisual(makeCell({ read_status: "MANUAL", version: "1.4.2", drift: "BEHIND" }), "UAT");
+    expect(v).toMatchObject({ icon: "manual", drift: "behind", muted: false });
+    expect(v.tooltip).toContain("inserita a mano");
+  });
+
+  it("explains a manual cell without a version", () => {
+    const v = cellVisual(makeCell({ read_status: "MANUAL", version: null, drift: null }), "PROD");
+    expect(v.icon).toBe("manual");
+    expect(v.tooltip).toBe("PROD: versione manuale non impostata");
+  });
+
+  it("keeps the manual icon for a non-semver manual value", () => {
+    const v = cellVisual(makeCell({ read_status: "MANUAL", version: "main-abc", drift: null }), "DEV");
+    expect(v.icon).toBe("manual");
+    expect(v.drift).toBeNull();
   });
 
   it("shows info for a non-semver version", () => {
