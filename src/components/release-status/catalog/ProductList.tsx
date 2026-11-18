@@ -1,3 +1,4 @@
+import { Chip } from "@/components/primitives/Chip";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Area, Product } from "@/types/release-status";
@@ -71,7 +72,10 @@ export function ProductList({ products, selectedId, onSelect, onAdd, onEdit, onD
                       selected ? "font-medium text-accent" : "text-text"
                     }`}
                   >
-                    <span className="truncate">{product.name}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate">{product.name}</span>
+                      {product.hidden && <Chip variant="status" value="skipped" label="nascosto" />}
+                    </span>
                     <span className="text-xs text-text-muted" aria-label={`${product.application_count} applicazioni`}>
                       {product.application_count}
                     </span>

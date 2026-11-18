@@ -77,6 +77,8 @@ function makeApp(name: string, flags: AppFlag[] = [], overrides: Partial<Applica
     kind: "backend",
     test_object: null,
     ea_node_id: null,
+    version_source: "AUTO",
+    hidden: false,
     repo: makeCell({ drift: null }),
     envs: { DEV: makeCell(), UAT: makeCell(), PROD: makeCell() },
     flags,
@@ -231,6 +233,29 @@ describe("Releases page", () => {
     expect(screen.getByRole("button", { name: /^Allineati$/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("AFM-Calculator")).toBeInTheDocument();
     expect(screen.queryByText("Zeta-Service")).not.toBeInTheDocument();
+  });
+
+  it("shows no manual chip on automatic applications", () => {
+    render(<ReleasesPage />);
+    expect(screen.queryByText("manuale")).not.toBeInTheDocument();
+  });
+
+  it("shows a manual chip next to the runtime chips of a manual application", () => {
+    hooks.status.mockReturnValue(
+      queryResult({
+        ...data,
+        areas: [
+          {
+            area: "CORE",
+            products: [
+              { id: "p", name: "Manual Product", applications: [makeApp("Manual-App", [], { version_source: "MANUAL" })] },
+            ],
+          },
+        ],
+      }),
+    );
+    render(<ReleasesPage />);
+    expect(screen.getByText("manuale")).toBeInTheDocument();
   });
 
   it("opens the application detail when a row is clicked", async () => {

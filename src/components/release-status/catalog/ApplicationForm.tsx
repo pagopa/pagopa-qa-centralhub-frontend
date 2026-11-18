@@ -7,6 +7,7 @@ import { Field, errorParts } from "@/components/release-status/catalog/Field";
 import {
   useCheckApplication,
   useEaComponents,
+  useApplicationDetail,
   useSaveApplication,
   useTestObjects,
 } from "@/hooks/useReleaseStatus";
@@ -16,12 +17,15 @@ import type {
   AppKind,
   Ci,
   CheckResult as CheckResultData,
+  EnvTarget,
   Product,
   Runtime,
 } from "@/types/release-status";
 
 const REPOSITORY_PATTERN = /^[A-Za-z0-9._-]+$/;
 const DEBOUNCE_MS = 300;
+const MANUAL_TARGETS: EnvTarget[] = ["DEV", "UAT", "PROD"];
+const MAX_VERSION_LENGTH = 100;
 
 interface ApplicationFormProps {
   open: boolean;
@@ -65,6 +69,21 @@ function ApplicationFormBody({
   const [eaNodeId, setEaNodeId] = useState(application?.ea_node_id ?? "");
   const [eaTouched, setEaTouched] = useState(false);
   const [eaSearch, setEaSearch] = useState("");
+  const [hidden, setHidden] = useState(application?.hidden ?? false);
+  const [manual, setManual] = useState(application?.version_source === "MANUAL");
+  const [edits, setEdits] = useState<Partial<Record<EnvTarget, string>>>({});
+  // An existing AUTO application has no stored manual versions: its last read versions are the
+  // starting point, fetched only once the toggle is switched on.
+  const wasAuto = application !== null && application.version_source !== "MANUAL";
+  const detail = useApplicationDetail(wasAuto && manual ? application.id : null);
+  const loadingBaseline = wasAuto && manual && detail.isLoading;
+  // Without the current versions the inputs would look empty while the backend keeps the old
+  // values: block editing and saving until they are loaded.
+  const baselineFailed = wasAuto && manual && detail.isError && !detail.data;
+  const baselineBlocked = loadingBaseline || baselineFailed;
+  const baselineOf = (target: EnvTarget): string =>
+    wasAuto ? (detail.data?.application.envs[target]?.version ?? "") : (application?.manual_versions?.[target] ?? "");
+  const versionOf = (target: EnvTarget): string => edits[target] ?? baselineOf(target);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckResultData | null>(null);
@@ -99,7 +118,7 @@ function ApplicationFormBody({
   const runCheck = async (): Promise<void> => {
     setCheckError(null);
     try {
-      setResult(await check.mutateAsync({ product_key: productKey.trim(), repository: repository.trim() }));
+      setResult(await check.mutateAsync({ product_key: productKey.trim(), repository: repository.trim(), repo_only: manual }));
     } catch {
       setResult(null);
       setCheckError("Impossibile eseguire la verifica");
@@ -118,11 +137,11 @@ function ApplicationFormBody({
     const next = validate();
     setErrors(next);
     setFormError(null);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0 || baselineBlocked) return;
 
     // The check runs alongside the save: it never blocks or delays it.
     const checkOutcome: Promise<CheckResultData | null> = check
-      .mutateAsync({ product_key: productKey.trim(), repository: repository.trim() })
+      .mutateAsync({ product_key: productKey.trim(), repository: repository.trim(), repo_only: manual })
       .catch(() => null);
 
     const body: Partial<ApplicationInput> & { id?: string } = {
@@ -137,13 +156,28 @@ function ApplicationFormBody({
       kind,
       test_object: testObject.trim() || null,
       ea_node_id: effectiveEaId || null,
+      hidden,
     };
+    const wasManual = application?.version_source === "MANUAL";
+    if (manual) {
+      body.version_source = "MANUAL";
+      // only the keys that differ from what is stored are sent; an emptied field clears that environment
+      const changed: Partial<Record<EnvTarget, string | null>> = {};
+      for (const target of MANUAL_TARGETS) {
+        const next = versionOf(target).trim();
+        if (next !== baselineOf(target)) changed[target] = next || null;
+      }
+      if (Object.keys(changed).length > 0) body.manual_versions = changed;
+    } else if (wasManual) {
+      body.version_source = "AUTO";
+    }
     try {
       const saved = await save.mutateAsync(body);
       onSaved(saved, checkOutcome);
     } catch (error) {
       const { status, detail, field } = errorParts(error);
-      if (field && detail) setErrors({ [field]: detail });
+      if (field === "manual_versions" && !manual) setFormError(detail);
+      else if (field && detail) setErrors({ [field]: detail });
       else if (status === 404) setErrors({ ea_node_id: detail ?? "Componente EA non trovato" });
       else setFormError(detail ?? "Impossibile salvare l'applicazione");
     }
@@ -251,7 +285,64 @@ function ApplicationFormBody({
           </Field>
         </div>
 
-        {result && <CheckResult result={result} />}
+        <label className="flex items-center gap-2 text-sm text-text">
+          <input
+            type="checkbox"
+            className="size-4 accent-[var(--accent)]"
+            checked={hidden}
+            onChange={(e) => setHidden(e.target.checked)}
+          />
+          Nascondi dalla status page
+        </label>
+
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-sm text-text">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--accent)]"
+              checked={manual}
+              onChange={(e) => setManual(e.target.checked)}
+            />
+            Versioni inserite a mano
+          </label>
+          {manual && (
+            <fieldset aria-label="Versioni manuali" className="flex flex-col gap-2 rounded-md border border-border bg-subtle p-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {MANUAL_TARGETS.map((target) => (
+                  <Field key={target} label={`Versione ${target}`}>
+                    <input
+                      className={`${INPUT_CLASS} font-mono`}
+                      maxLength={MAX_VERSION_LENGTH}
+                      value={versionOf(target)}
+                      disabled={baselineBlocked}
+                      onChange={(e) => setEdits((current) => ({ ...current, [target]: e.target.value }))}
+                    />
+                  </Field>
+                ))}
+              </div>
+              <p className="text-xs text-text-muted">Svuotare un campo cancella la versione di quell&apos;ambiente.</p>
+              {baselineFailed && (
+                <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-danger">
+                  Impossibile leggere le versioni attuali.
+                  <button
+                    type="button"
+                    onClick={() => void detail.refetch()}
+                    className="rounded-sm font-medium text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    Riprova
+                  </button>
+                </p>
+              )}
+              {errors.manual_versions && (
+                <p role="alert" className="text-xs text-danger">
+                  {errors.manual_versions}
+                </p>
+              )}
+            </fieldset>
+          )}
+        </div>
+
+        {result && <CheckResult result={result} repoOnly={manual} />}
         {checkError && (
           <p role="alert" className="text-xs text-warning">
             {checkError}
@@ -271,7 +362,7 @@ function ApplicationFormBody({
         <Button type="button" variant="outline" onClick={onClose}>
           Annulla
         </Button>
-        <Button type="submit" disabled={busy}>
+        <Button type="submit" disabled={busy || baselineBlocked}>
           Salva applicazione
         </Button>
       </DialogFooter>

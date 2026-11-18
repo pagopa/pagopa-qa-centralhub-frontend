@@ -42,6 +42,8 @@ function makeApp(overrides: Partial<ApplicationRow> = {}): ApplicationRow {
     kind: "backend",
     test_object: "checkout",
     ea_node_id: null,
+    version_source: "AUTO",
+    hidden: false,
     repo: makeCell("1.5.0"),
     envs: { DEV: makeCell("1.5.0"), UAT: makeCell("1.4.2"), PROD: makeCell("1.4.1") },
     flags: [],
@@ -131,12 +133,13 @@ describe("ApplicationDetailSheet", () => {
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     const names = screen.getAllByRole("tab").map((tab) => tab.textContent);
     expect(names).toEqual(["DEV", "UAT", "PROD", "Release GitHub"]);
+    expect(screen.getByRole("tab", { name: "UAT" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("lists events newest first with the detection window", async () => {
     setDetail({
       history: {
-        DEV: [
+        UAT: [
           makeEvent({ version: "1.0.0", detected_at: local(10, 9, 0), previous_seen_at: null, is_baseline: true, direction: "baseline", previous_version: null }),
           makeEvent({ version: "1.4.2" }),
         ],
@@ -154,7 +157,7 @@ describe("ApplicationDetailSheet", () => {
   it("dates the detection window when it spans midnight", () => {
     setDetail({
       history: {
-        DEV: [makeEvent({ detected_at: local(16, 0, 5), previous_seen_at: local(15, 23, 50) })],
+        UAT: [makeEvent({ detected_at: local(16, 0, 5), previous_seen_at: local(15, 23, 50) })],
       },
     });
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
@@ -162,13 +165,13 @@ describe("ApplicationDetailSheet", () => {
   });
 
   it("marks rollbacks with an accessible Undo2 icon", () => {
-    setDetail({ history: { DEV: [makeEvent({ direction: "rollback" })] } });
+    setDetail({ history: { UAT: [makeEvent({ direction: "rollback" })] } });
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.getByRole("img", { name: "rollback" })).toBeInTheDocument();
   });
 
   it("lists linked runs with hub, Allure and GitHub Actions links", () => {
-    setDetail({ history: { DEV: [makeEvent({ runs: [makeRun()] })] } });
+    setDetail({ history: { UAT: [makeEvent({ runs: [makeRun()] })] } });
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     const item = screen.getAllByRole("listitem")[0];
     expect(within(item).getByRole("link", { name: /Report/ })).toHaveAttribute("href", "/nrts/report/run-1");
@@ -205,6 +208,19 @@ describe("ApplicationDetailSheet", () => {
     permissions.allowed = new Set(["manage:status_page"]);
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.getByRole("link", { name: /Modifica/ })).toHaveAttribute("href", "/releases/catalog");
+  });
+
+  it("shows the manual and hidden chips in the header", () => {
+    setDetail({ application: makeApp({ version_source: "MANUAL", hidden: true }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("manuale")).toBeInTheDocument();
+    expect(screen.getByText("nascosta")).toBeInTheDocument();
+  });
+
+  it("shows no manual or hidden chip for a regular application", () => {
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.queryByText("manuale")).not.toBeInTheDocument();
+    expect(screen.queryByText("nascosta")).not.toBeInTheDocument();
   });
 
   it("closes on Escape", async () => {

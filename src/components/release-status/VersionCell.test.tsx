@@ -18,6 +18,14 @@ function makeCell(overrides: Partial<Cell> = {}): Cell {
 }
 
 describe("VersionCell", () => {
+  it("shows the manual icon for a manually entered version", () => {
+    render(<VersionCell target="DEV" cell={makeCell({ read_status: "MANUAL" })} />);
+
+    expect(screen.getByRole("img", { name: "versione inserita a mano" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "versione letta" })).not.toBeInTheDocument();
+    expect(screen.getByText("1.4.2")).toBeInTheDocument();
+  });
+
   it("shows a readable version with the read icon and the equal marker", () => {
     render(<VersionCell target="DEV" cell={makeCell()} />);
 

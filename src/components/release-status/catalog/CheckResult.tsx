@@ -20,14 +20,16 @@ function Row({ label, target }: { label: string; target: CheckTarget }) {
   );
 }
 
-export function CheckResult({ result }: { result: CheckResultData }) {
-  const targets = [result.repo, ...Object.values(result.envs)];
+/** `repoOnly` hides the environment rows: a manual application is not read from the environments. */
+export function CheckResult({ result, repoOnly = false }: { result: CheckResultData; repoOnly?: boolean }) {
+  const envs = repoOnly ? [] : Object.entries(result.envs);
+  const targets = [result.repo, ...envs.map(([, target]) => target)];
   const failed = targets.some((t) => !t.ok);
   return (
     <div aria-label="Esito verifica" className="flex flex-col gap-2 rounded-md border border-border bg-subtle px-3 py-2">
       <ul className="flex flex-col gap-1">
         <Row label="REPO" target={result.repo} />
-        {Object.entries(result.envs).map(([env, target]) => (
+        {envs.map(([env, target]) => (
           <Row key={env} label={env} target={target} />
         ))}
       </ul>

@@ -61,7 +61,7 @@ export function areaForFilter(groups: AreaGroup[], filter: StatusFilter): Area {
   return AREAS.find((area) => counts[area] > 0) ?? "CORE";
 }
 
-export type CellIcon = "loading" | "ok" | "error" | "warning" | "info";
+export type CellIcon = "loading" | "ok" | "error" | "warning" | "info" | "manual";
 
 export interface CellVisual {
   icon: CellIcon;
@@ -108,6 +108,18 @@ export function cellVisual(cell: Cell | null, target: Target): CellVisual {
   }
 
   const version = cell.version ?? "";
+  if (cell.read_status === "MANUAL") {
+    if (!version) return { icon: "manual", drift: null, muted: false, tooltip: `${target}: versione manuale non impostata` };
+    const manualDrift =
+      isSemver(version) && cell.drift === "EQUAL"
+        ? "equal"
+        : isSemver(version) && cell.drift === "BEHIND"
+          ? "behind"
+          : isSemver(version) && cell.drift === "AHEAD"
+            ? "ahead"
+            : null;
+    return { icon: "manual", drift: manualDrift, muted: false, tooltip: `${target}: ${version} (inserita a mano)` };
+  }
   if (!isSemver(version)) {
     return { icon: "info", drift: null, muted: false, tooltip: `${target}: ${version || "versione sconosciuta"}` };
   }

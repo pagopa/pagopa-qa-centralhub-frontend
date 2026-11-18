@@ -14,6 +14,8 @@ const hooks = vi.hoisted(() => ({
   deleteApplication: vi.fn(),
   save: vi.fn(),
   check: vi.fn(),
+  saveProduct: vi.fn(),
+  detail: vi.fn(),
 }));
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
@@ -23,11 +25,12 @@ vi.mock("@/hooks/useReleaseStatus", () => ({
   useTriggerReleaseSync: () => ({ mutate: hooks.trigger }),
   useDeleteProduct: () => ({ mutateAsync: hooks.deleteProduct, isPending: false }),
   useDeleteApplication: () => ({ mutateAsync: hooks.deleteApplication, isPending: false }),
-  useSaveProduct: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSaveProduct: () => ({ mutateAsync: hooks.saveProduct, isPending: false }),
   useSaveApplication: () => ({ mutateAsync: hooks.save, isPending: false }),
   useCheckApplication: () => ({ mutateAsync: hooks.check, isPending: false }),
   useTestObjects: () => ({ data: [] }),
   useEaComponents: () => ({ data: [] }),
+  useApplicationDetail: hooks.detail,
 }));
 
 vi.mock("@/lib/permissions", () => ({
@@ -42,9 +45,9 @@ vi.mock("@/components/auth/RouteGuard", () => ({
 }));
 
 const products: Product[] = [
-  { id: "p1", name: "Wallet", area: "CORE", application_count: 2 },
-  { id: "p2", name: "Empty", area: "CORE", application_count: 0 },
-  { id: "p3", name: "Touch", area: "TOUCHPOINT", application_count: 1 },
+  { id: "p1", name: "Wallet", area: "CORE", application_count: 2, hidden: false },
+  { id: "p2", name: "Empty", area: "CORE", application_count: 0, hidden: false },
+  { id: "p3", name: "Touch", area: "TOUCHPOINT", application_count: 1, hidden: false },
 ];
 
 const app: Application = {
@@ -59,6 +62,9 @@ const app: Application = {
   kind: "backend",
   test_object: "wallet-api",
   ea_node_id: null,
+  hidden: false,
+  version_source: "AUTO",
+  manual_versions: null,
 };
 
 beforeEach(() => {
@@ -66,9 +72,11 @@ beforeEach(() => {
   permissions.allowed = new Set(["manage:status_page", "sync:trigger"]);
   hooks.products.mockReturnValue({ data: products, isLoading: false, error: null });
   hooks.applications.mockReturnValue({ data: [app] });
+  hooks.detail.mockReturnValue({ data: undefined, isLoading: true, isError: false });
   hooks.deleteProduct.mockResolvedValue(undefined);
   hooks.deleteApplication.mockResolvedValue(undefined);
   hooks.save.mockResolvedValue(app);
+  hooks.saveProduct.mockResolvedValue(products[0]);
   hooks.check.mockResolvedValue({ repo: { ok: true, version: "1", detail: null }, envs: { UAT: { ok: true, version: "1", detail: null } } });
 });
 
@@ -189,5 +197,57 @@ describe("Catalog page", () => {
     render(<CatalogPage />);
     await saveNewApplication(user);
     expect(await screen.findByText("Verifica non disponibile")).toBeInTheDocument();
+  });
+
+  it("sends hidden from the product form and shows the nascosto badge in the list", async () => {
+    hooks.products.mockReturnValue({
+      data: [{ ...products[0], hidden: true }, products[1], products[2]],
+      isLoading: false,
+      error: null,
+    });
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    const core = screen.getByRole("region", { name: "Area Core" });
+    expect(within(core).getByText("nascosto")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Area TouchPoint" })).queryByText("nascosto")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Modifica prodotto Empty" }));
+    await user.click(screen.getByLabelText("Nascondi dalla status page"));
+    await user.click(screen.getByRole("button", { name: "Salva prodotto" }));
+    await waitFor(() =>
+      expect(hooks.saveProduct).toHaveBeenCalledWith(expect.objectContaining({ id: "p2", name: "Empty", hidden: true })),
+    );
+  });
+
+  it("shows manuale, nascosta and nascosta (prodotto) badges in the application table", () => {
+    hooks.products.mockReturnValue({
+      data: [{ ...products[0], hidden: true }, products[1], products[2]],
+      isLoading: false,
+      error: null,
+    });
+    hooks.applications.mockReturnValue({
+      data: [
+        { ...app, id: "m", name: "Manual App", version_source: "MANUAL", manual_versions: { DEV: null, UAT: null, PROD: null } },
+        { ...app, id: "h", name: "Hidden App", product_id: "p3", hidden: true },
+        { ...app, id: "ph", name: "Product Hidden App" },
+        { ...app, id: "n", name: "Plain App", product_id: "p3" },
+      ],
+    });
+    render(<CatalogPage />);
+    const row = (name: string) => screen.getByText(name).closest("tr") as HTMLElement;
+    expect(within(row("Manual App")).getByText("manuale")).toBeInTheDocument();
+    expect(within(row("Manual App")).getByText("nascosta (prodotto)")).toBeInTheDocument();
+    expect(within(row("Hidden App")).getByText("nascosta")).toBeInTheDocument();
+    expect(within(row("Product Hidden App")).getByText("nascosta (prodotto)")).toBeInTheDocument();
+    expect(within(row("Plain App")).queryByText(/nascosta|manuale/)).not.toBeInTheDocument();
+  });
+
+  it("opens the detail of a hidden application from its row", async () => {
+    hooks.applications.mockReturnValue({ data: [{ ...app, id: "h1", name: "Hidden App", hidden: true }] });
+    const user = userEvent.setup();
+    render(<CatalogPage />);
+    expect(hooks.detail).not.toHaveBeenCalledWith("h1");
+    await user.click(screen.getByRole("button", { name: "Dettaglio di Hidden App" }));
+    expect(hooks.detail).toHaveBeenCalledWith("h1");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

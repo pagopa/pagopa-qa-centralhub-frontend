@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChartLine, LibraryBig, Map as MapIcon, Pencil, Rocket, X } from "lucide-react";
 import { opexDashboardUrl } from "@/components/release-status/ApplicationRow";
+import { Chip } from "@/components/primitives/Chip";
 import { RuntimeChips, ACCENT_LINK_CLASS, repoUrl } from "@/components/release-status/shared";
 import { DeployTimeline } from "@/components/release-status/DeployTimeline";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -39,6 +40,7 @@ function SheetBody({ detail }: { detail: ApplicationDetail }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RuntimeChips app={app} />
+          {app.hidden && <Chip variant="status" value="skipped" label="nascosta" />}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <a href={repoUrl(app.repository)} target="_blank" rel="noopener noreferrer" className={linkClass}>

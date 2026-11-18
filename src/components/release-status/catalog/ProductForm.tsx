@@ -16,6 +16,7 @@ function ProductFormBody({ product, onClose }: { product: Product | null; onClos
   const save = useSaveProduct();
   const [name, setName] = useState(product?.name ?? "");
   const [area, setArea] = useState<Area>(product?.area ?? "CORE");
+  const [hidden, setHidden] = useState(product?.hidden ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ function ProductFormBody({ product, onClose }: { product: Product | null; onClos
     setErrors({});
     setFormError(null);
     try {
-      await save.mutateAsync({ id: product?.id, name: name.trim(), area });
+      await save.mutateAsync({ id: product?.id, name: name.trim(), area, hidden });
       onClose();
     } catch (error) {
       const { detail, field } = errorParts(error);
@@ -48,6 +49,15 @@ function ProductFormBody({ product, onClose }: { product: Product | null; onClos
           <option value="TOUCHPOINT">TouchPoint</option>
         </select>
       </Field>
+      <label className="flex items-center gap-2 text-sm text-text">
+        <input
+          type="checkbox"
+          className="size-4 accent-[var(--accent)]"
+          checked={hidden}
+          onChange={(e) => setHidden(e.target.checked)}
+        />
+        Nascondi dalla status page
+      </label>
       {formError && (
         <p role="alert" className="text-xs text-danger">
           {formError}

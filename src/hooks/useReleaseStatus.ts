@@ -180,7 +180,8 @@ export function useDeleteApplication() {
 
 export function useCheckApplication() {
   return useMutation({
-    mutationFn: (body: { product_key: string; repository: string }) =>
+    // repo_only: manual applications have no /info endpoint, so only the repository is probed
+    mutationFn: (body: { product_key: string; repository: string; repo_only?: boolean }) =>
       apiClient<CheckResult>(`${BASE}/catalog/applications/check`, {
         method: "POST",
         body: JSON.stringify(body),
