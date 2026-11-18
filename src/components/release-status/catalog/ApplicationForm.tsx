@@ -77,6 +77,10 @@ function ApplicationFormBody({
   const wasAuto = application !== null && application.version_source !== "MANUAL";
   const detail = useApplicationDetail(wasAuto && manual ? application.id : null);
   const loadingBaseline = wasAuto && manual && detail.isLoading;
+  // Without the current versions the inputs would look empty while the backend keeps the old
+  // values: block editing and saving until they are loaded.
+  const baselineFailed = wasAuto && manual && detail.isError && !detail.data;
+  const baselineBlocked = loadingBaseline || baselineFailed;
   const baselineOf = (target: EnvTarget): string =>
     wasAuto ? (detail.data?.application.envs[target]?.version ?? "") : (application?.manual_versions?.[target] ?? "");
   const versionOf = (target: EnvTarget): string => edits[target] ?? baselineOf(target);
@@ -133,7 +137,7 @@ function ApplicationFormBody({
     const next = validate();
     setErrors(next);
     setFormError(null);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0 || baselineBlocked) return;
 
     // The check runs alongside the save: it never blocks or delays it.
     const checkOutcome: Promise<CheckResultData | null> = check
@@ -310,13 +314,25 @@ function ApplicationFormBody({
                       className={`${INPUT_CLASS} font-mono`}
                       maxLength={MAX_VERSION_LENGTH}
                       value={versionOf(target)}
-                      disabled={loadingBaseline}
+                      disabled={baselineBlocked}
                       onChange={(e) => setEdits((current) => ({ ...current, [target]: e.target.value }))}
                     />
                   </Field>
                 ))}
               </div>
               <p className="text-xs text-text-muted">Svuotare un campo cancella la versione di quell&apos;ambiente.</p>
+              {baselineFailed && (
+                <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-danger">
+                  Impossibile leggere le versioni attuali.
+                  <button
+                    type="button"
+                    onClick={() => void detail.refetch()}
+                    className="rounded-sm font-medium text-accent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    Riprova
+                  </button>
+                </p>
+              )}
               {errors.manual_versions && (
                 <p role="alert" className="text-xs text-danger">
                   {errors.manual_versions}
@@ -346,7 +362,7 @@ function ApplicationFormBody({
         <Button type="button" variant="outline" onClick={onClose}>
           Annulla
         </Button>
-        <Button type="submit" disabled={busy}>
+        <Button type="submit" disabled={busy || baselineBlocked}>
           Salva applicazione
         </Button>
       </DialogFooter>

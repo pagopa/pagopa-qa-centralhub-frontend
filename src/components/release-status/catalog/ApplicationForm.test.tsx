@@ -343,6 +343,25 @@ describe("ApplicationForm", () => {
       const { user } = setup(saved);
       await user.click(screen.getByLabelText("Versioni inserite a mano"));
       expect(screen.getByLabelText("Versione DEV")).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Salva applicazione" })).toBeDisabled();
+    });
+
+    it("blocks editing and saving when the current versions cannot be loaded, with a retry", async () => {
+      const refetch = vi.fn();
+      hooks.detail.mockImplementation((id: string | null) =>
+        id ? { data: undefined, isLoading: false, isError: true, refetch } : { data: undefined, isLoading: false },
+      );
+      const { user } = setup(saved);
+      await user.click(screen.getByLabelText("Versioni inserite a mano"));
+      const versions = screen.getByRole("group", { name: "Versioni manuali" });
+      expect(versions).toHaveTextContent("Impossibile leggere le versioni attuali.");
+      for (const target of ["DEV", "UAT", "PROD"]) {
+        expect(screen.getByLabelText(`Versione ${target}`)).toBeDisabled();
+      }
+      expect(screen.getByRole("button", { name: "Salva applicazione" })).toBeDisabled();
+      await user.click(screen.getByRole("button", { name: "Riprova" }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(hooks.save).not.toHaveBeenCalled();
     });
   });
 });
