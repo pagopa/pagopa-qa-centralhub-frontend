@@ -43,6 +43,36 @@ export interface RunRef {
   hub_url: string;
 }
 
+export type StackLanguage = "JAVA" | "PYTHON" | "NODE" | "RUST" | "GO";
+export type StackSource = "dockerfile" | "build_file";
+
+export interface TechStack {
+  language: StackLanguage;
+  version: string | null;
+  source: StackSource | null;
+  ref: string | null;
+}
+
+export type ChangeStatus = "OK" | "UNAVAILABLE" | "ERROR" | "PENDING";
+export type ChangeDirection = "forward" | "rollback" | "diverged" | "identical";
+
+export interface ChangeItem {
+  kind: "pr" | "commit";
+  number: number | null;
+  title: string;
+  author: string | null;
+  url: string;
+}
+
+export interface ChangeSummary {
+  status: ChangeStatus;
+  direction: ChangeDirection | null;
+  items: ChangeItem[];
+  total_commits: number;
+  truncated: boolean;
+  compare_url: string | null;
+}
+
 export interface Cell {
   version: string | null;
   read_status: ReadStatus;
@@ -72,6 +102,7 @@ export interface ApplicationRow {
   repo: Cell | null;
   envs: Record<EnvTarget, Cell | null>;
   flags: AppFlag[];
+  stack: TechStack | null;
 }
 
 export interface ProductGroup {
@@ -107,6 +138,7 @@ export interface DeployEvent {
   is_baseline: boolean;
   direction: "upgrade" | "rollback" | "unknown" | "baseline";
   runs: RunRef[];
+  changes: ChangeSummary | null;
 }
 
 export interface ApplicationDetail {

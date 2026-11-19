@@ -26,6 +26,14 @@ const nav = vi.hoisted(() => ({
 
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
+// Base UI tooltips need real pointer timing; render the content inline instead.
+vi.mock("@/components/ui/tooltip", () => ({
+  TooltipProvider: ({ children }: { children: ReactNode }) => children,
+  Tooltip: ({ children }: { children: ReactNode }) => children,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
+}));
+
 vi.mock("@/hooks/useReleaseStatus", () => ({
   useReleaseStatus: hooks.status,
   useApplicationDetail: hooks.detail,
@@ -82,6 +90,7 @@ function makeApp(name: string, flags: AppFlag[] = [], overrides: Partial<Applica
     repo: makeCell({ drift: null }),
     envs: { DEV: makeCell(), UAT: makeCell(), PROD: makeCell() },
     flags,
+    stack: null,
     ...overrides,
   };
 }
@@ -256,6 +265,32 @@ describe("Releases page", () => {
     );
     render(<ReleasesPage />);
     expect(screen.getByText("manuale")).toBeInTheDocument();
+  });
+
+  it("shows the technology chip in the grid row", () => {
+    hooks.status.mockReturnValue(
+      queryResult({
+        ...data,
+        areas: [
+          {
+            area: "CORE",
+            products: [
+              {
+                id: "p",
+                name: "Stack Product",
+                applications: [
+                  makeApp("Java-App", [], { stack: { language: "JAVA", version: "21", source: "dockerfile", ref: "1.2.0" } }),
+                  makeApp("Plain-App", []),
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    render(<ReleasesPage />);
+    expect(screen.getAllByText(/^JAVA/)).toHaveLength(1);
+    expect(screen.getByText("Rilevato da Dockerfile alla release 1.2.0")).toBeInTheDocument();
   });
 
   it("opens the application detail when a row is clicked", async () => {

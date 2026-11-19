@@ -8,6 +8,14 @@ import type { ApplicationDetail, ApplicationRow, Cell, DeployEvent, RunRef } fro
 const hooks = vi.hoisted(() => ({ detail: vi.fn() }));
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
+// Base UI tooltips need real pointer timing; render the content inline instead.
+vi.mock("@/components/ui/tooltip", () => ({
+  TooltipProvider: ({ children }: { children: ReactNode }) => children,
+  Tooltip: ({ children }: { children: ReactNode }) => children,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
+}));
+
 vi.mock("@/hooks/useReleaseStatus", () => ({ useApplicationDetail: hooks.detail }));
 vi.mock("@/lib/permissions", () => ({
   Gate: ({ action, children }: { action: string; children: ReactNode }) =>
@@ -47,6 +55,7 @@ function makeApp(overrides: Partial<ApplicationRow> = {}): ApplicationRow {
     repo: makeCell("1.5.0"),
     envs: { DEV: makeCell("1.5.0"), UAT: makeCell("1.4.2"), PROD: makeCell("1.4.1") },
     flags: [],
+    stack: null,
     ...overrides,
   };
 }
@@ -77,6 +86,7 @@ function makeEvent(overrides: Partial<DeployEvent> = {}): DeployEvent {
     is_baseline: false,
     direction: "upgrade",
     runs: [],
+    changes: null,
     ...overrides,
   };
 }
@@ -215,6 +225,29 @@ describe("ApplicationDetailSheet", () => {
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.getByText("manuale")).toBeInTheDocument();
     expect(screen.getByText("nascosta")).toBeInTheDocument();
+  });
+
+  it("shows the technology chip with its version in the header", () => {
+    setDetail({ application: makeApp({ stack: { language: "JAVA", version: "21", source: "dockerfile", ref: "1.4.1" } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("JAVA 21")).toBeInTheDocument();
+  });
+
+  it("shows the language alone when the version is unknown", () => {
+    setDetail({ application: makeApp({ stack: { language: "JAVA", version: null, source: null, ref: null } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("JAVA")).toBeInTheDocument();
+  });
+
+  it("shows no technology chip without a stack", () => {
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.queryByText(/JAVA|PYTHON|NODE|RUST|GO/)).not.toBeInTheDocument();
+  });
+
+  it("explains where the technology was detected", () => {
+    setDetail({ application: makeApp({ stack: { language: "JAVA", version: "21", source: "build_file", ref: "1.4.1" } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("Rilevato da file di build alla release 1.4.1")).toBeInTheDocument();
   });
 
   it("shows no manual or hidden chip for a regular application", () => {
