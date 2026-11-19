@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,11 +26,15 @@ const nav = vi.hoisted(() => ({
 
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
+// Base UI popovers are far too slow to open under jsdom; use a light stand-in.
+vi.mock("@/components/ui/popover", () => import("@/test/popover-mock"));
+
 // Base UI tooltips need real pointer timing; render the content inline instead.
 vi.mock("@/components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => children,
   Tooltip: ({ children }: { children: ReactNode }) => children,
-  TooltipTrigger: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  TooltipTrigger: ({ children, render }: { children?: ReactNode; render?: ReactElement<{ children?: ReactNode }> }) =>
+    render ? cloneElement(render, undefined, children ?? render.props.children) : <span>{children}</span>,
   TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
 }));
 
@@ -301,6 +305,51 @@ describe("Releases page", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(hooks.detail).toHaveBeenCalledWith("id-AFM-Calculator");
+  });
+
+  it("loads the latest deploy of a cell on hover and shows its changes without opening the sheet", async () => {
+    const user = userEvent.setup();
+    hooks.detail.mockReturnValue({
+      data: {
+        application: makeApp("AFM-Calculator"),
+        product_name: "Alpha Fees",
+        history: {
+          DEV: [
+            {
+              version: "1.4.2",
+              previous_version: "1.4.0",
+              detected_at: "2026-11-16T10:00:00Z",
+              previous_seen_at: null,
+              is_baseline: false,
+              direction: "upgrade",
+              runs: [],
+              changes: {
+                status: "OK",
+                direction: "forward",
+                items: [{ kind: "pr", number: 5, title: "Tune cache", author: "dave", url: "https://github.com/pagopa/x/pull/5" }],
+                total_commits: 2,
+                truncated: false,
+                compare_url: null,
+              },
+            },
+          ],
+        },
+      },
+      isLoading: false,
+      isError: false,
+    } as never);
+    render(<ReleasesPage />);
+    expect(hooks.detail).not.toHaveBeenCalledWith("id-AFM-Calculator");
+
+    const row = screen.getByRole("button", { name: "AFM-Calculator" }).closest("div[class*='cursor-pointer']") as HTMLElement;
+    const versions = within(row).getAllByText("1.4.2");
+    await user.hover(versions[1]);
+    expect(hooks.detail).toHaveBeenCalledWith("id-AFM-Calculator");
+
+    await user.click(within(row).getAllByRole("button", { name: "1.4.2" })[0]);
+    expect(await screen.findByText("Modifiche da 1.4.0 a 1.4.2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "#5 Tune cache" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /AFM-Calculator/ })).not.toBeInTheDocument();
   });
 
   it("hides the sync button without sync:trigger", () => {

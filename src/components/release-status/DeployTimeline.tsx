@@ -1,4 +1,5 @@
 import { ArrowUpRight, ChartColumn, Undo2, ArrowUp, CircleHelp, Flag, type LucideIcon } from "lucide-react";
+import { ChangePopover } from "@/components/release-status/ChangePopover";
 import { GithubMark } from "@/components/release-status/GithubMark";
 import { formatDetectionWindow, formatShortDateTime } from "@/components/release-status/format";
 import { ACCENT_LINK_CLASS as linkClass, OUTCOME_COLOR, OUTCOME_LABEL } from "@/components/release-status/shared";
@@ -57,7 +58,15 @@ function EventItem({ event, showRuns }: { event: DeployEvent; showRuns: boolean 
       <span className="absolute -left-2.5 top-0 flex size-5 items-center justify-center rounded-full border border-border bg-surface">
         <Icon role="img" aria-label={direction.label} className={`size-3 ${direction.color}`} />
       </span>
-      <p className="font-mono text-sm font-semibold text-text">{event.version}</p>
+      <p className="font-mono text-sm font-semibold text-text">
+        {event.previous_version ? (
+          <ChangePopover fromVersion={event.previous_version} toVersion={event.version} changes={event.changes}>
+            {event.version}
+          </ChangePopover>
+        ) : (
+          event.version
+        )}
+      </p>
       <p className="text-xs text-text-muted">
         {event.is_baseline
           ? "prima rilevazione"

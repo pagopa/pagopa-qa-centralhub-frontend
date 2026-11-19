@@ -82,7 +82,7 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
           </span>
           <span className="flex min-w-0 items-center gap-1" title="Ultima release su GitHub">
             <GithubMark className="size-3 shrink-0 text-text-muted" />
-            <VersionCell target="REPO" cell={app.repo} />
+            <VersionCell target="REPO" applicationId={app.id} cell={app.repo} />
           </span>
         </div>
       </div>
@@ -93,6 +93,7 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
           <CellSlot key={target} label={target}>
             <VersionCell
               target={target}
+              applicationId={app.id}
               cell={cell}
               stacked
               adornment={cell?.version && <TestMarkers tests={cell.tests} hasTestObject={hasTestObject} />}

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,11 +8,15 @@ import type { ApplicationDetail, ApplicationRow, Cell, DeployEvent, RunRef } fro
 const hooks = vi.hoisted(() => ({ detail: vi.fn() }));
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
 
+// Base UI popovers are far too slow to open under jsdom; use a light stand-in.
+vi.mock("@/components/ui/popover", () => import("@/test/popover-mock"));
+
 // Base UI tooltips need real pointer timing; render the content inline instead.
 vi.mock("@/components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => children,
   Tooltip: ({ children }: { children: ReactNode }) => children,
-  TooltipTrigger: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  TooltipTrigger: ({ children, render }: { children?: ReactNode; render?: ReactElement<{ children?: ReactNode }> }) =>
+    render ? cloneElement(render, undefined, children ?? render.props.children) : <span>{children}</span>,
   TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
 }));
 
@@ -201,6 +205,35 @@ describe("ApplicationDetailSheet", () => {
     const item = screen.getAllByRole("listitem")[0];
     expect(item).toHaveTextContent("1.5.0");
     expect(within(item).queryByRole("link", { name: /Report/ })).not.toBeInTheDocument();
+  });
+
+  it("opens the change popover from a timeline version and not for a baseline", async () => {
+    const user = userEvent.setup();
+    setDetail({
+      history: {
+        UAT: [
+          makeEvent({
+            changes: {
+              status: "OK",
+              direction: "forward",
+              items: [{ kind: "pr", number: 7, title: "Speed up checkout", author: "carol", url: "https://github.com/pagopa/x/pull/7" }],
+              total_commits: 3,
+              truncated: false,
+              compare_url: "https://github.com/pagopa/x/compare/a...b",
+            },
+          }),
+          makeEvent({ version: "1.4.1", previous_version: null, is_baseline: true, direction: "baseline" }),
+        ],
+      },
+    });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    await user.click(screen.getByRole("tab", { name: "UAT" }));
+
+    expect(screen.getAllByRole("button", { name: /^1\.4\.[12]$/ })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "1.4.2" }));
+
+    expect(await screen.findByText("Modifiche da 1.4.1 a 1.4.2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "#7 Speed up checkout" })).toBeInTheDocument();
   });
 
   it("shows an empty message for a target without history", () => {

@@ -10,7 +10,9 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ChangePopover } from "@/components/release-status/ChangePopover";
+import { useApplicationDetail } from "@/hooks/useReleaseStatus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime } from "@/components/release-status/format";
 import { cellVisual, type CellIcon, type CellVisual } from "@/lib/release-status";
@@ -31,8 +33,60 @@ const DRIFT_ICON: Record<NonNullable<CellVisual["drift"]>, { icon: LucideIcon; l
   ahead: { icon: ArrowUp, label: "avanti rispetto al repository", color: "text-danger" },
 };
 
+/** Fetches the application detail only once mounted (i.e. after the cell was hovered or focused). */
+function ArmedVersion({
+  applicationId,
+  target,
+  version,
+  children,
+}: {
+  applicationId: string;
+  target: Target;
+  version: string;
+  children: ReactNode;
+}) {
+  const { data } = useApplicationDetail(applicationId);
+  const latest = data?.history[target]?.[0];
+  if (!latest || latest.version !== version || !latest.previous_version || !latest.changes) return <>{children}</>;
+  return (
+    <ChangePopover fromVersion={latest.previous_version} toVersion={latest.version} changes={latest.changes}>
+      {children}
+    </ChangePopover>
+  );
+}
+
+/** Version text that reveals the change popover of the latest deploy (detail loaded lazily). */
+function ChangeableVersion({
+  applicationId,
+  target,
+  version,
+  children,
+}: {
+  applicationId?: string;
+  target: Target;
+  version: string | null;
+  children: ReactNode;
+}) {
+  const [armed, setArmed] = useState(false);
+  if (!applicationId || !version) return <>{children}</>;
+  if (armed) {
+    return (
+      <ArmedVersion applicationId={applicationId} target={target} version={version}>
+        {children}
+      </ArmedVersion>
+    );
+  }
+  return (
+    <span className="contents" onMouseEnter={() => setArmed(true)} onFocus={() => setArmed(true)}>
+      {children}
+    </span>
+  );
+}
+
 interface VersionCellProps {
   target: Target;
+  /** When set, hovering or focusing the version loads the latest deploy's change summary. */
+  applicationId?: string;
   cell: Cell | null;
   /** Icons on a first line and the full version below, as on the old status page. */
   stacked?: boolean;
@@ -41,7 +95,7 @@ interface VersionCellProps {
 }
 
 /** Icon, version and drift arrow of one target, with the full read detail in a tooltip. */
-export function VersionCell({ target, cell, stacked = false, adornment }: VersionCellProps) {
+export function VersionCell({ target, applicationId, cell, stacked = false, adornment }: VersionCellProps) {
   const visual = cellVisual(cell, target);
   const status = STATUS_ICON[visual.icon];
   const StatusIcon = status.icon;
@@ -87,9 +141,11 @@ export function VersionCell({ target, cell, stacked = false, adornment }: Versio
           </Tooltip>
           {adornment}
         </div>
-        <span className={`max-w-full break-all font-mono text-[13px] leading-tight tabular-nums ${versionClass}`}>
-          {version ?? "—"}
-        </span>
+        <ChangeableVersion applicationId={applicationId} target={target} version={version}>
+          <span className={`max-w-full break-all font-mono text-[13px] leading-tight tabular-nums ${versionClass}`}>
+            {version ?? "—"}
+          </span>
+        </ChangeableVersion>
       </div>
     );
   }
@@ -103,7 +159,9 @@ export function VersionCell({ target, cell, stacked = false, adornment }: Versio
             className="inline-flex min-w-0 items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {statusIcon}
-            <span className={`truncate font-mono text-[13px] tabular-nums ${versionClass}`}>{version ?? "—"}</span>
+            <ChangeableVersion applicationId={applicationId} target={target} version={version}>
+              <span className={`truncate font-mono text-[13px] tabular-nums ${versionClass}`}>{version ?? "—"}</span>
+            </ChangeableVersion>
             {driftIcon}
           </span>
         }
