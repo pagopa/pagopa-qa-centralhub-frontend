@@ -42,6 +42,7 @@ function makeApp(name: string, flags: AppFlag[] = [], overrides: Partial<Applica
     repo: null,
     envs: { DEV: null, UAT: null, PROD: null },
     flags,
+    stack: null,
     ...overrides,
   };
 }

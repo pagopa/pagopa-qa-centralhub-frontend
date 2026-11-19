@@ -1,7 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { ChartLine, LibraryBig, Rocket } from "lucide-react";
 import { GithubMark } from "@/components/release-status/GithubMark";
-import { RuntimeChips, repoUrl } from "@/components/release-status/shared";
+import { RuntimeChips, StackChip, repoUrl } from "@/components/release-status/shared";
 import { TestMarkers } from "@/components/release-status/TestMarkers";
 import { VersionCell } from "@/components/release-status/VersionCell";
 import type { ApplicationRow as Application, EnvTarget } from "@/types/release-status";
@@ -78,10 +78,11 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <span className="flex items-center gap-1">
             <RuntimeChips app={app} />
+            <StackChip stack={app.stack} />
           </span>
           <span className="flex min-w-0 items-center gap-1" title="Ultima release su GitHub">
             <GithubMark className="size-3 shrink-0 text-text-muted" />
-            <VersionCell target="REPO" cell={app.repo} />
+            <VersionCell target="REPO" applicationId={app.id} cell={app.repo} />
           </span>
         </div>
       </div>
@@ -92,6 +93,7 @@ export function ApplicationRow({ application: app, onOpen }: ApplicationRowProps
           <CellSlot key={target} label={target}>
             <VersionCell
               target={target}
+              applicationId={app.id}
               cell={cell}
               stacked
               adornment={cell?.version && <TestMarkers tests={cell.tests} hasTestObject={hasTestObject} />}

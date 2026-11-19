@@ -10,11 +10,13 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ChangePopover } from "@/components/release-status/ChangePopover";
+import { useApplicationDetail } from "@/hooks/useReleaseStatus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime } from "@/components/release-status/format";
 import { cellVisual, type CellIcon, type CellVisual } from "@/lib/release-status";
-import type { Cell, Target } from "@/types/release-status";
+import type { Cell, ChangeSummary, Target } from "@/types/release-status";
 
 const STATUS_ICON: Record<CellIcon, { icon: LucideIcon; label: string; color: string }> = {
   loading: { icon: Clock, label: "in attesa del primo controllo", color: "text-text-muted" },
@@ -31,8 +33,74 @@ const DRIFT_ICON: Record<NonNullable<CellVisual["drift"]>, { icon: LucideIcon; l
   ahead: { icon: ArrowUp, label: "avanti rispetto al repository", color: "text-danger" },
 };
 
+/**
+ * Version text that is a focusable trigger for the change popover of the latest deploy. The detail is
+ * loaded lazily, only once the version is hovered, focused or clicked.
+ */
+function ChangeableVersion({
+  applicationId,
+  target,
+  version,
+  children,
+}: {
+  applicationId?: string;
+  target: Target;
+  version: string | null;
+  children: ReactNode;
+}) {
+  if (!applicationId || !version) return <>{children}</>;
+  return (
+    <LazyChangeVersion applicationId={applicationId} target={target} version={version}>
+      {children}
+    </LazyChangeVersion>
+  );
+}
+
+function LazyChangeVersion({
+  applicationId,
+  target,
+  version,
+  children,
+}: {
+  applicationId: string;
+  target: Target;
+  version: string;
+  children: ReactNode;
+}) {
+  const [armed, setArmed] = useState(false);
+  const { data, isError } = useApplicationDetail(armed ? applicationId : null);
+
+  const latest = data?.history[target]?.[0];
+  let changes: ChangeSummary | null;
+  let from = "";
+  if (isError) {
+    changes = { status: "ERROR", direction: null, items: [], total_commits: 0, truncated: false, compare_url: null };
+  } else if (!data) {
+    changes = { status: "PENDING", direction: null, items: [], total_commits: 0, truncated: false, compare_url: null };
+  } else if (latest && latest.version === version && latest.previous_version && latest.changes) {
+    changes = latest.changes;
+    from = latest.previous_version;
+  } else {
+    changes = null;
+  }
+  return (
+    <ChangePopover
+      fromVersion={from}
+      toVersion={version}
+      changes={changes}
+      inert={changes === null}
+      messageOverride={isError ? "Impossibile caricare il riepilogo" : undefined}
+      onArm={() => setArmed(true)}
+    >
+      {children}
+    </ChangePopover>
+  );
+}
+
 interface VersionCellProps {
   target: Target;
+  /** When set, hovering or focusing the version loads the latest deploy's change summary. */
+  applicationId?: string;
   cell: Cell | null;
   /** Icons on a first line and the full version below, as on the old status page. */
   stacked?: boolean;
@@ -41,7 +109,7 @@ interface VersionCellProps {
 }
 
 /** Icon, version and drift arrow of one target, with the full read detail in a tooltip. */
-export function VersionCell({ target, cell, stacked = false, adornment }: VersionCellProps) {
+export function VersionCell({ target, applicationId, cell, stacked = false, adornment }: VersionCellProps) {
   const visual = cellVisual(cell, target);
   const status = STATUS_ICON[visual.icon];
   const StatusIcon = status.icon;
@@ -87,28 +155,31 @@ export function VersionCell({ target, cell, stacked = false, adornment }: Versio
           </Tooltip>
           {adornment}
         </div>
-        <span className={`max-w-full break-all font-mono text-[13px] leading-tight tabular-nums ${versionClass}`}>
-          {version ?? "—"}
-        </span>
+        <ChangeableVersion applicationId={applicationId} target={target} version={version}>
+          <span className={`max-w-full break-all font-mono text-[13px] leading-tight tabular-nums ${versionClass}`}>
+            {version ?? "—"}
+          </span>
+        </ChangeableVersion>
       </div>
     );
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span
-            tabIndex={0}
-            className="inline-flex min-w-0 items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            {statusIcon}
-            <span className={`truncate font-mono text-[13px] tabular-nums ${versionClass}`}>{version ?? "—"}</span>
-            {driftIcon}
-          </span>
-        }
-      />
-      {details}
-    </Tooltip>
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span tabIndex={0} className="inline-flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent">
+              {statusIcon}
+            </span>
+          }
+        />
+        {details}
+      </Tooltip>
+      <ChangeableVersion applicationId={applicationId} target={target} version={version}>
+        <span className={`truncate font-mono text-[13px] tabular-nums ${versionClass}`}>{version ?? "—"}</span>
+      </ChangeableVersion>
+      {driftIcon}
+    </span>
   );
 }

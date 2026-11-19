@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +7,18 @@ import type { ApplicationDetail, ApplicationRow, Cell, DeployEvent, RunRef } fro
 
 const hooks = vi.hoisted(() => ({ detail: vi.fn() }));
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
+
+// Base UI popovers are far too slow to open under jsdom; use a light stand-in.
+vi.mock("@/components/ui/popover", () => import("@/test/popover-mock"));
+
+// Base UI tooltips need real pointer timing; render the content inline instead.
+vi.mock("@/components/ui/tooltip", () => ({
+  TooltipProvider: ({ children }: { children: ReactNode }) => children,
+  Tooltip: ({ children }: { children: ReactNode }) => children,
+  TooltipTrigger: ({ children, render }: { children?: ReactNode; render?: ReactElement<{ children?: ReactNode }> }) =>
+    render ? cloneElement(render, undefined, children ?? render.props.children) : <span>{children}</span>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
+}));
 
 vi.mock("@/hooks/useReleaseStatus", () => ({ useApplicationDetail: hooks.detail }));
 vi.mock("@/lib/permissions", () => ({
@@ -47,6 +59,7 @@ function makeApp(overrides: Partial<ApplicationRow> = {}): ApplicationRow {
     repo: makeCell("1.5.0"),
     envs: { DEV: makeCell("1.5.0"), UAT: makeCell("1.4.2"), PROD: makeCell("1.4.1") },
     flags: [],
+    stack: null,
     ...overrides,
   };
 }
@@ -77,6 +90,7 @@ function makeEvent(overrides: Partial<DeployEvent> = {}): DeployEvent {
     is_baseline: false,
     direction: "upgrade",
     runs: [],
+    changes: null,
     ...overrides,
   };
 }
@@ -193,6 +207,35 @@ describe("ApplicationDetailSheet", () => {
     expect(within(item).queryByRole("link", { name: /Report/ })).not.toBeInTheDocument();
   });
 
+  it("opens the change popover from a timeline version and not for a baseline", async () => {
+    const user = userEvent.setup();
+    setDetail({
+      history: {
+        UAT: [
+          makeEvent({
+            changes: {
+              status: "OK",
+              direction: "forward",
+              items: [{ kind: "pr", number: 7, title: "Speed up checkout", author: "carol", url: "https://github.com/pagopa/x/pull/7" }],
+              total_commits: 3,
+              truncated: false,
+              compare_url: "https://github.com/pagopa/x/compare/a...b",
+            },
+          }),
+          makeEvent({ version: "1.4.1", previous_version: null, is_baseline: true, direction: "baseline" }),
+        ],
+      },
+    });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    await user.click(screen.getByRole("tab", { name: "UAT" }));
+
+    expect(screen.getAllByRole("button", { name: /^1\.4\.[12]$/ })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "1.4.2" }));
+
+    expect(await screen.findByText("Modifiche da 1.4.1 a 1.4.2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "#7 Speed up checkout" })).toBeInTheDocument();
+  });
+
   it("shows an empty message for a target without history", () => {
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.getByText("Nessun rilascio registrato")).toBeInTheDocument();
@@ -215,6 +258,29 @@ describe("ApplicationDetailSheet", () => {
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     expect(screen.getByText("manuale")).toBeInTheDocument();
     expect(screen.getByText("nascosta")).toBeInTheDocument();
+  });
+
+  it("shows the technology chip with its version in the header", () => {
+    setDetail({ application: makeApp({ stack: { language: "JAVA", version: "21", source: "dockerfile", ref: "1.4.1" } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("JAVA 21")).toBeInTheDocument();
+  });
+
+  it("shows the language alone when the version is unknown", () => {
+    setDetail({ application: makeApp({ stack: { language: "JAVA", version: null, source: null, ref: null } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("JAVA")).toBeInTheDocument();
+  });
+
+  it("shows no technology chip without a stack", () => {
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.queryByText(/JAVA|PYTHON|NODE|RUST|GO/)).not.toBeInTheDocument();
+  });
+
+  it("explains where the technology was detected", () => {
+    setDetail({ application: makeApp({ stack: { language: "JAVA", version: "21", source: "build_file", ref: "1.4.1" } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("Rilevato da file di build alla release 1.4.1")).toBeInTheDocument();
   });
 
   it("shows no manual or hidden chip for a regular application", () => {

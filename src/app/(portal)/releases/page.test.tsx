@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { cloneElement, type ReactElement, type ReactNode } from "react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ReleasesPage from "./page";
@@ -25,6 +25,18 @@ const nav = vi.hoisted(() => ({
 }));
 
 const permissions = vi.hoisted(() => ({ allowed: new Set<string>() }));
+
+// Base UI popovers are far too slow to open under jsdom; use a light stand-in.
+vi.mock("@/components/ui/popover", () => import("@/test/popover-mock"));
+
+// Base UI tooltips need real pointer timing; render the content inline instead.
+vi.mock("@/components/ui/tooltip", () => ({
+  TooltipProvider: ({ children }: { children: ReactNode }) => children,
+  Tooltip: ({ children }: { children: ReactNode }) => children,
+  TooltipTrigger: ({ children, render }: { children?: ReactNode; render?: ReactElement<{ children?: ReactNode }> }) =>
+    render ? cloneElement(render, undefined, children ?? render.props.children) : <span>{children}</span>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <div role="tooltip">{children}</div>,
+}));
 
 vi.mock("@/hooks/useReleaseStatus", () => ({
   useReleaseStatus: hooks.status,
@@ -82,6 +94,7 @@ function makeApp(name: string, flags: AppFlag[] = [], overrides: Partial<Applica
     repo: makeCell({ drift: null }),
     envs: { DEV: makeCell(), UAT: makeCell(), PROD: makeCell() },
     flags,
+    stack: null,
     ...overrides,
   };
 }
@@ -258,6 +271,32 @@ describe("Releases page", () => {
     expect(screen.getByText("manuale")).toBeInTheDocument();
   });
 
+  it("shows the technology chip in the grid row", () => {
+    hooks.status.mockReturnValue(
+      queryResult({
+        ...data,
+        areas: [
+          {
+            area: "CORE",
+            products: [
+              {
+                id: "p",
+                name: "Stack Product",
+                applications: [
+                  makeApp("Java-App", [], { stack: { language: "JAVA", version: "21", source: "dockerfile", ref: "1.2.0" } }),
+                  makeApp("Plain-App", []),
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    render(<ReleasesPage />);
+    expect(screen.getAllByText(/^JAVA/)).toHaveLength(1);
+    expect(screen.getByText("Rilevato da Dockerfile alla release 1.2.0")).toBeInTheDocument();
+  });
+
   it("opens the application detail when a row is clicked", async () => {
     const user = userEvent.setup();
     render(<ReleasesPage />);
@@ -266,6 +305,103 @@ describe("Releases page", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(hooks.detail).toHaveBeenCalledWith("id-AFM-Calculator");
+  });
+
+  function deployEvent(overrides: object = {}) {
+    return {
+      version: "1.4.2",
+      previous_version: "1.4.0",
+      detected_at: "2026-11-16T10:00:00Z",
+      previous_seen_at: null,
+      is_baseline: false,
+      direction: "upgrade",
+      runs: [],
+      changes: {
+        status: "OK",
+        direction: "forward",
+        items: [{ kind: "pr", number: 5, title: "Tune cache", author: "dave", url: "https://github.com/pagopa/x/pull/5" }],
+        total_commits: 2,
+        truncated: false,
+        compare_url: null,
+      },
+      ...overrides,
+    };
+  }
+
+  function mockDetail(result: object) {
+    // Like the real hook, nothing is loaded until the cell passes an application id.
+    hooks.detail.mockImplementation(((id: string | null) =>
+      id === null ? { data: undefined, isLoading: false, isError: false } : result) as never,
+    );
+  }
+
+  function afmRow() {
+    return screen.getByRole("button", { name: "AFM-Calculator" }).closest("div[class*='cursor-pointer']") as HTMLElement;
+  }
+
+  const detailOf = (events: object[]) => ({
+    data: { application: makeApp("AFM-Calculator"), product_name: "Alpha Fees", history: { DEV: events } },
+    isLoading: false,
+    isError: false,
+  });
+
+  it("loads the latest deploy of a cell on hover and shows its changes without opening the sheet", async () => {
+    const user = userEvent.setup();
+    mockDetail(detailOf([deployEvent()]));
+    render(<ReleasesPage />);
+    expect(hooks.detail).not.toHaveBeenCalledWith("id-AFM-Calculator");
+
+    const buttons = within(afmRow()).getAllByRole("button", { name: "1.4.2" });
+    await user.hover(buttons[1]);
+    expect(hooks.detail).toHaveBeenCalledWith("id-AFM-Calculator");
+
+    await user.click(buttons[1]);
+    expect(await screen.findByText("Modifiche da 1.4.0 a 1.4.2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "#5 Tune cache" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /AFM-Calculator/ })).not.toBeInTheDocument();
+  });
+
+  it("arms a cell by keyboard focus alone", async () => {
+    const user = userEvent.setup();
+    mockDetail(detailOf([deployEvent()]));
+    render(<ReleasesPage />);
+
+    const trigger = within(afmRow()).getAllByRole("button", { name: "1.4.2" })[1];
+    act(() => trigger.focus());
+    expect(hooks.detail).toHaveBeenCalledWith("id-AFM-Calculator");
+    await user.keyboard("{Enter}");
+    expect(await screen.findByText("Modifiche da 1.4.0 a 1.4.2")).toBeInTheDocument();
+  });
+
+  it("says the summary is being prepared while the detail loads", async () => {
+    const user = userEvent.setup();
+    mockDetail({ data: undefined, isLoading: true, isError: false });
+    render(<ReleasesPage />);
+
+    await user.click(within(afmRow()).getAllByRole("button", { name: "1.4.2" })[1]);
+    expect(await screen.findByText("Riepilogo in preparazione")).toBeInTheDocument();
+  });
+
+  it("says the summary could not be loaded when the detail query fails", async () => {
+    const user = userEvent.setup();
+    mockDetail({ data: undefined, isLoading: false, isError: true });
+    render(<ReleasesPage />);
+
+    await user.click(within(afmRow()).getAllByRole("button", { name: "1.4.2" })[1]);
+    expect(await screen.findByText("Impossibile caricare il riepilogo")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["has no summary", { changes: null }],
+    ["is for another version", { version: "1.3.0" }],
+  ])("opens no popover when the latest deploy %s", async (_label, overrides) => {
+    const user = userEvent.setup();
+    mockDetail(detailOf([deployEvent(overrides)]));
+    render(<ReleasesPage />);
+
+    await user.click(within(afmRow()).getAllByRole("button", { name: "1.4.2" })[1]);
+    expect(screen.queryByText(/Modifiche da|Riepilogo/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /AFM-Calculator/ })).not.toBeInTheDocument();
   });
 
   it("hides the sync button without sync:trigger", () => {
