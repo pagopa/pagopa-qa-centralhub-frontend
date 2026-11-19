@@ -263,7 +263,9 @@ describe("ApplicationDetailSheet", () => {
   it("shows the technology chip with its version in the header", () => {
     setDetail({ application: makeApp({ stack: { language: "JAVA", version: "21", source: "dockerfile", ref: "1.4.1" } }) });
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
-    expect(screen.getByText("JAVA 21")).toBeInTheDocument();
+    const chip = screen.getByText("JAVA 21");
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveStyle({ color: "var(--accent)", background: "var(--accent-soft)" });
   });
 
   it("shows the language alone when the version is unknown", () => {

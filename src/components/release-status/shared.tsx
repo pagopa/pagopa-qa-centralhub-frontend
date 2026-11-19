@@ -44,7 +44,15 @@ function stackTooltip(stack: TechStack): string | null {
 export function StackChip({ stack }: { stack: TechStack | null }) {
   if (!stack) return null;
   const label = stack.version ? `${stack.language} ${stack.version}` : stack.language;
-  const chip = <Chip variant="status" value="skipped" label={label} />;
+  const chip = (
+    <span
+      className="inline-flex items-center gap-[5px] rounded-full font-mono"
+      style={{ fontSize: 11, padding: "2px 8px", color: "var(--accent)", background: "var(--accent-soft)" }}
+    >
+      <span className="inline-block shrink-0 rounded-full" style={{ width: 6, height: 6, background: "var(--accent)" }} />
+      {label}
+    </span>
+  );
   const tooltip = stackTooltip(stack);
   if (!tooltip) return chip;
   return (
