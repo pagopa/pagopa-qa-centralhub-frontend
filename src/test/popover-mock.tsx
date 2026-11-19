@@ -7,8 +7,9 @@ import { createContext, useContext, useEffect, useState, type ComponentProps, ty
  */
 const OpenContext = createContext<{ open: boolean; setOpen: (open: boolean) => void }>({ open: false, setOpen: () => {} });
 
-export function Popover({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function Popover({ children, open: forced }: { children: ReactNode; open?: boolean }) {
+  const [state, setOpen] = useState(false);
+  const open = forced ?? state;
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);

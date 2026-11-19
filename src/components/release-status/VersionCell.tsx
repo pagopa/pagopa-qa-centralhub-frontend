@@ -16,7 +16,7 @@ import { useApplicationDetail } from "@/hooks/useReleaseStatus";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime } from "@/components/release-status/format";
 import { cellVisual, type CellIcon, type CellVisual } from "@/lib/release-status";
-import type { Cell, Target } from "@/types/release-status";
+import type { Cell, ChangeSummary, Target } from "@/types/release-status";
 
 const STATUS_ICON: Record<CellIcon, { icon: LucideIcon; label: string; color: string }> = {
   loading: { icon: Clock, label: "in attesa del primo controllo", color: "text-text-muted" },
@@ -33,29 +33,10 @@ const DRIFT_ICON: Record<NonNullable<CellVisual["drift"]>, { icon: LucideIcon; l
   ahead: { icon: ArrowUp, label: "avanti rispetto al repository", color: "text-danger" },
 };
 
-/** Fetches the application detail only once mounted (i.e. after the cell was hovered or focused). */
-function ArmedVersion({
-  applicationId,
-  target,
-  version,
-  children,
-}: {
-  applicationId: string;
-  target: Target;
-  version: string;
-  children: ReactNode;
-}) {
-  const { data } = useApplicationDetail(applicationId);
-  const latest = data?.history[target]?.[0];
-  if (!latest || latest.version !== version || !latest.previous_version || !latest.changes) return <>{children}</>;
-  return (
-    <ChangePopover fromVersion={latest.previous_version} toVersion={latest.version} changes={latest.changes}>
-      {children}
-    </ChangePopover>
-  );
-}
-
-/** Version text that reveals the change popover of the latest deploy (detail loaded lazily). */
+/**
+ * Version text that is a focusable trigger for the change popover of the latest deploy. The detail is
+ * loaded lazily, only once the version is hovered, focused or clicked.
+ */
 function ChangeableVersion({
   applicationId,
   target,
@@ -67,19 +48,51 @@ function ChangeableVersion({
   version: string | null;
   children: ReactNode;
 }) {
-  const [armed, setArmed] = useState(false);
   if (!applicationId || !version) return <>{children}</>;
-  if (armed) {
-    return (
-      <ArmedVersion applicationId={applicationId} target={target} version={version}>
-        {children}
-      </ArmedVersion>
-    );
+  return (
+    <LazyChangeVersion applicationId={applicationId} target={target} version={version}>
+      {children}
+    </LazyChangeVersion>
+  );
+}
+
+function LazyChangeVersion({
+  applicationId,
+  target,
+  version,
+  children,
+}: {
+  applicationId: string;
+  target: Target;
+  version: string;
+  children: ReactNode;
+}) {
+  const [armed, setArmed] = useState(false);
+  const { data, isError } = useApplicationDetail(armed ? applicationId : null);
+
+  const latest = data?.history[target]?.[0];
+  let changes: ChangeSummary | null;
+  let from = "";
+  if (isError) {
+    changes = { status: "ERROR", direction: null, items: [], total_commits: 0, truncated: false, compare_url: null };
+  } else if (!data) {
+    changes = { status: "PENDING", direction: null, items: [], total_commits: 0, truncated: false, compare_url: null };
+  } else if (latest && latest.version === version && latest.previous_version && latest.changes) {
+    changes = latest.changes;
+    from = latest.previous_version;
+  } else {
+    changes = null;
   }
   return (
-    <span className="contents" onMouseEnter={() => setArmed(true)} onFocus={() => setArmed(true)}>
+    <ChangePopover
+      fromVersion={from}
+      toVersion={version}
+      changes={changes}
+      inert={changes === null}
+      onArm={() => setArmed(true)}
+    >
       {children}
-    </span>
+    </ChangePopover>
   );
 }
 
@@ -151,22 +164,21 @@ export function VersionCell({ target, applicationId, cell, stacked = false, ador
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span
-            tabIndex={0}
-            className="inline-flex min-w-0 items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            {statusIcon}
-            <ChangeableVersion applicationId={applicationId} target={target} version={version}>
-              <span className={`truncate font-mono text-[13px] tabular-nums ${versionClass}`}>{version ?? "—"}</span>
-            </ChangeableVersion>
-            {driftIcon}
-          </span>
-        }
-      />
-      {details}
-    </Tooltip>
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span tabIndex={0} className="inline-flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent">
+              {statusIcon}
+            </span>
+          }
+        />
+        {details}
+      </Tooltip>
+      <ChangeableVersion applicationId={applicationId} target={target} version={version}>
+        <span className={`truncate font-mono text-[13px] tabular-nums ${versionClass}`}>{version ?? "—"}</span>
+      </ChangeableVersion>
+      {driftIcon}
+    </span>
   );
 }

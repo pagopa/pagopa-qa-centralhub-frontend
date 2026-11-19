@@ -10,6 +10,7 @@ const UNAVAILABLE_TEXT: Record<"PENDING" | "UNAVAILABLE" | "ERROR", string> = {
 };
 
 function popoverTitle(changes: ChangeSummary, from: string, to: string): string {
+  if (!from) return `Modifiche a ${to}`;
   switch (changes.direction) {
     case "rollback":
       return `Rollback da ${from} a ${to} — modifiche rimosse`;
@@ -36,7 +37,12 @@ function ItemLink({ item }: { item: ChangeItem }) {
 
 function ChangeBody({ changes, from, to }: { changes: ChangeSummary; from: string; to: string }) {
   if (changes.status !== "OK") {
-    return <p className="text-xs text-text-muted">{UNAVAILABLE_TEXT[changes.status]}</p>;
+    return (
+      <>
+        <PopoverTitle className="sr-only">{popoverTitle(changes, from, to)}</PopoverTitle>
+        <p className="text-xs text-text-muted">{UNAVAILABLE_TEXT[changes.status]}</p>
+      </>
+    );
   }
   const prs = changes.items.filter((item) => item.kind === "pr");
   const commits = changes.items.filter((item) => item.kind === "commit");
@@ -88,18 +94,32 @@ interface ChangePopoverProps {
   changes: ChangeSummary | null;
   /** The version text; it becomes the (focusable) trigger. */
   children: ReactNode;
+  /** Called when the trigger is hovered, focused or clicked (e.g. to start loading the summary). */
+  onArm?: () => void;
+  /** Keeps the (focusable) trigger in place but never opens: no summary applies to this version. */
+  inert?: boolean;
 }
 
 /** Popover listing what changed between two deployed versions. */
-export function ChangePopover({ fromVersion, toVersion, changes, children }: ChangePopoverProps) {
-  if (!changes) return <>{children}</>;
+export function ChangePopover({ fromVersion, toVersion, changes, children, onArm, inert = false }: ChangePopoverProps) {
+  if (!changes && !inert) return <>{children}</>;
   return (
-    <Popover>
+    <Popover open={inert ? false : undefined}>
       <PopoverTrigger
         openOnHover
         delay={200}
-        onClick={(event) => event.stopPropagation()}
-        className="max-w-full cursor-pointer rounded-sm text-left underline decoration-dotted decoration-text-dim underline-offset-2 outline-none hover:decoration-accent focus-visible:ring-2 focus-visible:ring-accent"
+        onClick={(event) => {
+          event.stopPropagation();
+          onArm?.();
+        }}
+        onFocus={onArm}
+        onPointerEnter={onArm}
+        aria-disabled={inert || undefined}
+        className={`inline-flex min-w-0 max-w-full rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+          inert
+            ? "cursor-default"
+            : "cursor-pointer underline decoration-dotted decoration-text-dim underline-offset-2 hover:decoration-accent"
+        }`}
       >
         {children}
       </PopoverTrigger>
@@ -108,7 +128,7 @@ export function ChangePopover({ fromVersion, toVersion, changes, children }: Cha
         className="w-80 max-w-[calc(100vw-2rem)] gap-2 bg-surface text-text"
         onClick={(event) => event.stopPropagation()}
       >
-        <ChangeBody changes={changes} from={fromVersion} to={toVersion} />
+        {changes && <ChangeBody changes={changes} from={fromVersion} to={toVersion} />}
       </PopoverContent>
     </Popover>
   );
