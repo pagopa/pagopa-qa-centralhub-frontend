@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ChangePopover } from "@/components/release-status/ChangePopover";
@@ -95,6 +95,39 @@ describe("ChangePopover", () => {
   ] as const)("explains a %s summary", async (status, text) => {
     await open(makeChanges({ status, direction: null, items: [], compare_url: null }));
     expect(await screen.findByText(text)).toBeInTheDocument();
+  });
+
+  it("can be opened after being inert once the summary becomes available", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ChangePopover fromVersion="" toVersion="1.1.0" changes={null} inert>
+        1.1.0
+      </ChangePopover>,
+    );
+    await user.click(screen.getByRole("button", { name: "1.1.0" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    rerender(
+      <ChangePopover fromVersion="1.0.0" toVersion="1.1.0" changes={makeChanges()}>
+        1.1.0
+      </ChangePopover>,
+    );
+    await user.click(screen.getByRole("button", { name: "1.1.0" }));
+    expect(await screen.findByText("Modifiche da 1.0.0 a 1.1.0")).toBeInTheDocument();
+  });
+
+  it("lists items sharing the same url without duplicate keys", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const item = { kind: "pr" as const, number: 9, title: "Twice", author: null, url: "https://github.com/pagopa/x/pull/9" };
+    render(
+      <ChangePopover fromVersion="1.0.0" toVersion="1.1.0" changes={makeChanges({ items: [item, item] })}>
+        1.1.0
+      </ChangePopover>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "1.1.0" }));
+    expect(screen.getAllByRole("link", { name: "#9 Twice" })).toHaveLength(2);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 
   it("closes with Escape", async () => {

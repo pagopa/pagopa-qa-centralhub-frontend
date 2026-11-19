@@ -382,13 +382,13 @@ describe("Releases page", () => {
     expect(await screen.findByText("Riepilogo in preparazione")).toBeInTheDocument();
   });
 
-  it("says GitHub did not answer when the detail query fails", async () => {
+  it("says the summary could not be loaded when the detail query fails", async () => {
     const user = userEvent.setup();
     mockDetail({ data: undefined, isLoading: false, isError: true });
     render(<ReleasesPage />);
 
     await user.click(within(afmRow()).getAllByRole("button", { name: "1.4.2" })[1]);
-    expect(await screen.findByText("Riepilogo non disponibile (GitHub non ha risposto)")).toBeInTheDocument();
+    expect(await screen.findByText("Impossibile caricare il riepilogo")).toBeInTheDocument();
   });
 
   it.each([

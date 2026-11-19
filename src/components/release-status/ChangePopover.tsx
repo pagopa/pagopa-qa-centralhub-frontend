@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { ACCENT_LINK_CLASS as linkClass } from "@/components/release-status/shared";
 import type { ChangeItem, ChangeSummary } from "@/types/release-status";
@@ -35,12 +35,22 @@ function ItemLink({ item }: { item: ChangeItem }) {
   );
 }
 
-function ChangeBody({ changes, from, to }: { changes: ChangeSummary; from: string; to: string }) {
+function ChangeBody({
+  changes,
+  from,
+  to,
+  messageOverride,
+}: {
+  changes: ChangeSummary;
+  from: string;
+  to: string;
+  messageOverride?: string;
+}) {
   if (changes.status !== "OK") {
     return (
       <>
         <PopoverTitle className="sr-only">{popoverTitle(changes, from, to)}</PopoverTitle>
-        <p className="text-xs text-text-muted">{UNAVAILABLE_TEXT[changes.status]}</p>
+        <p className="text-xs text-text-muted">{messageOverride ?? UNAVAILABLE_TEXT[changes.status]}</p>
       </>
     );
   }
@@ -51,8 +61,8 @@ function ChangeBody({ changes, from, to }: { changes: ChangeSummary; from: strin
       <PopoverTitle className="text-sm font-semibold text-text">{popoverTitle(changes, from, to)}</PopoverTitle>
       {prs.length > 0 && (
         <ul aria-label="Pull request" className="flex max-h-60 flex-col gap-1.5 overflow-y-auto">
-          {prs.map((item) => (
-            <ItemLink key={item.url} item={item} />
+          {prs.map((item, index) => (
+            <ItemLink key={`${index}-${item.url}`} item={item} />
           ))}
         </ul>
       )}
@@ -60,8 +70,8 @@ function ChangeBody({ changes, from, to }: { changes: ChangeSummary; from: strin
         <details className="text-xs">
           <summary className="cursor-pointer text-text-muted">Altri commit ({commits.length})</summary>
           <ul aria-label="Altri commit" className="mt-1.5 flex max-h-60 flex-col gap-1.5 overflow-y-auto">
-            {commits.map((item) => (
-              <ItemLink key={item.url} item={item} />
+            {commits.map((item, index) => (
+              <ItemLink key={`${index}-${item.url}`} item={item} />
             ))}
           </ul>
         </details>
@@ -98,13 +108,17 @@ interface ChangePopoverProps {
   onArm?: () => void;
   /** Keeps the (focusable) trigger in place but never opens: no summary applies to this version. */
   inert?: boolean;
+  /** Replaces the standard text of a non-OK summary (e.g. when our own request failed). */
+  messageOverride?: string;
 }
 
 /** Popover listing what changed between two deployed versions. */
-export function ChangePopover({ fromVersion, toVersion, changes, children, onArm, inert = false }: ChangePopoverProps) {
+export function ChangePopover({ fromVersion, toVersion, changes, children, onArm, inert = false, messageOverride }: ChangePopoverProps) {
+  // Always controlled: Base UI never goes back to uncontrolled once `open` has been defined.
+  const [open, setOpen] = useState(false);
   if (!changes && !inert) return <>{children}</>;
   return (
-    <Popover open={inert ? false : undefined}>
+    <Popover open={open && !inert} onOpenChange={(next) => setOpen(inert ? false : next)}>
       <PopoverTrigger
         openOnHover
         delay={200}
@@ -128,7 +142,7 @@ export function ChangePopover({ fromVersion, toVersion, changes, children, onArm
         className="w-80 max-w-[calc(100vw-2rem)] gap-2 bg-surface text-text"
         onClick={(event) => event.stopPropagation()}
       >
-        {changes && <ChangeBody changes={changes} from={fromVersion} to={toVersion} />}
+        {changes && <ChangeBody changes={changes} from={fromVersion} to={toVersion} messageOverride={messageOverride} />}
       </PopoverContent>
     </Popover>
   );

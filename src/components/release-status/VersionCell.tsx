@@ -89,6 +89,7 @@ function LazyChangeVersion({
       toVersion={version}
       changes={changes}
       inert={changes === null}
+      messageOverride={isError ? "Impossibile caricare il riepilogo" : undefined}
       onArm={() => setArmed(true)}
     >
       {children}
