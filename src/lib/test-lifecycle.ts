@@ -77,3 +77,23 @@ export function transitionBlockReasons(
   const check = checks?.find((c) => c.action === action);
   return check && !check.allowed ? check.reasons : [];
 }
+
+/** Mirror of the backend ALLOWED_EXTRA_TAGS (app/services/test_lifecycle/gherkin.py). */
+export const ALLOWED_EXTRA_TAGS = ["runnable", "e2e", "ui", "skip"] as const;
+
+export const STALE_LOCK_MESSAGE =
+  "La bozza è stata modificata da un altro utente. Ricarica per vedere le modifiche.";
+
+/** The URL itself when it is an http(s) link, otherwise null (render as plain text). */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  const v = value?.trim();
+  return v && /^https?:\/\//i.test(v) ? v : null;
+}
+
+/** Italian user-facing message for a failed write. */
+export function writeErrorMessage(err: unknown): string {
+  if (apiErrorCode(err) === "revision_locked") {
+    return "La revisione non è più in bozza: ricarica la pagina.";
+  }
+  return apiErrorMessage(err) ?? (apiErrorReasons(err).join(" ") || "Salvataggio non riuscito.");
+}

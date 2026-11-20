@@ -59,3 +59,15 @@ describe("labels", () => {
     expect(TRANSITION_LABEL.request_changes).toBe("Richiedi modifiche");
   });
 });
+
+describe("safeHttpUrl", () => {
+  it("accepts only http(s) links", async () => {
+    const { safeHttpUrl } = await import("@/lib/test-lifecycle");
+    expect(safeHttpUrl("https://example.org/req")).toBe("https://example.org/req");
+    expect(safeHttpUrl("HTTP://example.org")).toBe("HTTP://example.org");
+    expect(safeHttpUrl("javascript:alert(1)")).toBeNull();
+    expect(safeHttpUrl("data:text/html,x")).toBeNull();
+    expect(safeHttpUrl("www.example.org")).toBeNull();
+    expect(safeHttpUrl(null)).toBeNull();
+  });
+});
