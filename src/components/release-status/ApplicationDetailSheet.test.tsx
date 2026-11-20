@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApplicationDetailSheet } from "@/components/release-status/ApplicationDetailSheet";
+import { STACK_COLOR } from "@/components/release-status/shared";
 import type { ApplicationDetail, ApplicationRow, Cell, DeployEvent, RunRef } from "@/types/release-status";
 
 const hooks = vi.hoisted(() => ({ detail: vi.fn() }));
@@ -265,7 +266,14 @@ describe("ApplicationDetailSheet", () => {
     render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
     const chip = screen.getByText("JAVA 21");
     expect(chip).toBeInTheDocument();
-    expect(chip).toHaveStyle({ color: "var(--accent)", background: "var(--accent-soft)" });
+    expect(chip).toHaveStyle({ color: "#ffffff", background: STACK_COLOR.JAVA });
+  });
+
+  it("gives each technology its own color", () => {
+    setDetail({ application: makeApp({ stack: { language: "PYTHON", version: "3.12", source: "dockerfile", ref: "2.0.0" } }) });
+    render(<ApplicationDetailSheet applicationId="app-1" onClose={vi.fn()} />);
+    expect(screen.getByText("PYTHON 3.12")).toHaveStyle({ background: STACK_COLOR.PYTHON });
+    expect(new Set(Object.values(STACK_COLOR)).size).toBe(Object.keys(STACK_COLOR).length);
   });
 
   it("shows the language alone when the version is unknown", () => {
