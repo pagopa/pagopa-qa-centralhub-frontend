@@ -1,0 +1,56 @@
+"use client";
+
+import { useState } from "react";
+import { Plus, Settings } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { CreateFeatureDialog } from "@/components/test-lifecycle/CreateFeatureDialog";
+import { FeatureTable } from "@/components/test-lifecycle/FeatureTable";
+import { ScopeManagerDialog } from "@/components/test-lifecycle/ScopeManagerDialog";
+import { ScopeOverview } from "@/components/test-lifecycle/ScopeOverview";
+import { Gate } from "@/lib/permissions";
+
+export default function TestLifecyclePage() {
+  const { status } = useSession();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [scopesOpen, setScopesOpen] = useState(false);
+  const [scopeId, setScopeId] = useState<string | undefined>();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-xl font-semibold text-text">Test Lifecycle</h1>
+        <div className="flex items-center gap-2">
+          <Gate action="manage:tl_scopes">
+            <button
+              onClick={() => setScopesOpen(true)}
+              className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface text-text-dim text-[13px] px-3 py-1.5 hover:bg-hover transition-colors"
+            >
+              <Settings size={14} /> Gestisci ambiti
+            </button>
+          </Gate>
+          <Gate action="edit:tl_feature">
+            <button
+              onClick={() => setCreateOpen(true)}
+              disabled={status === "loading"}
+              className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--accent)] bg-surface text-[var(--accent)] text-[13px] px-3 py-1.5 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={14} /> Nuova feature
+            </button>
+          </Gate>
+        </div>
+      </div>
+
+      <ScopeOverview selectedScopeId={scopeId} onSelect={setScopeId} />
+
+      {/* key: remount to apply the scope picked in the overview as the initial filter */}
+      <FeatureTable key={scopeId ?? "all"} initialScopeId={scopeId} />
+
+      <Gate action="manage:tl_scopes">
+        <ScopeManagerDialog open={scopesOpen} onOpenChange={setScopesOpen} />
+      </Gate>
+      <Gate action="edit:tl_feature">
+        <CreateFeatureDialog open={createOpen} onOpenChange={setCreateOpen} defaultScopeId={scopeId} />
+      </Gate>
+    </div>
+  );
+}

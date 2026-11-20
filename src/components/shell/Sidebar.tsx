@@ -12,6 +12,7 @@ import {
   FileText,
   Home,
   LayoutGrid,
+  ListChecks,
   PackageCheck,
   PanelLeftClose,
   PanelLeftOpen,
@@ -59,6 +60,12 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "BDD",
     items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd", featureKey: "bdd" }],
+  },
+  {
+    label: "Test Design",
+    items: [
+      { href: "/test-lifecycle", label: "Test Lifecycle", icon: ListChecks, action: "view:test_lifecycle", featureKey: "test_lifecycle" },
+    ],
   },
   {
     label: "Test Results",

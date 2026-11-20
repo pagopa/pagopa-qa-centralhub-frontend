@@ -52,6 +52,12 @@ export function apiErrorCode(err: unknown): string | null {
   return typeof code === "string" ? code : null;
 }
 
+/** The backend error `detail.message` of an ApiError, or null. */
+export function apiErrorMessage(err: unknown): string | null {
+  const message = errorDetail(err)?.message;
+  return typeof message === "string" ? message : null;
+}
+
 /** The backend error `detail.reasons` of an ApiError (empty when absent). */
 export function apiErrorReasons(err: unknown): string[] {
   const reasons = errorDetail(err)?.reasons;
