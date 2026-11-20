@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
 import { ScenarioCard } from "@/components/test-lifecycle/ScenarioCard";
+import { StaleLockBanner } from "@/components/test-lifecycle/StaleLockBanner";
 import { useTlFeature, useTlTransition } from "@/hooks/useTestLifecycle";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useTlRevisionWriter } from "@/hooks/useTlRevisionWriter";
-import { apiErrorMessage, apiErrorReasons, writeErrorMessage } from "@/lib/test-lifecycle";
+import { useTlRevisionWriter, type TlRevisionWriter } from "@/hooks/useTlRevisionWriter";
+import {
+  apiErrorMessage,
+  apiErrorReasons,
+  isStaleLockError,
+  StaleDraftError,
+  writeErrorMessage,
+} from "@/lib/test-lifecycle";
 import type { TlFeatureDetail, TlRevision, TlTransitionAction } from "@/types/test-lifecycle";
 
 export default function FeatureDetailPage() {
@@ -58,6 +66,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
   // Reload discards local unsaved text: refetch first, then remount editors and reseed the lock.
   const reload = async () => {
     await refetch();
+    writer.clearStale();
     setReloadKey((k) => k + 1);
   };
 
@@ -65,23 +74,35 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
     if (!revision) return false;
     setTransitionError(null);
     try {
-      await transition.mutateAsync({ featureId: feature.id, revisionId: revision.id, action, note });
+      // Pending edits are saved first and the transition is queued after every write,
+      // so it never races a save (and the backend checks run on the latest content).
+      await writer.afterPendingWrites(() =>
+        transition.mutateAsync({ featureId: feature.id, revisionId: revision.id, action, note }),
+      );
       return true;
     } catch (err) {
-      setTransitionError(
-        apiErrorReasons(err).join(" ") || apiErrorMessage(err) || "Transizione non riuscita.",
-      );
+      if (err instanceof StaleDraftError || isStaleLockError(err)) {
+        setTransitionError("La bozza non è aggiornata: ricarica prima di proseguire.");
+      } else if (err instanceof Error && err.message === "flush_failed") {
+        setTransitionError("Alcune modifiche non sono state salvate: correggile prima di proseguire.");
+      } else {
+        setTransitionError(
+          apiErrorReasons(err).join(" ") || apiErrorMessage(err) || "Transizione non riuscita.",
+        );
+      }
       return false;
     }
   };
 
   // Tabs are declared as data so later tasks (Review, Storico) can append entries.
-  const tabs: { value: string; label: string; content: ReactNode }[] = [
+  // Panels holding unsaved drafts are kept mounted so switching tab never loses text.
+  const tabs: { value: string; label: string; content: ReactNode; keepMounted?: boolean }[] = [
     {
       value: "scenari",
       label: "Scenari",
+      keepMounted: true,
       content: revision ? (
-        <ScenariosTab key={`${revision.id}-${reloadKey}`} revision={revision} editable={editable} writer={writer} onReload={reload} />
+        <ScenariosTab key={`${revision.id}-${reloadKey}`} revision={revision} editable={editable} writer={writer} />
       ) : (
         <p className="text-[13px] text-text-muted">Nessuna revisione disponibile.</p>
       ),
@@ -96,6 +117,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
   return (
     <div className="flex flex-col gap-5">
       <BackLink />
+      {writer.stale && <StaleLockBanner onReload={() => void reload()} />}
       <FeatureHeader
         feature={feature}
         onTransition={runTransition}
@@ -108,8 +130,9 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         feature={feature}
         revision={revision}
         readOnly={!editable}
+        stale={writer.stale}
         onSaveRevision={writer.updateRevision}
-        onReload={() => void reload()}
+        registerFlush={writer.registerFlush}
       />
       <Tabs defaultValue="scenari">
         <TabsList>
@@ -118,7 +141,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
           ))}
         </TabsList>
         {tabs.map((t) => (
-          <TabsContent key={t.value} value={t.value} className="pt-3">
+          <TabsContent key={t.value} value={t.value} keepMounted={t.keepMounted} className="pt-3">
             {t.content}
           </TabsContent>
         ))}
@@ -131,51 +154,54 @@ function ScenariosTab({
   revision,
   editable,
   writer,
-  onReload,
 }: {
   revision: TlRevision;
   editable: boolean;
-  writer: ReturnType<typeof useTlRevisionWriter>;
-  onReload: () => Promise<void>;
+  writer: TlRevisionWriter;
 }) {
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
+  // Synchronous guard: a double Enter must not create two scenarios.
+  const addingRef = useRef(false);
   const [addError, setAddError] = useState<string | null>(null);
   const scenarios = [...revision.scenarios].sort((a, b) => a.position - b.position);
 
   const add = async () => {
     const title = newTitle.trim();
-    if (!title) return;
+    if (!title || addingRef.current || writer.stale) return;
+    addingRef.current = true;
     setAdding(true);
     setAddError(null);
     try {
       await writer.addScenario({ title });
       setNewTitle("");
     } catch (err) {
-      setAddError(writeErrorMessage(err));
+      if (!(err instanceof StaleDraftError) && !isStaleLockError(err)) setAddError(writeErrorMessage(err));
     } finally {
+      addingRef.current = false;
       setAdding(false);
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {revision.background_errors.length > 0 && (
-        <ul className="text-[12px]" style={{ color: "var(--danger)" }}>
-          {revision.background_errors.map((e, i) => (
-            <li key={i}>Contesto, riga {e.line}: {e.message}</li>
-          ))}
-        </ul>
-      )}
+      <BackgroundEditor
+        revision={revision}
+        readOnly={!editable}
+        stale={writer.stale}
+        onSave={writer.updateRevision}
+        registerFlush={writer.registerFlush}
+      />
       {scenarios.length === 0 && <p className="text-[13px] text-text-muted">Nessuno scenario.</p>}
       {scenarios.map((s) => (
         <ScenarioCard
           key={s.id}
           scenario={s}
           readOnly={!editable}
+          stale={writer.stale}
           onSave={(patch) => writer.updateScenario(s.id, patch)}
           onRemove={editable ? () => writer.removeScenario(s.id) : undefined}
-          onReload={() => void onReload()}
+          registerFlush={writer.registerFlush}
         />
       ))}
       {editable && (
@@ -189,7 +215,7 @@ function ScenariosTab({
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && void add()}
             />
-            <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={adding || !newTitle.trim()} onClick={() => void add()}>
+            <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={adding || writer.stale || !newTitle.trim()} onClick={() => void add()}>
               <Plus size={14} /> Aggiungi scenario
             </button>
           </div>

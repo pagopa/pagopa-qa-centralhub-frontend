@@ -27,8 +27,8 @@ function renderCard(props: Partial<Parameters<typeof ScenarioCard>[0]> = {}) {
     <ScenarioCard
       scenario={props.scenario ?? scenario()}
       readOnly={props.readOnly ?? false}
+      stale={props.stale ?? false}
       onSave={onSave}
-      onReload={props.onReload ?? vi.fn()}
     />,
   );
   return { onSave };
@@ -67,26 +67,37 @@ describe("ScenarioCard", () => {
     expect(screen.getByDisplayValue("10")).toBeInTheDocument();
   });
 
-  it("shows the reload banner on a stale lock 409 and keeps the local text", async () => {
-    const onReload = vi.fn();
+  it("keeps the local text on a stale lock 409 and leaves the banner to the page", async () => {
     const onSave = vi
       .fn()
       .mockRejectedValue(new ApiError(409, { detail: { code: "stale_lock", message: "x" } }));
-    renderCard({ onSave, onReload });
+    renderCard({ onSave });
     const title = screen.getByLabelText("Titolo scenario");
     await userEvent.clear(title);
     await userEvent.type(title, "Titolo nuovo");
     await userEvent.click(screen.getByRole("button", { name: "Salva" }));
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: "Titolo nuovo" }));
-    expect(
-      await screen.findByText(
-        "La bozza è stata modificata da un altro utente. Ricarica per vedere le modifiche.",
-      ),
-    ).toBeInTheDocument();
     expect(screen.getByLabelText("Titolo scenario")).toHaveValue("Titolo nuovo");
-    await userEvent.click(screen.getByRole("button", { name: "Ricarica" }));
-    expect(onReload).toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("sends one PATCH when blur and Salva fire together", async () => {
+    let resolve: () => void = () => {};
+    const onSave = vi.fn(() => new Promise<void>((r) => (resolve = r)));
+    renderCard({ onSave });
+    await userEvent.type(screen.getByLabelText("Titolo scenario"), "!");
+    await userEvent.click(screen.getByRole("button", { name: "Salva" }));
+    await act(async () => resolve());
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("suppresses saves while the draft is stale", async () => {
+    const { onSave } = renderCard({ stale: true });
+    await userEvent.type(screen.getByLabelText("Titolo scenario"), "x");
+    expect(screen.getByRole("button", { name: "Salva" })).toBeDisabled();
+    await userEvent.tab();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it("validates the steps after 400 ms of inactivity", () => {

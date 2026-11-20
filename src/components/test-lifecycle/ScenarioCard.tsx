@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { INPUT_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
-import { useValidateSteps } from "@/hooks/useTestLifecycle";
-import { ALLOWED_EXTRA_TAGS, isStaleLockError, safeHttpUrl, writeErrorMessage } from "@/lib/test-lifecycle";
+import { useDraftSave } from "@/hooks/useDraftSave";
+import { useLiveValidation } from "@/hooks/useLiveValidation";
+import {
+  ALLOWED_EXTRA_TAGS,
+  isStaleLockError,
+  safeHttpUrl,
+  StaleDraftError,
+  writeErrorMessage,
+  type Flusher,
+} from "@/lib/test-lifecycle";
 import type {
   TlExamples,
-  TlLineError,
   TlPolarity,
   TlScenario,
   TlScenarioKind,
@@ -15,7 +22,6 @@ import type {
 } from "@/types/test-lifecycle";
 import { EMPTY_EXAMPLES, ExamplesGrid } from "./ExamplesGrid";
 import { ExtraTagsPicker } from "./ExtraTagsPicker";
-import { StaleLockBanner } from "./StaleLockBanner";
 import { StepsEditor } from "./StepsEditor";
 
 export type ScenarioPatch = Omit<TlScenarioUpdate, "lock_version" | "position">;
@@ -29,8 +35,6 @@ interface Draft {
   examples: TlExamples | null;
   detail_link: string;
 }
-
-const VALIDATE_DELAY_MS = 400;
 
 function toDraft(s: TlScenario): Draft {
   return {
@@ -63,69 +67,45 @@ function diff(saved: Draft, next: Draft): ScenarioPatch {
 /**
  * One scenario of the working revision. Local text is the source of truth
  * while editing: it is seeded once from props (the page remounts the card on
- * reload) so a failed save never discards what the user typed.
+ * reload) so a failed save never discards what the user typed. The stale-lock
+ * banner is page-wide; here `stale` only suppresses further saves.
  */
 export function ScenarioCard({
   scenario,
   readOnly,
+  stale = false,
   onSave,
-  onReload,
   onRemove,
+  registerFlush,
 }: {
   scenario: TlScenario;
   readOnly: boolean;
+  stale?: boolean;
   onSave: (patch: ScenarioPatch) => Promise<TlScenario | void>;
-  onReload: () => void;
   onRemove?: () => Promise<unknown>;
+  registerFlush?: (fn: Flusher) => () => void;
 }) {
-  const validate = useValidateSteps();
-  const [draft, setDraft] = useState<Draft>(() => toDraft(scenario));
-  const [errors, setErrors] = useState<TlLineError[]>(scenario.errors);
-  const [stale, setStale] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { errors, setErrors, schedule } = useLiveValidation(scenario.errors);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const saved = useRef<Draft>(toDraft(scenario));
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
-
-  const scheduleValidate = (next: Draft) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      validate.mutate(
-        { steps: next.steps, kind: next.kind, examples: next.kind === "outline" ? next.examples : null },
-        { onSuccess: (result) => setErrors(result.errors) },
-      );
-    }, VALIDATE_DELAY_MS);
-  };
+  const { draft, setDraft, save, saving, error: saveError, setError: setSaveError } = useDraftSave<Draft, ScenarioPatch>({
+    initial: toDraft(scenario),
+    diff,
+    persist: onSave,
+    onSaved: (result) => {
+      if (result) setErrors((result as TlScenario).errors);
+    },
+    disabled: readOnly || stale,
+    registerFlush,
+  });
 
   const update = (changes: Partial<Draft>, opts: { validate?: boolean; save?: boolean } = {}) => {
     const next = { ...draft, ...changes };
     setDraft(next);
-    if (opts.validate) scheduleValidate(next);
-    if (opts.save) void save(next);
-  };
-
-  async function save(next: Draft = draft) {
-    if (readOnly || stale) return;
-    const patch = diff(saved.current, next);
-    if (Object.keys(patch).length === 0) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const result = await onSave(patch);
-      saved.current = next;
-      if (result) setErrors(result.errors);
-    } catch (err) {
-      if (isStaleLockError(err)) setStale(true);
-      else setSaveError(writeErrorMessage(err));
-    } finally {
-      setSaving(false);
+    if (opts.validate) {
+      schedule({ steps: next.steps, kind: next.kind, examples: next.kind === "outline" ? next.examples : null });
     }
-  }
+    if (opts.save) void save();
+  };
 
   const toggleTag = (tag: string) => {
     const tags = draft.extra_tags.includes(tag)
@@ -138,8 +118,6 @@ export function ScenarioCard({
 
   return (
     <article className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
-      {stale && <StaleLockBanner onReload={onReload} />}
-
       <header className="flex items-center gap-2 flex-wrap">
         <span className="font-mono text-[12px] text-text-muted">#{scenario.number}</span>
         <span
@@ -263,9 +241,11 @@ export function ScenarioCard({
                   style={{ color: "var(--danger)" }}
                   onClick={() => {
                     setConfirmRemove(false);
-                    onRemove().catch((err) =>
-                      isStaleLockError(err) ? setStale(true) : setSaveError(writeErrorMessage(err)),
-                    );
+                    onRemove().catch((err) => {
+                      if (!isStaleLockError(err) && !(err instanceof StaleDraftError)) {
+                        setSaveError(writeErrorMessage(err));
+                      }
+                    });
                   }}
                 >
                   Conferma rimozione
@@ -279,6 +259,7 @@ export function ScenarioCard({
                 type="button"
                 className={`${SECONDARY_BUTTON_CLASS} ml-auto`}
                 aria-label="Rimuovi scenario"
+                disabled={stale}
                 onClick={() => setConfirmRemove(true)}
               >
                 <Trash2 size={14} />

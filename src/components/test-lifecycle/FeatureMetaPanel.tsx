@@ -3,15 +3,16 @@
 import { useState, type ReactNode } from "react";
 import { INPUT_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
 import { useUpdateTlFeature } from "@/hooks/useTestLifecycle";
+import { useDraftSave } from "@/hooks/useDraftSave";
 import { useUsers } from "@/hooks/useUsers";
-import { isStaleLockError, safeHttpUrl, writeErrorMessage } from "@/lib/test-lifecycle";
+import { safeHttpUrl, writeErrorMessage, type Flusher } from "@/lib/test-lifecycle";
 import type { TlFeatureDetail, TlFeatureUpdate, TlRevision, TlRevisionUpdate } from "@/types/test-lifecycle";
-import { StaleLockBanner } from "./StaleLockBanner";
 
 type RevisionPatch = Omit<TlRevisionUpdate, "lock_version">;
 
 interface RevisionDraft {
   title: string;
+  description: string;
   requirements_url: string;
   product_issue_key: string;
   reverse_engineering: boolean;
@@ -22,6 +23,7 @@ interface RevisionDraft {
 function toRevisionDraft(r: TlRevision | null): RevisionDraft {
   return {
     title: r?.title ?? "",
+    description: r?.description ?? "",
     requirements_url: r?.requirements_url ?? "",
     product_issue_key: r?.product_issue_key ?? "",
     reverse_engineering: r?.reverse_engineering ?? false,
@@ -31,6 +33,18 @@ function toRevisionDraft(r: TlRevision | null): RevisionDraft {
 }
 
 const orNull = (v: string) => v.trim() || null;
+
+function diffRevision(saved: RevisionDraft, next: RevisionDraft): RevisionPatch {
+  const patch: RevisionPatch = {};
+  if (next.title !== saved.title && next.title.trim()) patch.title = next.title.trim();
+  if (next.description !== saved.description) patch.description = orNull(next.description);
+  if (next.requirements_url !== saved.requirements_url) patch.requirements_url = orNull(next.requirements_url);
+  if (next.product_issue_key !== saved.product_issue_key) patch.product_issue_key = orNull(next.product_issue_key);
+  if (next.reverse_engineering !== saved.reverse_engineering) patch.reverse_engineering = next.reverse_engineering;
+  if (next.design_estimate_days !== saved.design_estimate_days) patch.design_estimate_days = orNull(next.design_estimate_days);
+  if (next.impl_estimate_days !== saved.impl_estimate_days) patch.impl_estimate_days = orNull(next.impl_estimate_days);
+  return patch;
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -50,24 +64,35 @@ export function FeatureMetaPanel({
   feature,
   revision,
   readOnly,
+  stale = false,
   onSaveRevision,
-  onReload,
+  registerFlush,
 }: {
   feature: TlFeatureDetail;
   revision: TlRevision | null;
   readOnly: boolean;
+  stale?: boolean;
   onSaveRevision: (patch: RevisionPatch) => Promise<unknown>;
-  onReload: () => void;
+  registerFlush?: (fn: Flusher) => () => void;
 }) {
   const { data: users } = useUsers();
   const updateFeature = useUpdateTlFeature();
-  const [rev, setRev] = useState<RevisionDraft>(() => toRevisionDraft(revision));
-  const [savedRev, setSavedRev] = useState<RevisionDraft>(() => toRevisionDraft(revision));
+  const {
+    draft: rev,
+    setDraft: setRev,
+    save,
+    error: revisionError,
+  } = useDraftSave<RevisionDraft, RevisionPatch>({
+    initial: toRevisionDraft(revision),
+    diff: diffRevision,
+    persist: onSaveRevision,
+    disabled: readOnly || stale || !revision,
+    registerFlush,
+  });
   const [jira, setJira] = useState({
     jira_design_key: feature.jira_design_key ?? "",
     jira_impl_key: feature.jira_impl_key ?? "",
   });
-  const [stale, setStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const saveFeature = (patch: TlFeatureUpdate) => {
@@ -76,25 +101,7 @@ export function FeatureMetaPanel({
     updateFeature.mutate({ id: feature.id, ...patch }, { onError: (err) => setError(writeErrorMessage(err)) });
   };
 
-  const saveRevision = async (next: RevisionDraft = rev) => {
-    if (readOnly || stale || !revision) return;
-    const patch: RevisionPatch = {};
-    if (next.title !== savedRev.title && next.title.trim()) patch.title = next.title.trim();
-    if (next.requirements_url !== savedRev.requirements_url) patch.requirements_url = orNull(next.requirements_url);
-    if (next.product_issue_key !== savedRev.product_issue_key) patch.product_issue_key = orNull(next.product_issue_key);
-    if (next.reverse_engineering !== savedRev.reverse_engineering) patch.reverse_engineering = next.reverse_engineering;
-    if (next.design_estimate_days !== savedRev.design_estimate_days) patch.design_estimate_days = orNull(next.design_estimate_days);
-    if (next.impl_estimate_days !== savedRev.impl_estimate_days) patch.impl_estimate_days = orNull(next.impl_estimate_days);
-    if (Object.keys(patch).length === 0) return;
-    setError(null);
-    try {
-      await onSaveRevision(patch);
-      setSavedRev(next);
-    } catch (err) {
-      if (isStaleLockError(err)) setStale(true);
-      else setError(writeErrorMessage(err));
-    }
-  };
+  const saveRevision = () => void save();
 
   const userSelect = (label: string, key: "design_owner_id" | "reviewer_id" | "impl_owner_id") => {
     const value = feature[key] ?? "";
@@ -135,10 +142,19 @@ export function FeatureMetaPanel({
 
   return (
     <section className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
-      {stale && <StaleLockBanner onReload={onReload} />}
       <h2 className="text-sm font-semibold text-text">Metadati</h2>
 
-      {text("Titolo", rev.title, (title) => setRev({ ...rev, title }), () => void saveRevision())}
+      {text("Titolo", rev.title, (title) => setRev({ ...rev, title }), saveRevision)}
+
+      <Field label="Descrizione">
+        <textarea
+          className="min-h-20 rounded-[var(--radius-sm)] border border-border-strong bg-surface p-2 text-[14px] text-text outline-none focus:border-accent"
+          value={rev.description}
+          readOnly={readOnly}
+          onChange={(e) => setRev({ ...rev, description: e.target.value })}
+          onBlur={saveRevision}
+        />
+      </Field>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {userSelect("Owner design", "design_owner_id")}
@@ -172,7 +188,7 @@ export function FeatureMetaPanel({
             <span className="text-[14px] text-text-muted">Reverse engineering</span>
           </Field>
         ) : (
-          text("Epic/Story prodotto", rev.product_issue_key, (v) => setRev({ ...rev, product_issue_key: v }), () => void saveRevision(), "ABC-123")
+          text("Epic/Story prodotto", rev.product_issue_key, (v) => setRev({ ...rev, product_issue_key: v }), saveRevision, "ABC-123")
         )}
         <label className="flex items-center gap-2 text-[13px] text-text-dim h-9">
           <input
@@ -182,7 +198,7 @@ export function FeatureMetaPanel({
             onChange={(e) => {
               const next = { ...rev, reverse_engineering: e.target.checked };
               setRev(next);
-              void saveRevision(next);
+              saveRevision();
             }}
           />
           Reverse engineering (nessuna Epic/Story)
@@ -200,17 +216,17 @@ export function FeatureMetaPanel({
           )}
         </Field>
       ) : (
-        text("Requisiti", rev.requirements_url, (v) => setRev({ ...rev, requirements_url: v }), () => void saveRevision(), "https://…")
+        text("Requisiti", rev.requirements_url, (v) => setRev({ ...rev, requirements_url: v }), saveRevision, "https://…")
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {text("Stima progettazione (giorni)", rev.design_estimate_days, (v) => setRev({ ...rev, design_estimate_days: v }), () => void saveRevision())}
-        {text("Stima implementazione (giorni)", rev.impl_estimate_days, (v) => setRev({ ...rev, impl_estimate_days: v }), () => void saveRevision())}
+        {text("Stima progettazione (giorni)", rev.design_estimate_days, (v) => setRev({ ...rev, design_estimate_days: v }), saveRevision)}
+        {text("Stima implementazione (giorni)", rev.impl_estimate_days, (v) => setRev({ ...rev, impl_estimate_days: v }), saveRevision)}
       </div>
 
-      {error && (
+      {(error || revisionError) && (
         <p role="alert" className="text-danger text-[13px]">
-          {error}
+          {error ?? revisionError}
         </p>
       )}
     </section>

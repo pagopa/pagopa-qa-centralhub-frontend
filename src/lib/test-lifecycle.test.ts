@@ -71,3 +71,19 @@ describe("safeHttpUrl", () => {
     expect(safeHttpUrl(null)).toBeNull();
   });
 });
+
+describe("writeErrorMessage", () => {
+  it("surfaces the first pydantic 422 message", async () => {
+    const { writeErrorMessage } = await import("@/lib/test-lifecycle");
+    const err = new ApiError(422, {
+      detail: [{ loc: ["body", "description"], msg: "Value error, La descrizione non può contenere righe che iniziano con @", type: "value_error" }],
+    });
+    expect(writeErrorMessage(err)).toBe("La descrizione non può contenere righe che iniziano con @");
+  });
+
+  it("falls back to a generic message", async () => {
+    const { writeErrorMessage } = await import("@/lib/test-lifecycle");
+    expect(writeErrorMessage(new ApiError(500, null))).toBe("Salvataggio non riuscito.");
+    expect(writeErrorMessage(new ApiError(409, { detail: { code: "revision_locked" } }))).toMatch(/non è più in bozza/);
+  });
+});

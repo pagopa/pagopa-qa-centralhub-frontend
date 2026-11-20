@@ -90,10 +90,33 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
   return v && /^https?:\/\//i.test(v) ? v : null;
 }
 
+/** A pending-edit flusher: saves its dirty draft and resolves to false if that failed. */
+export type Flusher = () => Promise<boolean>;
+
+/** Rejection used once the draft is known to be stale: no write leaves the client. */
+export class StaleDraftError extends Error {
+  constructor() {
+    super("stale_draft");
+  }
+}
+
+/** First message of a FastAPI/pydantic 422 (`detail` is an array of {msg}), or null. */
+export function validationErrorMessage(err: unknown): string | null {
+  if (!(err instanceof ApiError) || err.status !== 422) return null;
+  const detail = (err.body as { detail?: unknown } | null | undefined)?.detail;
+  if (!Array.isArray(detail)) return null;
+  const msg = (detail[0] as { msg?: unknown } | undefined)?.msg;
+  return typeof msg === "string" ? msg.replace(/^Value error, /, "") : null;
+}
+
 /** Italian user-facing message for a failed write. */
 export function writeErrorMessage(err: unknown): string {
   if (apiErrorCode(err) === "revision_locked") {
     return "La revisione non è più in bozza: ricarica la pagina.";
   }
-  return apiErrorMessage(err) ?? (apiErrorReasons(err).join(" ") || "Salvataggio non riuscito.");
+  return (
+    apiErrorMessage(err) ??
+    validationErrorMessage(err) ??
+    (apiErrorReasons(err).join(" ") || "Salvataggio non riuscito.")
+  );
 }
