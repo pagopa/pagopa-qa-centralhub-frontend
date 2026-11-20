@@ -37,6 +37,8 @@ function useInvalidateFeature() {
     Promise.all([
       qc.invalidateQueries({ queryKey: ["tl", "feature", featureId] }),
       qc.invalidateQueries({ queryKey: ["tl", "features"] }),
+      qc.invalidateQueries({ queryKey: ["tl", "history", featureId] }),
+      qc.invalidateQueries({ queryKey: ["tl", "preview", featureId] }),
     ]);
 }
 
@@ -221,9 +223,7 @@ export function useTlTransition() {
         method: "POST",
         body: JSON.stringify({ action, actor_email: actor, ...(note ? { note } : {}) }),
       }),
-    onSuccess: (_d, vars) => {
-      invalidate(vars.featureId);
-    },
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
   });
 }
 

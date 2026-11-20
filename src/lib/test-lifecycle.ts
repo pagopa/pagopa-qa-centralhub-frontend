@@ -14,12 +14,12 @@ export const FEATURE_STATUS_LABEL: Record<TlFeatureStatus, string> = {
   running: "In esecuzione",
 };
 
-export const FEATURE_STATUS_COLOR: Record<TlFeatureStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
-  in_review: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
-  designed: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
-  implemented: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
-  running: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+export const FEATURE_STATUS_COLOR: Record<TlFeatureStatus, { color: string; bg: string }> = {
+  draft: { color: "var(--text-muted)", bg: "var(--neutral-soft)" },
+  in_review: { color: "var(--warning)", bg: "var(--warning-soft)" },
+  designed: { color: "var(--info)", bg: "var(--info-soft)" },
+  implemented: { color: "var(--accent)", bg: "var(--accent-soft)" },
+  running: { color: "var(--success)", bg: "var(--success-soft)" },
 };
 
 export const REVISION_STATUS_LABEL: Record<TlRevisionStatus, string> = {

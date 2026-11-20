@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  useAddTlComment,
   useAddTlScenario,
   useRemoveTlScenario,
   useTlFeature,
@@ -55,6 +56,20 @@ describe("test lifecycle hooks", () => {
     });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "feature", "f1"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "features"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "history", "f1"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "preview", "f1"] });
+  });
+
+  it("invalidates comments, history and preview after adding a comment", async () => {
+    api.apiClient.mockResolvedValue({});
+    const { wrapper, invalidate } = setup();
+    const { result } = renderHook(() => useAddTlComment(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ featureId: "f1", revisionId: "r1", body: "x" });
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "comments", "f1", "r1"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "history", "f1"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "preview", "f1"] });
   });
 
   it("removes a scenario passing actor_email as an encoded query param", async () => {
