@@ -10,10 +10,12 @@ import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles"
 import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
+import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
+import { ReviewPanel } from "@/components/test-lifecycle/ReviewPanel";
 import { ScenarioCard } from "@/components/test-lifecycle/ScenarioCard";
 import { StaleLockBanner } from "@/components/test-lifecycle/StaleLockBanner";
-import { useTlFeature, useTlTransition } from "@/hooks/useTestLifecycle";
+import { useTlComments, useTlFeature, useTlTransition } from "@/hooks/useTestLifecycle";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTlRevisionWriter, type TlRevisionWriter } from "@/hooks/useTlRevisionWriter";
 import {
@@ -55,6 +57,8 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
   const transition = useTlTransition();
   const [reloadKey, setReloadKey] = useState(0);
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [tab, setTab] = useState<string>("scenari");
+  const [commentScenarioId, setCommentScenarioId] = useState<string | null>(null);
 
   const revision: TlRevision | null = feature.working_revision ?? feature.published_revision;
   const sessionReady = sessionStatus === "authenticated";
@@ -62,6 +66,15 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
     !!feature.working_revision && feature.working_revision.status === "draft" && can("edit:tl_feature") && sessionReady;
   const syncKey = `${revision?.id}:${revision?.status}:${reloadKey}`;
   const writer = useTlRevisionWriter(feature.id, feature.working_revision, syncKey);
+  const { data: comments } = useTlComments(feature.id, revision?.id);
+  const openComments = (comments ?? []).reduce<Record<string, number>>((acc, c) => {
+    if (!c.resolved && c.scenario_id) acc[c.scenario_id] = (acc[c.scenario_id] ?? 0) + 1;
+    return acc;
+  }, {});
+  const commentOn = (scenarioId: string) => {
+    setCommentScenarioId(scenarioId);
+    setTab("review");
+  };
 
   // Reload discards local unsaved text: refetch first, then remount editors and reseed the lock.
   const reload = async () => {
@@ -94,7 +107,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
     }
   };
 
-  // Tabs are declared as data so later tasks (Review, Storico) can append entries.
+  // Tabs are declared as data so new panels can be appended.
   // Panels holding unsaved drafts are kept mounted so switching tab never loses text.
   const tabs: { value: string; label: string; content: ReactNode; keepMounted?: boolean }[] = [
     {
@@ -102,11 +115,34 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
       label: "Scenari",
       keepMounted: true,
       content: revision ? (
-        <ScenariosTab key={`${revision.id}-${reloadKey}`} revision={revision} editable={editable} writer={writer} />
+        <ScenariosTab
+          key={`${revision.id}-${reloadKey}`}
+          revision={revision}
+          editable={editable}
+          writer={writer}
+          openComments={openComments}
+          onComment={commentOn}
+        />
       ) : (
         <p className="text-[13px] text-text-muted">Nessuna revisione disponibile.</p>
       ),
     },
+    {
+      value: "review",
+      label: "Review",
+      content: revision ? (
+        <ReviewPanel
+          featureId={feature.id}
+          revision={revision}
+          selectedScenarioId={commentScenarioId}
+          onSelectScenario={setCommentScenarioId}
+          sessionReady={sessionReady}
+        />
+      ) : (
+        <p className="text-[13px] text-text-muted">Nessuna revisione disponibile.</p>
+      ),
+    },
+    { value: "storico", label: "Storico", content: <HistoryPanel featureId={feature.id} /> },
     {
       value: "anteprima",
       label: "Anteprima file",
@@ -134,7 +170,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         onSaveRevision={writer.updateRevision}
         registerFlush={writer.registerFlush}
       />
-      <Tabs defaultValue="scenari">
+      <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
         <TabsList>
           {tabs.map((t) => (
             <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
@@ -154,10 +190,14 @@ function ScenariosTab({
   revision,
   editable,
   writer,
+  openComments,
+  onComment,
 }: {
   revision: TlRevision;
   editable: boolean;
   writer: TlRevisionWriter;
+  openComments: Record<string, number>;
+  onComment: (scenarioId: string) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
@@ -202,6 +242,8 @@ function ScenariosTab({
           onSave={(patch) => writer.updateScenario(s.id, patch)}
           onRemove={editable ? () => writer.removeScenario(s.id) : undefined}
           registerFlush={writer.registerFlush}
+          openComments={openComments[s.id] ?? 0}
+          onComment={() => onComment(s.id)}
         />
       ))}
       {editable && (

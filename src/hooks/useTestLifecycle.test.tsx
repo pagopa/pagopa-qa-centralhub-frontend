@@ -9,6 +9,7 @@ import {
   useTlFeature,
   useTlFeatures,
   useTlTransition,
+  useTlVersion,
   useValidateSteps,
 } from "@/hooks/useTestLifecycle";
 
@@ -114,5 +115,19 @@ describe("test lifecycle hooks", () => {
       method: "POST",
       body: JSON.stringify({ steps: "Dato x" }),
     });
+  });
+
+  it("loads a version snapshot", async () => {
+    api.apiClient.mockResolvedValue({ id: "v1", snapshot: { file: "x" } });
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useTlVersion("f1", "v1"), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(api.apiClient).toHaveBeenCalledWith("/api/v1/test-lifecycle/features/f1/versions/v1");
+  });
+
+  it("does not fetch a version without an id", () => {
+    const { wrapper } = setup();
+    renderHook(() => useTlVersion("f1", undefined), { wrapper });
+    expect(api.apiClient).not.toHaveBeenCalled();
   });
 });

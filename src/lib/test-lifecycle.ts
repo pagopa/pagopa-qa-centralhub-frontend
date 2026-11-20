@@ -120,3 +120,57 @@ export function writeErrorMessage(err: unknown): string {
     (apiErrorReasons(err).join(" ") || "Salvataggio non riuscito.")
   );
 }
+
+export interface DiffLine {
+  type: "same" | "add" | "del";
+  text: string;
+}
+
+/** Line-by-line LCS diff, O(n·m). Deletions precede additions within a changed block. */
+export function lineDiff(a: string, b: string): DiffLine[] {
+  const x = a === "" ? [] : a.split("\n");
+  const y = b === "" ? [] : b.split("\n");
+  const n = x.length;
+  const m = y.length;
+  // lcs[i][j] = LCS length of x[i..] and y[j..]
+  const lcs: Uint32Array[] = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      lcs[i][j] = x[i] === y[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+  }
+  const out: DiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (x[i] === y[j]) {
+      out.push({ type: "same", text: x[i] });
+      i++;
+      j++;
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      out.push({ type: "del", text: x[i++] });
+    } else {
+      out.push({ type: "add", text: y[j++] });
+    }
+  }
+  while (i < n) out.push({ type: "del", text: x[i++] });
+  while (j < m) out.push({ type: "add", text: y[j++] });
+  return out;
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  "tl.feature.created": "Feature creata",
+  "tl.feature.updated": "Feature aggiornata",
+  "tl.revision.submitted": "Revisione inviata in review",
+  "tl.revision.approved": "Revisione approvata",
+  "tl.revision.changes_requested": "Modifiche richieste",
+  "tl.comment.added": "Commento aggiunto",
+  "tl.comment.resolved": "Commento risolto",
+  "tl.comment.reopened": "Commento riaperto",
+};
+
+/** Italian label for a history event action; unknown actions fall back to the raw key. */
+export function tlEventLabel(action: string | null | undefined): string {
+  if (!action) return "Evento";
+  return Object.hasOwn(EVENT_LABEL, action) ? EVENT_LABEL[action] : action;
+}

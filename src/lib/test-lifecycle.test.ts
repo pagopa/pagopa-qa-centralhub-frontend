@@ -5,6 +5,8 @@ import {
   apiErrorReasons,
   FEATURE_STATUS_LABEL,
   isStaleLockError,
+  lineDiff,
+  tlEventLabel,
   transitionBlockReasons,
   TRANSITION_LABEL,
 } from "@/lib/test-lifecycle";
@@ -85,5 +87,52 @@ describe("writeErrorMessage", () => {
     const { writeErrorMessage } = await import("@/lib/test-lifecycle");
     expect(writeErrorMessage(new ApiError(500, null))).toBe("Salvataggio non riuscito.");
     expect(writeErrorMessage(new ApiError(409, { detail: { code: "revision_locked" } }))).toMatch(/non è più in bozza/);
+  });
+});
+
+describe("lineDiff", () => {
+  it("marks identical text as unchanged", () => {
+    expect(lineDiff("a\nb", "a\nb")).toEqual([
+      { type: "same", text: "a" },
+      { type: "same", text: "b" },
+    ]);
+  });
+
+  it("detects added lines", () => {
+    expect(lineDiff("a\nc", "a\nb\nc")).toEqual([
+      { type: "same", text: "a" },
+      { type: "add", text: "b" },
+      { type: "same", text: "c" },
+    ]);
+  });
+
+  it("detects removed lines", () => {
+    expect(lineDiff("a\nb\nc", "a\nc")).toEqual([
+      { type: "same", text: "a" },
+      { type: "del", text: "b" },
+      { type: "same", text: "c" },
+    ]);
+  });
+
+  it("emits deletions before additions for a changed line", () => {
+    expect(lineDiff("a\nx\nc", "a\ny\nc")).toEqual([
+      { type: "same", text: "a" },
+      { type: "del", text: "x" },
+      { type: "add", text: "y" },
+      { type: "same", text: "c" },
+    ]);
+  });
+
+  it("handles empty sides", () => {
+    expect(lineDiff("", "a")).toEqual([{ type: "add", text: "a" }]);
+    expect(lineDiff("a", "")).toEqual([{ type: "del", text: "a" }]);
+  });
+});
+
+describe("tlEventLabel", () => {
+  it("translates known actions and falls back to the raw key", () => {
+    expect(tlEventLabel("tl.revision.submitted")).toBe("Revisione inviata in review");
+    expect(tlEventLabel("tl.unknown.thing")).toBe("tl.unknown.thing");
+    expect(tlEventLabel(null)).toBe("Evento");
   });
 });

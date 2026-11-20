@@ -31,6 +31,15 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useRemoveTlScenario: () => ({ mutateAsync: mocks.removeScenario }),
   useUpdateTlFeature: () => ({ mutate: vi.fn() }),
   useValidateSteps: () => ({ mutate: mocks.validate }),
+  useTlComments: () => ({
+    data: [{ id: "c1", revision_id: "r1", scenario_id: "sc1", scenario_tag: "@FDR3_001_01", author: "a", body: "x", resolved: false, created_at: "2026-11-20T10:00:00Z" }],
+    isLoading: false,
+    isError: false,
+  }),
+  useAddTlComment: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useResolveTlComment: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useTlHistory: () => ({ data: [], isLoading: false, isError: false }),
+  useTlVersion: () => ({ data: undefined, isLoading: false, isError: false }),
   useTlPreview: () => ({ data: { file: "# qa-hub: FEAT_001_FdR3", errors: [] }, isLoading: false }),
 }));
 
@@ -101,6 +110,15 @@ describe("FeatureDetailPage", () => {
     expect(await screen.findByText("# qa-hub: FEAT_001_FdR3")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Scenari" }));
     expect(titles()[0]).toHaveValue("Primo in corso");
+  });
+
+  it("lists tabs in order and jumps to Review with the scenario preselected", async () => {
+    render(<FeatureDetailPage />);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+      "Scenari", "Review", "Storico", "Anteprima file",
+    ]);
+    await userEvent.click(screen.getAllByRole("button", { name: /Commenta/ })[0]);
+    expect(await screen.findByLabelText("Scenario")).toHaveValue("sc1");
   });
 
   it("edits the Contesto with background validation and saves it with the lock", async () => {

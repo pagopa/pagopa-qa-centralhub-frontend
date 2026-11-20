@@ -119,4 +119,19 @@ describe("ScenarioCard", () => {
     expect(screen.getByLabelText("Step")).toHaveAttribute("readonly");
     expect(screen.queryByRole("button", { name: "Salva" })).not.toBeInTheDocument();
   });
+
+  it("shows the open comments badge and jumps to review on 'Commenta'", async () => {
+    const onComment = vi.fn();
+    render(
+      <ScenarioCard scenario={scenario()} readOnly={false} onSave={vi.fn()} openComments={3} onComment={onComment} />,
+    );
+    expect(screen.getByLabelText("3 commenti aperti")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Commenta/ }));
+    expect(onComment).toHaveBeenCalled();
+  });
+
+  it("shows no badge without open comments", () => {
+    renderCard();
+    expect(screen.queryByLabelText(/commenti aperti/)).not.toBeInTheDocument();
+  });
 });

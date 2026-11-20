@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { MessageSquare, Trash2 } from "lucide-react";
 import { INPUT_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useLiveValidation } from "@/hooks/useLiveValidation";
@@ -77,6 +77,8 @@ export function ScenarioCard({
   onSave,
   onRemove,
   registerFlush,
+  openComments = 0,
+  onComment,
 }: {
   scenario: TlScenario;
   readOnly: boolean;
@@ -84,6 +86,10 @@ export function ScenarioCard({
   onSave: (patch: ScenarioPatch) => Promise<TlScenario | void>;
   onRemove?: () => Promise<unknown>;
   registerFlush?: (fn: Flusher) => () => void;
+  /** Number of unresolved review comments on this scenario. */
+  openComments?: number;
+  /** Jumps to the Review tab with this scenario preselected. */
+  onComment?: () => void;
 }) {
   const { errors, setErrors, schedule } = useLiveValidation(scenario.errors);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -128,6 +134,20 @@ export function ScenarioCard({
           {scenario.tag}
         </span>
         <span className="font-mono text-[12px] text-text-muted">@{draft.polarity}</span>
+        {openComments > 0 && (
+          <span
+            className="text-[12px] rounded-full px-2 py-0.5"
+            style={{ background: "var(--neutral-soft)", color: "var(--text-dim)" }}
+            aria-label={`${openComments} commenti aperti`}
+          >
+            {openComments}
+          </span>
+        )}
+        {onComment && (
+          <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={onComment}>
+            <MessageSquare size={14} /> Commenta
+          </button>
+        )}
         <span className="ml-auto text-[12px] text-text-muted" aria-live="polite">
           {saving ? "Salvataggio…" : ""}
         </span>

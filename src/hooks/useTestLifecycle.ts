@@ -22,6 +22,7 @@ import type {
   TlScopeCreate,
   TlScopeUpdate,
   TlTransitionAction,
+  TlVersion,
 } from "@/types/test-lifecycle";
 
 const BASE = "/api/v1/test-lifecycle";
@@ -232,6 +233,14 @@ export function useTlHistory(id: string | undefined) {
     queryKey: ["tl", "history", id],
     queryFn: () => apiClient<TlHistoryItem[]>(`${BASE}/features/${id}/history`),
     enabled: !!id,
+  });
+}
+
+export function useTlVersion(featureId: string | undefined, versionId: string | undefined) {
+  return useQuery<TlVersion>({
+    queryKey: ["tl", "version", featureId, versionId],
+    queryFn: () => apiClient<TlVersion>(`${BASE}/features/${featureId}/versions/${versionId}`),
+    enabled: !!featureId && !!versionId,
   });
 }
 
