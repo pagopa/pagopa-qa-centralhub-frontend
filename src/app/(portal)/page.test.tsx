@@ -59,7 +59,7 @@ beforeEach(() => {
   mocks.jira.mockReturnValue({ isLoading: false, data: { total: 183, by_status: [{ name: "BLOCKED", count: 2 }] } });
   mocks.passRate.mockReturnValue({ isLoading: false, data: 85 });
   mocks.pending.mockReturnValue({ isLoading: false, data: { total: 7, nrt: 5, qg: 2 } });
-  mocks.summary.mockReturnValue({ isLoading: false, data: { total: 53, aligned: 41, drift: 7, unreachable: 3, untested: 2, last_success_at: null } });
+  mocks.summary.mockReturnValue({ isLoading: false, data: { total: 53, aligned: 41, drift: 7, unreachable: 3, untested: 0, under_qa: 2, last_success_at: null } });
   mocks.gpd.mockReturnValue({ isLoading: false, data: { items: [{ total: 368_741_000 }, { total: 374_271_713 }] } });
 });
 
@@ -133,7 +133,7 @@ describe("OverviewPage", () => {
     const testing = pillar("Testing");
     expect(testing.getByRole("link", { name: "7 con versioni diverse" })).toHaveAttribute("href", "/releases?filter=drift");
     expect(testing.getByRole("link", { name: "3 non raggiungibili" })).toHaveAttribute("href", "/releases?filter=unreachable");
-    expect(testing.getByRole("link", { name: "2 non testati" })).toHaveAttribute("href", "/releases?filter=untested");
+    expect(testing.getByRole("link", { name: "2 sotto test QA" })).toHaveAttribute("href", "/releases?filter=under_qa");
     expect(tile.querySelector("a")).toBeNull();
   });
 

@@ -11,7 +11,7 @@ const FLAG_BY_FILTER: Record<Exclude<StatusFilter, "all">, string> = {
   aligned: "ALIGNED",
   drift: "DRIFT",
   unreachable: "UNREACHABLE",
-  untested: "UNTESTED",
+  under_qa: "UNDER_QA",
 };
 
 export function filterApplications(
@@ -160,7 +160,7 @@ export interface FilterState {
   filter: StatusFilter;
 }
 
-const FILTERS: readonly StatusFilter[] = ["all", "aligned", "drift", "unreachable", "untested"];
+const FILTERS: readonly StatusFilter[] = ["all", "aligned", "drift", "unreachable", "under_qa"];
 
 export function parseFilterParams(params: URLSearchParams): FilterState {
   const area = params.get("area") === "TOUCHPOINT" ? "TOUCHPOINT" : "CORE";
