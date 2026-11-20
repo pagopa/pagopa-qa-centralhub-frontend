@@ -130,6 +130,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
     {
       value: "review",
       label: "Review",
+      keepMounted: true,
       content: revision ? (
         <ReviewPanel
           featureId={feature.id}

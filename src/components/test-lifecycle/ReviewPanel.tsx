@@ -64,7 +64,10 @@ export function ReviewPanel({
         <select
           className={SELECT_CLASS}
           value={selectedScenarioId ?? ""}
-          onChange={(e) => onSelectScenario(e.target.value || null)}
+          onChange={(e) => {
+            setError(null);
+            onSelectScenario(e.target.value || null);
+          }}
         >
           <option value="">Tutti / commento generale</option>
           {scenarios.map((s) => (

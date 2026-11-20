@@ -123,6 +123,23 @@ describe("lineDiff", () => {
     ]);
   });
 
+  it("keeps a trailing newline as a final empty line", () => {
+    expect(lineDiff("a\n", "a\nb\n")).toEqual([
+      { type: "same", text: "a" },
+      { type: "add", text: "b" },
+      { type: "same", text: "" },
+    ]);
+  });
+
+  it("handles repeated lines", () => {
+    expect(lineDiff("a\na\nb", "a\nb\nb")).toEqual([
+      { type: "same", text: "a" },
+      { type: "del", text: "a" },
+      { type: "same", text: "b" },
+      { type: "add", text: "b" },
+    ]);
+  });
+
   it("handles empty sides", () => {
     expect(lineDiff("", "a")).toEqual([{ type: "add", text: "a" }]);
     expect(lineDiff("a", "")).toEqual([{ type: "del", text: "a" }]);

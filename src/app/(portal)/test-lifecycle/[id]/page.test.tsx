@@ -121,6 +121,15 @@ describe("FeatureDetailPage", () => {
     expect(await screen.findByLabelText("Scenario")).toHaveValue("sc1");
   });
 
+  it("keeps the unsent comment draft when switching tabs", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    await userEvent.type(screen.getByLabelText("Nuovo commento"), "bozza commento");
+    await userEvent.click(screen.getByRole("tab", { name: "Scenari" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    expect(screen.getByLabelText("Nuovo commento")).toHaveValue("bozza commento");
+  });
+
   it("edits the Contesto with background validation and saves it with the lock", async () => {
     render(<FeatureDetailPage />);
     await userEvent.type(screen.getByLabelText("Step del contesto"), "Dato un EC");
