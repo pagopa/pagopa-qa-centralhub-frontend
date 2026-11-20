@@ -89,6 +89,23 @@ describe("filterApplications", () => {
     expect(result[0].products.flatMap((p) => p.applications.map((a) => a.name))).toEqual(["beta", "gamma"]);
   });
 
+  it("keeps only UNDER_QA-flagged apps with the under_qa filter", () => {
+    const qa: AreaGroup[] = [
+      {
+        area: "CORE",
+        products: [
+          {
+            id: "p1",
+            name: "Payments",
+            applications: [makeApp("tested", ["UNTESTED", "UNDER_QA"]), makeApp("plain", ["UNTESTED"])],
+          },
+        ],
+      },
+    ];
+    const result = filterApplications(qa, "CORE", "", "under_qa");
+    expect(result[0].products[0].applications.map((a) => a.name)).toEqual(["tested"]);
+  });
+
   it("restricts to the requested area", () => {
     const result = filterApplications(groups, "TOUCHPOINT", "", "all");
     expect(result.map((g) => g.area)).toEqual(["TOUCHPOINT"]);
@@ -234,7 +251,7 @@ describe("area filter matches", () => {
   it("picks the first area with a match, falling back to CORE", () => {
     expect(areaForFilter(groups, "drift")).toBe("CORE");
     expect(areaForFilter(unreachable, "unreachable")).toBe("TOUCHPOINT");
-    expect(areaForFilter(unreachable, "untested")).toBe("CORE");
+    expect(areaForFilter(unreachable, "under_qa")).toBe("CORE");
     expect(areaForFilter([], "drift")).toBe("CORE");
   });
 });
@@ -253,6 +270,7 @@ describe("filter params", () => {
       q: "",
       filter: "all",
     });
+    expect(parseFilterParams(new URLSearchParams("filter=untested")).filter).toBe("all");
     expect(filterParams({ area: "CORE", q: "", filter: "all" }).toString()).toBe("");
   });
 });

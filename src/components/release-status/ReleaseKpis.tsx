@@ -44,7 +44,7 @@ export function ReleaseKpis({ applications, filter, onFilterChange }: ReleaseKpi
     { label: "allineati", value: count("ALIGNED"), icon: CircleCheck, status: "success", filter: "aligned" },
     { label: "con versioni diverse", value: count("DRIFT"), icon: RefreshCwOff, status: "warning", filter: "drift" },
     { label: "non raggiungibili", value: count("UNREACHABLE"), icon: CloudOff, status: "danger", filter: "unreachable" },
-    { label: "non testati", value: count("UNTESTED"), icon: FlaskConical, status: "info", filter: "untested" },
+    { label: "sotto test QA", value: count("UNDER_QA"), icon: FlaskConical, status: "info", filter: "under_qa" },
   ];
 
   return (

@@ -97,7 +97,7 @@ function ReleaseStatusKpiContent() {
     ? [
         { count: summary.drift, text: "con versioni diverse", filter: "drift", color: "text-warning" },
         { count: summary.unreachable, text: "non raggiungibili", filter: "unreachable", color: "text-danger" },
-        { count: summary.untested, text: "non testati", filter: "untested", color: "text-text-dim" },
+        { count: summary.under_qa, text: "sotto test QA", filter: "under_qa", color: "text-text-dim" },
       ]
     : [];
   // The counts are links of their own, so they sit beside the tile link instead of inside it (no nested anchors).

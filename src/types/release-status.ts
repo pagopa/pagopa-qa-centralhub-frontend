@@ -1,6 +1,6 @@
 export type Target = "REPO" | "DEV" | "UAT" | "PROD";
 export type EnvTarget = "DEV" | "UAT" | "PROD";
-export type StatusFilter = "all" | "aligned" | "drift" | "unreachable" | "untested";
+export type StatusFilter = "all" | "aligned" | "drift" | "unreachable" | "under_qa";
 export type Area = "CORE" | "TOUCHPOINT";
 export type Runtime = "AKS" | "AZ";
 export type Ci = "GHA" | "AZDO";
@@ -8,7 +8,7 @@ export type AppKind = "backend" | "frontend";
 export type Drift = "EQUAL" | "BEHIND" | "AHEAD" | "UNKNOWN";
 export type ReadStatus = "OK" | "ERROR" | "EMPTY_BODY" | "NO_VERSION" | "NO_RELEASE" | "MANUAL";
 export type VersionSource = "AUTO" | "MANUAL";
-export type AppFlag = "ALIGNED" | "DRIFT" | "UNREACHABLE" | "UNTESTED";
+export type AppFlag = "ALIGNED" | "DRIFT" | "UNREACHABLE" | "UNTESTED" | "UNDER_QA";
 export type RunKind = "NRT" | "QG" | "TAS";
 export type RunOutcome = "PASSED" | "FAILED" | "NEUTRAL";
 export type SyncState = "QUEUED" | "RUNNING" | "OK" | "PARTIAL" | "FAILED";
@@ -127,6 +127,7 @@ export interface ReleaseSummary {
   drift: number;
   unreachable: number;
   untested: number;
+  under_qa: number;
   last_success_at: string | null;
 }
 

@@ -7,7 +7,7 @@ const FILTER_CHIPS: { value: StatusFilter; label: string; tone: string }[] = [
   { value: "aligned", label: "Allineati", tone: "border-success/40 bg-success-soft text-success" },
   { value: "drift", label: "Con versioni diverse", tone: "border-warning/40 bg-warning-soft text-warning" },
   { value: "unreachable", label: "Non raggiungibili", tone: "border-danger/40 bg-danger-soft text-danger" },
-  { value: "untested", label: "Non testati", tone: "border-info/40 bg-info-soft text-info" },
+  { value: "under_qa", label: "Sotto test QA", tone: "border-info/40 bg-info-soft text-info" },
 ];
 
 interface ReleaseToolbarProps {

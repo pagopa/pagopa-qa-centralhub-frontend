@@ -1,6 +1,6 @@
 import { Chip } from "@/components/primitives/Chip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { ApplicationRow, RunOutcome, TechStack } from "@/types/release-status";
+import type { ApplicationRow, RunOutcome, StackLanguage, TechStack } from "@/types/release-status";
 
 export const OUTCOME_LABEL: Record<RunOutcome, string> = {
   PASSED: "superata",
@@ -40,16 +40,27 @@ function stackTooltip(stack: TechStack): string | null {
   return ["Rilevato", origin && `da ${origin}`, release].filter(Boolean).join(" ");
 }
 
-/** Neutral chip with the detected technology (e.g. "JAVA 21"); nothing when it is unknown. */
+/**
+ * Solid fill per technology, so the stack badge stands out from the soft status chips. The shades
+ * follow each language's usual brand color, darkened where needed to keep white text readable.
+ */
+export const STACK_COLOR: Record<StackLanguage, string> = {
+  JAVA: "#c25700",
+  PYTHON: "#3776ab",
+  NODE: "#367c34",
+  RUST: "#a4391a",
+  GO: "#00758d",
+};
+
+/** Chip with the detected technology (e.g. "JAVA 21"); nothing when it is unknown. */
 export function StackChip({ stack }: { stack: TechStack | null }) {
   if (!stack) return null;
   const label = stack.version ? `${stack.language} ${stack.version}` : stack.language;
   const chip = (
     <span
-      className="inline-flex items-center gap-[5px] rounded-full font-mono"
-      style={{ fontSize: 11, padding: "2px 8px", color: "var(--accent)", background: "var(--accent-soft)" }}
+      className="inline-flex items-center rounded-full font-mono font-semibold"
+      style={{ fontSize: 11, padding: "2px 8px", color: "#ffffff", background: STACK_COLOR[stack.language] ?? "var(--accent)" }}
     >
-      <span className="inline-block shrink-0 rounded-full" style={{ width: 6, height: 6, background: "var(--accent)" }} />
       {label}
     </span>
   );
