@@ -7,13 +7,22 @@ import { CreateFeatureDialog } from "@/components/test-lifecycle/CreateFeatureDi
 import { FeatureTable } from "@/components/test-lifecycle/FeatureTable";
 import { ScopeManagerDialog } from "@/components/test-lifecycle/ScopeManagerDialog";
 import { ScopeOverview } from "@/components/test-lifecycle/ScopeOverview";
+import type { TlFeatureFilters } from "@/types/test-lifecycle";
 import { Gate } from "@/lib/permissions";
 
 export default function TestLifecyclePage() {
   const { status } = useSession();
   const [createOpen, setCreateOpen] = useState(false);
   const [scopesOpen, setScopesOpen] = useState(false);
-  const [scopeId, setScopeId] = useState<string | undefined>();
+  const [filters, setFilters] = useState<TlFeatureFilters>({});
+  const scopeId = filters.scope_id;
+  const selectScope = (id: string | undefined) =>
+    setFilters((prev) => {
+      const next = { ...prev };
+      if (id) next.scope_id = id;
+      else delete next.scope_id;
+      return next;
+    });
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,10 +49,9 @@ export default function TestLifecyclePage() {
         </div>
       </div>
 
-      <ScopeOverview selectedScopeId={scopeId} onSelect={setScopeId} />
+      <ScopeOverview selectedScopeId={scopeId} onSelect={selectScope} />
 
-      {/* key: remount to apply the scope picked in the overview as the initial filter */}
-      <FeatureTable key={scopeId ?? "all"} initialScopeId={scopeId} />
+      <FeatureTable filters={filters} onFiltersChange={setFilters} />
 
       <Gate action="manage:tl_scopes">
         <ScopeManagerDialog open={scopesOpen} onOpenChange={setScopesOpen} />

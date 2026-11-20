@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { SELECT_CLASS } from "@/components/ui/formStyles";
 import { useTlFeatures, useTlScopes } from "@/hooks/useTestLifecycle";
@@ -11,11 +11,14 @@ import { FeatureStatusBadge } from "./FeatureStatusBadge";
 
 const STATUSES = Object.keys(FEATURE_STATUS_LABEL) as TlFeatureStatus[];
 
-export function FeatureTable({ initialScopeId }: { initialScopeId?: string }) {
-  const [filters, setFilters] = useState<TlFeatureFilters>(
-    initialScopeId ? { scope_id: initialScopeId } : {},
-  );
-  const { data: features, isLoading } = useTlFeatures(filters);
+export function FeatureTable({
+  filters,
+  onFiltersChange,
+}: {
+  filters: TlFeatureFilters;
+  onFiltersChange: (filters: TlFeatureFilters) => void;
+}) {
+  const { data: features, isLoading, isError } = useTlFeatures(filters);
   const { data: scopes } = useTlScopes();
   const { data: users } = useUsers();
 
@@ -24,13 +27,12 @@ export function FeatureTable({ initialScopeId }: { initialScopeId?: string }) {
     [users],
   );
 
-  const setFilter = (key: keyof TlFeatureFilters, value: string) =>
-    setFilters((prev) => {
-      const next = { ...prev };
-      if (value) (next as Record<string, string>)[key] = value;
-      else delete next[key];
-      return next;
-    });
+  const setFilter = (key: keyof TlFeatureFilters, value: string) => {
+    const next = { ...filters };
+    if (value) (next as Record<string, string>)[key] = value;
+    else delete next[key];
+    onFiltersChange(next);
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -76,7 +78,9 @@ export function FeatureTable({ initialScopeId }: { initialScopeId?: string }) {
         </label>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <p role="alert" className="text-danger text-[13px]">Impossibile caricare le feature.</p>
+      ) : isLoading ? (
         <p className="text-text-muted text-[13px]">Caricamento…</p>
       ) : (
         <div className="rounded-[var(--radius)] border border-border overflow-x-auto bg-surface">

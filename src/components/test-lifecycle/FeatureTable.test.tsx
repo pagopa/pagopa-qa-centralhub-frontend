@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +28,11 @@ const FEATURES: TlFeatureListItem[] = [
   },
 ];
 
+function Harness() {
+  const [filters, setFilters] = useState<TlFeatureFilters>({});
+  return <FeatureTable filters={filters} onFiltersChange={setFilters} />;
+}
+
 describe("FeatureTable", () => {
   beforeEach(() => {
     mocks.useTlFeatures.mockReset();
@@ -37,7 +43,7 @@ describe("FeatureTable", () => {
   });
 
   it("shows code, title and status badge with a link to the detail", () => {
-    render(<FeatureTable />);
+    render(<Harness />);
     expect(screen.getByRole("link", { name: "FEAT_001_FdR3" })).toHaveAttribute("href", "/test-lifecycle/f1");
     expect(screen.getByText("Pagamento avviso")).toBeInTheDocument();
     const row = screen.getByText("Pagamento avviso").closest("tr")!;
@@ -46,7 +52,7 @@ describe("FeatureTable", () => {
   });
 
   it("filters by status", async () => {
-    render(<FeatureTable />);
+    render(<Harness />);
     await userEvent.selectOptions(screen.getByLabelText("Stato"), "designed");
     expect(mocks.useTlFeatures).toHaveBeenLastCalledWith({ status: "designed" });
     expect(screen.queryByText("Pagamento avviso")).not.toBeInTheDocument();

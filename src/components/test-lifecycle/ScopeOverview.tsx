@@ -15,7 +15,7 @@ export function ScopeOverview({
   selectedScopeId?: string;
   onSelect?: (scopeId: string | undefined) => void;
 }) {
-  const { data: scopes, isLoading } = useTlScopes();
+  const { data: scopes, isLoading, isError } = useTlScopes();
 
   const groups = useMemo(() => {
     const byArea = new Map<string, TlScope[]>();
@@ -28,6 +28,9 @@ export function ScopeOverview({
     );
   }, [scopes]);
 
+  if (isError) {
+    return <p role="alert" className="text-danger text-[13px]">Impossibile caricare gli ambiti.</p>;
+  }
   if (isLoading) return <p className="text-text-muted text-[13px]">Caricamento…</p>;
   if (groups.length === 0) {
     return <p className="text-text-muted text-[13px]">Nessun ambito definito</p>;
@@ -55,7 +58,7 @@ export function ScopeOverview({
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-mono font-semibold text-[13px]">{s.code}</span>
                     <span className="text-[12px] text-text-muted">
-                      {s.feature_count} {s.feature_count === 1 ? "feature" : "feature"}
+                      {s.feature_count} feature
                     </span>
                   </div>
                   <span className="text-[13px] text-text-dim">{s.name}</span>

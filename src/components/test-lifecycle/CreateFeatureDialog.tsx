@@ -20,7 +20,18 @@ import { useCreateTlFeature, useTlScopes } from "@/hooks/useTestLifecycle";
 import { useUsers } from "@/hooks/useUsers";
 import { apiErrorMessage, apiErrorReasons } from "@/lib/test-lifecycle";
 
-export function CreateFeatureDialog({
+/** Remounts the form on every open / default-scope change so state is re-seeded from props. */
+export function CreateFeatureDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultScopeId?: string;
+}) {
+  return (
+    <CreateFeatureForm key={`${props.open}-${props.defaultScopeId ?? ""}`} {...props} />
+  );
+}
+
+function CreateFeatureForm({
   open,
   onOpenChange,
   defaultScopeId,
