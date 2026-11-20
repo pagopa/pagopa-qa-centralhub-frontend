@@ -64,7 +64,7 @@ export function FeatureTable({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-text-dim">
-          Owner
+          Persona
           <select
             className={SELECT_CLASS}
             value={filters.owner_id ?? ""}

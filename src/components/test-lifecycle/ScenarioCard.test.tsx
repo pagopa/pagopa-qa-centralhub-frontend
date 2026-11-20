@@ -113,6 +113,20 @@ describe("ScenarioCard", () => {
     );
   });
 
+  it("clears stale errors and shows a message when live validation fails", () => {
+    vi.useFakeTimers();
+    mocks.validate.mockImplementation(
+      (_req: unknown, opts?: { onError?: (e: unknown) => void }) =>
+        opts?.onError?.(new ApiError(422, { detail: [{ msg: "Value error, Esempi non validi" }] })),
+    );
+    renderCard({ scenario: scenario({ errors: [{ line: 2, message: "Step non valido" }] }) });
+    expect(screen.getByText("Riga 2: Step non valido")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Step"), { target: { value: "Dato x" } });
+    act(() => vi.advanceTimersByTime(400));
+    expect(screen.queryByText("Riga 2: Step non valido")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Esempi non validi");
+  });
+
   it("is fully read-only when readOnly", () => {
     renderCard({ readOnly: true });
     expect(screen.getByLabelText("Titolo scenario")).toHaveAttribute("readonly");

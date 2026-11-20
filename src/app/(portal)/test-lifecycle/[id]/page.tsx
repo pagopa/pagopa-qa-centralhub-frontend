@@ -64,6 +64,12 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
   const sessionReady = sessionStatus === "authenticated";
   const editable =
     !!feature.working_revision && feature.working_revision.status === "draft" && can("edit:tl_feature") && sessionReady;
+  // R17: during review only the reviewer can still be reassigned.
+  const reviewerEditable =
+    !!feature.working_revision &&
+    (feature.working_revision.status === "draft" || feature.working_revision.status === "in_review") &&
+    can("edit:tl_feature") &&
+    sessionReady;
   const syncKey = `${revision?.id}:${revision?.status}:${reloadKey}`;
   const writer = useTlRevisionWriter(feature.id, feature.working_revision, syncKey);
   const { data: comments } = useTlComments(feature.id, revision?.id);
@@ -167,6 +173,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         feature={feature}
         revision={revision}
         readOnly={!editable}
+        reviewerEditable={reviewerEditable}
         stale={writer.stale}
         onSaveRevision={writer.updateRevision}
         registerFlush={writer.registerFlush}

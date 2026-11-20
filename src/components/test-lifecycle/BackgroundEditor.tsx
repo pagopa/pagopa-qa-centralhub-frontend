@@ -25,7 +25,9 @@ export function BackgroundEditor({
   onSave: (patch: BackgroundPatch) => Promise<unknown>;
   registerFlush?: (fn: Flusher) => () => void;
 }) {
-  const { errors, setErrors, schedule } = useLiveValidation(revision.background_errors);
+  const { errors, setErrors, validationError, schedule } = useLiveValidation(
+    revision.background_errors,
+  );
   const { draft, setDraft, save, saving, error } = useDraftSave<string, BackgroundPatch>({
     initial: revision.background_steps ?? "",
     diff,
@@ -53,6 +55,7 @@ export function BackgroundEditor({
         value={draft}
         readOnly={readOnly}
         errors={errors}
+        notice={validationError}
         onChange={(steps) => {
           setDraft(steps);
           schedule({ steps, background: true });

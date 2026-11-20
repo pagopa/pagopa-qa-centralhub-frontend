@@ -55,15 +55,22 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+export const TITLE_REQUIRED = "Il titolo è obbligatorio";
+
 /**
  * Feature metadata (owners, Jira keys) and revision metadata (title,
  * requirements, Epic/Story or reverse engineering, estimates). Local values are
  * seeded once; the page remounts the panel on reload.
+ *
+ * `readOnly` locks everything except the reviewer picker, which follows
+ * `reviewerEditable` (the reviewer can be reassigned while the revision is in
+ * review). Pickers list only active users.
  */
 export function FeatureMetaPanel({
   feature,
   revision,
   readOnly,
+  reviewerEditable = !readOnly,
   stale = false,
   onSaveRevision,
   registerFlush,
@@ -71,6 +78,7 @@ export function FeatureMetaPanel({
   feature: TlFeatureDetail;
   revision: TlRevision | null;
   readOnly: boolean;
+  reviewerEditable?: boolean;
   stale?: boolean;
   onSaveRevision: (patch: RevisionPatch) => Promise<unknown>;
   registerFlush?: (fn: Flusher) => () => void;
@@ -95,17 +103,23 @@ export function FeatureMetaPanel({
   });
   const [error, setError] = useState<string | null>(null);
 
-  const saveFeature = (patch: TlFeatureUpdate) => {
-    if (readOnly) return;
+  const activeUsers = users?.items.filter((u) => u.is_active) ?? [];
+
+  const saveFeature = (patch: TlFeatureUpdate, allowed = !readOnly) => {
+    if (!allowed) return;
     setError(null);
     updateFeature.mutate({ id: feature.id, ...patch }, { onError: (err) => setError(writeErrorMessage(err)) });
   };
 
   const saveRevision = () => void save();
 
-  const userSelect = (label: string, key: "design_owner_id" | "reviewer_id" | "impl_owner_id") => {
+  const userSelect = (
+    label: string,
+    key: "design_owner_id" | "reviewer_id" | "impl_owner_id",
+    editable = !readOnly,
+  ) => {
     const value = feature[key] ?? "";
-    if (readOnly) {
+    if (!editable) {
       const name = users?.items.find((u) => u.id === value)?.name ?? (value ? "—" : "Nessuno");
       return (
         <Field label={label}>
@@ -113,13 +127,25 @@ export function FeatureMetaPanel({
         </Field>
       );
     }
+    // The reviewer can never be the design owner (the backend rejects it too).
+    const options =
+      key === "reviewer_id" ? activeUsers.filter((u) => u.id !== feature.design_owner_id) : activeUsers;
     return (
       <Field label={label}>
-        <select className={SELECT_CLASS} value={value} onChange={(e) => saveFeature({ [key]: e.target.value || null })}>
+        <select
+          className={SELECT_CLASS}
+          value={value}
+          onChange={(e) => saveFeature({ [key]: e.target.value || null }, editable)}
+        >
           <option value="">Nessuno</option>
-          {users?.items.map((u) => (
+          {options.map((u) => (
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}
+          {value && !options.some((u) => u.id === value) && (
+            <option value={value} disabled>
+              {(users?.items.find((u) => u.id === value)?.name ?? "Utente sconosciuto") + " (non attivo)"}
+            </option>
+          )}
         </select>
       </Field>
     );
@@ -139,12 +165,32 @@ export function FeatureMetaPanel({
   );
 
   const requirementsUrl = safeHttpUrl(rev.requirements_url);
+  // An empty title is never sent (the backend requires one): flag it until fixed.
+  const titleMissing = !readOnly && !rev.title.trim();
 
   return (
     <section className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
       <h2 className="text-sm font-semibold text-text">Metadati</h2>
 
-      {text("Titolo", rev.title, (title) => setRev({ ...rev, title }), saveRevision)}
+      <div className="flex flex-col gap-1">
+        <Field label="Titolo">
+          <input
+            className={INPUT_CLASS}
+            style={titleMissing ? { borderColor: "var(--danger)" } : undefined}
+            value={rev.title}
+            readOnly={readOnly}
+            aria-invalid={titleMissing || undefined}
+            aria-describedby={titleMissing ? "tl-title-error" : undefined}
+            onChange={(e) => setRev({ ...rev, title: e.target.value })}
+            onBlur={saveRevision}
+          />
+        </Field>
+        {titleMissing && (
+          <p id="tl-title-error" className="text-danger text-[12px]">
+            {TITLE_REQUIRED}
+          </p>
+        )}
+      </div>
 
       <Field label="Descrizione">
         <textarea
@@ -158,7 +204,7 @@ export function FeatureMetaPanel({
 
       <div className="grid gap-3 sm:grid-cols-3">
         {userSelect("Owner design", "design_owner_id")}
-        {userSelect("Reviewer", "reviewer_id")}
+        {userSelect("Reviewer", "reviewer_id", reviewerEditable)}
         {userSelect("Owner implementazione", "impl_owner_id")}
       </div>
 

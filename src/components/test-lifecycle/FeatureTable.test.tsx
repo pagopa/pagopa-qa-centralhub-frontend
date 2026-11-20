@@ -51,6 +51,12 @@ describe("FeatureTable", () => {
     expect(within(row).getByText("Anna Rossi")).toBeInTheDocument();
   });
 
+  it("labels the people filter 'Persona' (owner, reviewer or implementation owner)", () => {
+    render(<Harness />);
+    expect(screen.getByLabelText("Persona")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Owner")).not.toBeInTheDocument();
+  });
+
   it("filters by status", async () => {
     render(<Harness />);
     await userEvent.selectOptions(screen.getByLabelText("Stato"), "designed");

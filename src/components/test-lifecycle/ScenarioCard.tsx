@@ -91,7 +91,7 @@ export function ScenarioCard({
   /** Jumps to the Review tab with this scenario preselected. */
   onComment?: () => void;
 }) {
-  const { errors, setErrors, schedule } = useLiveValidation(scenario.errors);
+  const { errors, setErrors, validationError, schedule } = useLiveValidation(scenario.errors);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const { draft, setDraft, save, saving, error: saveError, setError: setSaveError } = useDraftSave<Draft, ScenarioPatch>({
     initial: toDraft(scenario),
@@ -202,6 +202,7 @@ export function ScenarioCard({
         value={draft.steps}
         readOnly={readOnly}
         errors={errors}
+        notice={validationError}
         onChange={(steps) => update({ steps }, { validate: true })}
         onBlur={() => void save()}
       />

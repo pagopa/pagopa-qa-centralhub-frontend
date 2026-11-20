@@ -50,9 +50,11 @@ function CreateFeatureForm({
   const [title, setTitle] = useState("");
   const [pickedOwner, setPickedOwner] = useState<string | null>(null);
 
+  // Only active users can own a feature (the backend rejects the others).
+  const activeUsers = users?.items.filter((u) => u.is_active) ?? [];
   const sessionEmail = session?.user?.email?.toLowerCase() ?? null;
   const currentUserId =
-    users?.items.find((u) => u.email.toLowerCase() === sessionEmail)?.id ?? "";
+    activeUsers.find((u) => u.email.toLowerCase() === sessionEmail)?.id ?? "";
 
   // Precompiled with the current user until the user picks another one.
   const ownerId = pickedOwner ?? currentUserId;
@@ -113,7 +115,7 @@ function CreateFeatureForm({
               onChange={(e) => setPickedOwner(e.target.value)}
             >
               <option value="">Nessuno</option>
-              {users?.items.map((u) => (
+              {activeUsers.map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
