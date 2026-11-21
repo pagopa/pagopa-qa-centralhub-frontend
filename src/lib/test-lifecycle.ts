@@ -41,6 +41,7 @@ export const ISSUE_KIND_LABEL: Record<TlIssueKind, string> = {
   parse_error: "File non leggibile",
   pr_closed_unmerged: "PR chiusa senza merge",
   pr_creation_failed: "Creazione PR fallita",
+  jira_creation_failed: "Creazione task Jira fallita",
 };
 
 export const ISSUE_STATUS_LABEL: Record<TlIssueStatus, string> = {

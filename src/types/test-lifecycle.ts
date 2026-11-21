@@ -15,7 +15,8 @@ export type TlIssueKind =
   | "unknown_feature_code"
   | "parse_error"
   | "pr_closed_unmerged"
-  | "pr_creation_failed";
+  | "pr_creation_failed"
+  | "jira_creation_failed";
 export type TlIssueStatus = "open" | "acknowledged" | "resolved";
 export type TlStepKeyword = "given" | "when" | "then";
 export type TlRebaseSide = "git" | "draft";
@@ -32,6 +33,8 @@ export interface TlScope {
   updated_at: string;
   feature_count: number;
   status_counts: Record<string, number>;
+  jira_qa_epic_key: string | null;
+  jira_component: string | null;
 }
 
 export interface TlScopeCreate {
@@ -40,6 +43,8 @@ export interface TlScopeCreate {
   area?: string | null;
   repo_folder?: string | null;
   owner_team?: string | null;
+  jira_qa_epic_key?: string | null;
+  jira_component?: string | null;
 }
 
 export interface TlScopeUpdate {
@@ -48,6 +53,8 @@ export interface TlScopeUpdate {
   area?: string | null;
   repo_folder?: string | null;
   owner_team?: string | null;
+  jira_qa_epic_key?: string | null;
+  jira_component?: string | null;
 }
 
 export interface TlExamples {
@@ -146,6 +153,27 @@ export interface TlFeatureDetail {
   transitions: TransitionCheck[];
   git_path: string | null;
   open_issues: number;
+  jira: TlJiraLink[];
+  jira_error: string | null;
+  jira_qa_epic_key: string | null;
+  jira_qa_epic_effective: string | null;
+  jira_warning?: string | null;
+}
+
+// ── Jira (fase 3) ─────────────────────────────────────────────────────────────
+
+export type TlJiraRole = "design" | "impl" | "qa_epic" | "product";
+export type TlJiraCategory = "new" | "indeterminate" | "done";
+export type TlJiraTaskKind = "design" | "impl";
+
+export interface TlJiraLink {
+  role: TlJiraRole;
+  key: string;
+  summary: string | null;
+  status: string | null;
+  category: TlJiraCategory | null;
+  url: string | null;
+  verified: boolean;
 }
 
 export interface TlFeatureFilters {
@@ -166,6 +194,7 @@ export interface TlFeatureUpdate {
   impl_owner_id?: string | null;
   jira_design_key?: string | null;
   jira_impl_key?: string | null;
+  jira_qa_epic_key?: string | null;
 }
 
 export interface TlRevisionUpdate {
@@ -278,7 +307,14 @@ export type TlErrorCode =
   | "sync_in_progress"
   | "rebase_required"
   | "rebase_not_needed"
-  | "issue_already_resolved";
+  | "issue_already_resolved"
+  | "jira_issue_not_found"
+  | "jira_not_an_epic"
+  | "jira_in_progress"
+  | "jira_task_exists"
+  | "jira_task_not_allowed"
+  | "jira_not_configured"
+  | "jira_error";
 
 // ── Git (fase 2) ──────────────────────────────────────────────────────────────
 

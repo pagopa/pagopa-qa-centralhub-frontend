@@ -16,6 +16,8 @@ import type {
   TlHistoryItem,
   TlIssue,
   TlIssueFilters,
+  TlJiraLink,
+  TlJiraTaskKind,
   TlRebaseSide,
   TlRebaseView,
   TlStepKeyword,
@@ -440,6 +442,59 @@ export function useTlStepSuggestions(q: string, keyword: TlStepKeyword | null) {
     queryKey: ["tl", "steps", query, keyword],
     queryFn: () => apiClient<TlStepSuggestion[]>(`${BASE}/steps?${params.toString()}`),
     enabled: query.length >= 2,
+    staleTime: 60_000,
+  });
+}
+
+// ── Jira (fase 3) ─────────────────────────────────────────────────────────────
+
+export function useCreateTlJiraTask() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({ featureId, kind }: { featureId: string; kind: TlJiraTaskKind }) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/jira/${kind}-task`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+export function useRefreshTlJira() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({ featureId }: { featureId: string }) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/jira/refresh`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+export function useCreateTlScopeEpic() {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ scopeId }: { scopeId: string }) =>
+      apiClient<TlScope>(`${BASE}/scopes/${scopeId}/jira/epic`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tl", "scopes"] }),
+  });
+}
+
+/** Epic del progetto QA; `q` va già passato con debounce dal componente. */
+export function useTlJiraEpics(q: string, enabled = true) {
+  const query = q.trim();
+  return useQuery<TlJiraLink[]>({
+    queryKey: ["tl", "jira", "epics", query],
+    queryFn: () =>
+      apiClient<TlJiraLink[]>(`${BASE}/jira/epics?${new URLSearchParams({ q: query }).toString()}`),
+    enabled,
     staleTime: 60_000,
   });
 }

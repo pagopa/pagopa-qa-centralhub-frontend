@@ -72,6 +72,7 @@ const FEATURE = {
   published_revision: null,
   git_path: null,
   open_issues: 0,
+  jira: [], jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
   transitions: [
     { action: "submit", allowed: true, reasons: [] },
     { action: "approve", allowed: false, reasons: ["Non in review"] },

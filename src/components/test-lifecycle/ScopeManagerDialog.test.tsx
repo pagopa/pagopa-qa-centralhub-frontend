@@ -7,11 +7,11 @@ import { ScopeManagerDialog } from "./ScopeManagerDialog";
 const SCOPES: TlScope[] = [
   {
     id: "s1", code: "FdR3", name: "Fondo rischi", area: "Core", repo_folder: null, owner_team: null,
-    next_feature_number: 3, created_at: "", updated_at: "", feature_count: 2, status_counts: {},
+    next_feature_number: 3, created_at: "", updated_at: "", feature_count: 2, status_counts: {}, jira_qa_epic_key: null, jira_component: null,
   },
   {
     id: "s2", code: "Vuoto", name: "Senza feature", area: null, repo_folder: null, owner_team: null,
-    next_feature_number: 1, created_at: "", updated_at: "", feature_count: 0, status_counts: {},
+    next_feature_number: 1, created_at: "", updated_at: "", feature_count: 0, status_counts: {}, jira_qa_epic_key: null, jira_component: null,
   },
 ];
 

@@ -41,6 +41,7 @@ function feature(rev: TlRevision, overrides: Partial<TlFeatureDetail> = {}): TlF
     jira_design_key: "PQ-1", jira_impl_key: null, created_by: "anna@x.it",
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",
     working_revision: rev, published_revision: null, transitions: [], git_path: null, open_issues: 0,
+    jira: [], jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
     ...overrides,
   };
 }
