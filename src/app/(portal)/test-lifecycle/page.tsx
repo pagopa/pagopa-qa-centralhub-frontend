@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Plus, Settings } from "lucide-react";
+import { AlertTriangle, BookOpen, Plus, Settings } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { CreateFeatureDialog } from "@/components/test-lifecycle/CreateFeatureDialog";
 import { FeatureTable } from "@/components/test-lifecycle/FeatureTable";
@@ -33,6 +33,12 @@ export default function TestLifecyclePage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-semibold text-text">Test Lifecycle</h1>
         <div className="flex items-start gap-2 flex-wrap">
+          <Link
+            href="/test-lifecycle/guida"
+            className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface text-text-dim text-[13px] px-3 py-1.5 hover:bg-hover transition-colors"
+          >
+            <BookOpen size={14} /> Guida
+          </Link>
           <Link
             href="/test-lifecycle/anomalie"
             className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface text-text-dim text-[13px] px-3 py-1.5 hover:bg-hover transition-colors"

@@ -59,3 +59,10 @@ describe("TestLifecyclePage", () => {
     expect(dialog.querySelector("select")).toHaveValue("s1");
   });
 });
+
+describe("TestLifecyclePage guide link", () => {
+  it("links the guide from the header", () => {
+    render(<TestLifecyclePage />);
+    expect(screen.getByRole("link", { name: /Guida/ })).toHaveAttribute("href", "/test-lifecycle/guida");
+  });
+});
