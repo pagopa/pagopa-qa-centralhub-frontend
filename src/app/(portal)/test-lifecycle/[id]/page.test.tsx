@@ -83,7 +83,7 @@ const titles = () => screen.getAllByLabelText("Titolo scenario");
 
 describe("FeatureDetailPage", () => {
   beforeEach(() => {
-    for (const m of Object.values(mocks)) if (typeof m === "function") m.mockReset();
+    for (const m of Object.values(mocks)) if (vi.isMockFunction(m)) m.mockReset();
     mocks.refetch.mockResolvedValue({});
     mocks.updateScenario.mockResolvedValue(sc("sc1", 1, "x"));
     mocks.updateRevision.mockImplementation(async (v: { lock_version: number }) => ({
