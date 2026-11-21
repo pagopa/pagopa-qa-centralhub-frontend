@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useState, type KeyboardEvent } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useState, type KeyboardEvent } from "react";
 import { useTlStepSuggestions } from "@/hooks/useTestLifecycle";
 import type { StepQuery } from "@/lib/step-autocomplete";
 
@@ -18,7 +18,8 @@ export const StepSuggestions = forwardRef<
   { query: StepQuery; onPick: (text: string) => void; onDismiss: () => void }
 >(function StepSuggestions({ query, onPick, onDismiss }, ref) {
   const { data } = useTlStepSuggestions(query.query, query.keyword);
-  const items = query.query.trim().length >= 2 ? (data ?? []) : [];
+  const enough = query.query.trim().length >= 2;
+  const items = useMemo(() => (enough ? (data ?? []) : []), [enough, data]);
   const [active, setActive] = useState(0);
   const index = Math.min(active, Math.max(items.length - 1, 0));
 
