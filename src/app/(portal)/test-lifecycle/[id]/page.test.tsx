@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   addScenario: vi.fn(),
   removeScenario: vi.fn(),
   validate: vi.fn(),
+  applyRebase: vi.fn(),
+  rebaseView: null as unknown,
 }));
 
 vi.mock("next/navigation", () => ({ useParams: () => ({ id: "f1" }) }));
@@ -42,6 +44,8 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlIssues: () => ({ data: [], isLoading: false, isError: false }),
   useUpdateTlIssue: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePublishTlRevision: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useApplyTlRebase: () => ({ mutateAsync: mocks.applyRebase, isPending: false }),
+  useTlRebase: () => ({ data: mocks.rebaseView, isLoading: false, isError: false }),
   useTlVersion: () => ({ data: undefined, isLoading: false, isError: false }),
   useTlPreview: () => ({ data: { file: "# qa-hub: FEAT_001_FdR3", errors: [] }, isLoading: false }),
 }));
@@ -79,7 +83,7 @@ const titles = () => screen.getAllByLabelText("Titolo scenario");
 
 describe("FeatureDetailPage", () => {
   beforeEach(() => {
-    for (const m of Object.values(mocks)) m.mockReset();
+    for (const m of Object.values(mocks)) if (typeof m === "function") m.mockReset();
     mocks.refetch.mockResolvedValue({});
     mocks.updateScenario.mockResolvedValue(sc("sc1", 1, "x"));
     mocks.updateRevision.mockImplementation(async (v: { lock_version: number }) => ({
@@ -188,5 +192,42 @@ describe("FeatureDetailPage", () => {
     render(<FeatureDetailPage />);
     await userEvent.type(screen.getByLabelText("Titolo nuovo scenario"), "Nuovo{Enter}{Enter}");
     expect(mocks.addScenario).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe("FeatureDetailPage rebase", () => {
+  it("opens the rebase dialog from 'Riallinea' and applies with the current lock", async () => {
+    const working = FEATURE.working_revision!;
+    working.base_stale = true;
+    mocks.applyRebase.mockResolvedValue({});
+    mocks.rebaseView = {
+      revision_id: working.id, base_revision_id: "r0", published_revision_id: "r9",
+      lock_version: working.lock_version, metadata: [],
+      scenarios: [{
+        scenario_id: "sc1", tag: "@FDR3_001_01", conflict: true,
+        base: { position: 1, title: "a", kind: "scenario", polarity: "positivo", extra_tags: [], steps: "Dato a", examples: null, detail_link: null },
+        git: { position: 1, title: "a", kind: "scenario", polarity: "positivo", extra_tags: [], steps: "Dato b", examples: null, detail_link: null },
+        draft: { position: 1, title: "a", kind: "scenario", polarity: "positivo", extra_tags: [], steps: "Dato c", examples: null, detail_link: null },
+      }],
+    };
+    try {
+      render(<FeatureDetailPage />);
+      expect(screen.getByText("Base superata")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Riallinea" }));
+      await userEvent.click(await screen.findByRole("radio", { name: /Usa Git.*@FDR3_001_01/ }));
+      await userEvent.click(screen.getByRole("button", { name: "Applica" }));
+      await waitFor(() =>
+        expect(mocks.applyRebase).toHaveBeenCalledWith({
+          featureId: FEATURE.id,
+          revisionId: working.id,
+          lockVersion: working.lock_version,
+          choices: { sc1: "git" },
+        }),
+      );
+      expect(mocks.refetch).toHaveBeenCalled();
+    } finally {
+      working.base_stale = false;
+    }
   });
 });

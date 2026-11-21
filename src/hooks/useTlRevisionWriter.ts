@@ -111,6 +111,8 @@ export function useTlRevisionWriter(
     clearStale,
     registerFlush,
     afterPendingWrites,
+    /** Lock version the next write will send (use inside afterPendingWrites). */
+    currentLock,
     updateRevision: (patch: RevisionPatch) =>
       enqueue(async (): Promise<TlRevision> => {
         const res = await updateRevision.mutateAsync({

@@ -10,13 +10,14 @@ import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles"
 import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { GitPanel } from "@/components/test-lifecycle/GitPanel";
+import { RebaseDialog } from "@/components/test-lifecycle/RebaseDialog";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
 import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
 import { ReviewPanel } from "@/components/test-lifecycle/ReviewPanel";
 import { ScenarioCard } from "@/components/test-lifecycle/ScenarioCard";
 import { StaleLockBanner } from "@/components/test-lifecycle/StaleLockBanner";
-import { useTlComments, useTlFeature, useTlTransition } from "@/hooks/useTestLifecycle";
+import { useApplyTlRebase, useTlComments, useTlFeature, useTlTransition } from "@/hooks/useTestLifecycle";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTlRevisionWriter, type TlRevisionWriter } from "@/hooks/useTlRevisionWriter";
 import {
@@ -26,7 +27,7 @@ import {
   StaleDraftError,
   writeErrorMessage,
 } from "@/lib/test-lifecycle";
-import type { TlFeatureDetail, TlRevision, TlTransitionAction } from "@/types/test-lifecycle";
+import type { TlFeatureDetail, TlRebaseSide, TlRevision, TlTransitionAction } from "@/types/test-lifecycle";
 
 export default function FeatureDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +60,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
   const [reloadKey, setReloadKey] = useState(0);
   const [transitionError, setTransitionError] = useState<string | null>(null);
   const [tab, setTab] = useState<string>("scenari");
+  const [rebaseOpen, setRebaseOpen] = useState(false);
   const [commentScenarioId, setCommentScenarioId] = useState<string | null>(null);
 
   const revision: TlRevision | null = feature.working_revision ?? feature.published_revision;
@@ -88,6 +90,22 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
     await refetch();
     writer.clearStale();
     setReloadKey((k) => k + 1);
+  };
+
+  const applyRebase = useApplyTlRebase();
+  // Pending edits are saved first; the rebase then sends the lock the writer holds now.
+  const runRebase = async (choices: Record<string, TlRebaseSide>) => {
+    const working = feature.working_revision;
+    if (!working) return;
+    await writer.afterPendingWrites(() =>
+      applyRebase.mutateAsync({
+        featureId: feature.id,
+        revisionId: working.id,
+        lockVersion: writer.currentLock(),
+        choices,
+      }),
+    );
+    await reload();
   };
 
   const runTransition = async (action: TlTransitionAction, note?: string): Promise<boolean> => {
@@ -170,6 +188,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
       <FeatureHeader
         feature={feature}
         onTransition={runTransition}
+        onRebase={() => setRebaseOpen(true)}
         disabled={!sessionReady}
         pending={transition.isPending}
         error={transitionError}
@@ -183,6 +202,13 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         stale={writer.stale}
         onSaveRevision={writer.updateRevision}
         registerFlush={writer.registerFlush}
+      />
+      <RebaseDialog
+        open={rebaseOpen}
+        onOpenChange={setRebaseOpen}
+        featureId={feature.id}
+        revisionId={feature.working_revision?.id}
+        onApply={runRebase}
       />
       <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
         <TabsList>
