@@ -7,6 +7,7 @@ import { GitPanel } from "./GitPanel";
 const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
   update: vi.fn(),
+  retryCleanup: vi.fn(() => Promise.resolve({})),
   issues: [] as unknown[],
   perms: new Set<string>(["edit:tl_feature"]),
 }));
@@ -15,6 +16,7 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   usePublishTlRevision: () => ({ mutateAsync: mocks.publish, isPending: false }),
   useTlIssues: () => ({ data: mocks.issues, isLoading: false, isError: false }),
   useUpdateTlIssue: () => ({ mutateAsync: mocks.update, isPending: false }),
+  useRetryTlImportCleanup: () => ({ mutateAsync: mocks.retryCleanup, isPending: false }),
 }));
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({ can: (a: string) => mocks.perms.has(a) }),
@@ -87,5 +89,39 @@ describe("GitPanel", () => {
     expect(screen.getByText("Modifica strutturale")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Risolta" }));
     expect(mocks.update).toHaveBeenCalledWith({ issueId: "i1", status: "resolved", featureId: "f1" });
+  });
+});
+
+describe("GitPanel import source", () => {
+  it("shows where the feature was imported from and the cleanup PR", () => {
+    render(
+      <GitPanel
+        feature={feature(rev(), {
+          import_source: {
+            url: "https://github.com/pagopa/repo/blob/PQ-827/src/a.feature", branch: "PQ-827", path: "src/a.feature",
+            blob_sha: "x", imported_at: "", cleanup: { state: "open", pr_number: 12, pr_url: "https://github.com/pagopa/repo/pull/12", error: null, note: null },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "PQ-827" })).toHaveAttribute("href", "https://github.com/pagopa/repo/blob/PQ-827/src/a.feature");
+    expect(screen.getByRole("link", { name: "#12" })).toHaveAttribute("href", "https://github.com/pagopa/repo/pull/12");
+  });
+
+  it("offers a retry when the cleanup PR failed", async () => {
+    render(
+      <GitPanel
+        feature={feature(rev(), {
+          import_source: {
+            url: "javascript:x", branch: "PQ-827", path: "src/a.feature", blob_sha: "x", imported_at: "",
+            cleanup: { state: "error", pr_number: null, pr_url: null, error: "GitHub giù", note: null },
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "PQ-827" })).toBeNull();
+    expect(screen.getByText(/GitHub giù/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Riprova PR di pulizia" }));
+    expect(mocks.retryCleanup).toHaveBeenCalledWith({ featureId: "f1" });
   });
 });

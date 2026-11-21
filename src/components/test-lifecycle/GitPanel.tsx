@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { usePermissions } from "@/hooks/usePermissions";
-import { usePublishTlRevision, useTlIssues, useUpdateTlIssue } from "@/hooks/useTestLifecycle";
+import {
+  usePublishTlRevision,
+  useRetryTlImportCleanup,
+  useTlIssues,
+  useUpdateTlIssue,
+} from "@/hooks/useTestLifecycle";
 import { apiErrorMessage, PR_STATE_LABEL, safeHttpUrl } from "@/lib/test-lifecycle";
 import type { TlFeatureDetail } from "@/types/test-lifecycle";
 import { IssueList } from "./IssueList";
@@ -17,6 +22,10 @@ export function GitPanel({ feature, disabled = false }: { feature: TlFeatureDeta
   const publish = usePublishTlRevision();
   const issues = useTlIssues({ feature_id: feature.id });
   const updateIssue = useUpdateTlIssue();
+  const retryCleanup = useRetryTlImportCleanup();
+  const source = feature.import_source;
+  const sourceUrl = safeHttpUrl(source?.url);
+  const cleanupUrl = safeHttpUrl(source?.cleanup.pr_url);
   const [error, setError] = useState<string | null>(null);
 
   const revision = feature.working_revision ?? feature.published_revision;
@@ -68,6 +77,53 @@ export function GitPanel({ feature, disabled = false }: { feature: TlFeatureDeta
           </>
         )}
       </dl>
+
+      {source && (
+        <div className="flex flex-col gap-1 rounded-[var(--radius-sm)] border border-border px-3 py-2 text-[13px]">
+          <span className="text-text">
+            Importata da{" "}
+            {sourceUrl ? (
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[var(--accent)] hover:underline">
+                {source.branch}
+              </a>
+            ) : (
+              <span className="font-mono">{source.branch}</span>
+            )}{" "}
+            · <span className="font-mono break-all">{source.path}</span>
+          </span>
+          <span className="text-text-muted">
+            {source.cleanup.state === "pending" && "PR di pulizia: verrà aperta all'approvazione."}
+            {source.cleanup.state === "not_needed" && `PR di pulizia non necessaria${source.cleanup.note ? `: ${source.cleanup.note}` : "."}`}
+            {source.cleanup.state === "open" && (
+              <>
+                PR di pulizia sul branch di partenza:{" "}
+                {cleanupUrl ? (
+                  <a href={cleanupUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
+                    #{source.cleanup.pr_number}
+                  </a>
+                ) : (
+                  <span>#{source.cleanup.pr_number}</span>
+                )}
+              </>
+            )}
+          </span>
+          {source.cleanup.state === "error" && (
+            <>
+              <p role="alert" style={{ color: "var(--danger)" }}>PR di pulizia non creata: {source.cleanup.error}</p>
+              {(can("edit:tl_feature") || can("manage:tl_git")) && (
+                <button
+                  type="button"
+                  className={`${SECONDARY_BUTTON_CLASS} w-fit`}
+                  disabled={disabled || retryCleanup.isPending}
+                  onClick={() => void retryCleanup.mutateAsync({ featureId: feature.id }).catch(() => undefined)}
+                >
+                  Riprova PR di pulizia
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {revision?.pr_error && (
         <p role="alert" className="text-[13px]" style={{ color: "var(--danger)" }}>{revision.pr_error}</p>

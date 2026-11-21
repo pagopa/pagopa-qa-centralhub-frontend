@@ -26,6 +26,8 @@ vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: () => t
 vi.mock("@/hooks/useUsers", () => ({ useUsers: () => ({ data: { items: [] } }) }));
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlCategoryTags: () => ({ data: undefined }),
+  useImportTlGit: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRetryTlImportCleanup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlStepSuggestions: () => ({ data: [] }),
   useTlFeature: () => ({ data: FEATURE, isLoading: false, isError: false, refetch: mocks.refetch }),
   useTlTransition: () => ({ mutateAsync: mocks.transition, isPending: false }),

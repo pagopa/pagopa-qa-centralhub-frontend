@@ -10,6 +10,7 @@ import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles"
 import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { GitPanel } from "@/components/test-lifecycle/GitPanel";
+import { ImportFromGitDialog } from "@/components/test-lifecycle/ImportFromGitDialog";
 import { JiraLinks } from "@/components/test-lifecycle/JiraLinks";
 import { MigrationInfo } from "@/components/test-lifecycle/MigrationInfo";
 import { NrtPanel } from "@/components/test-lifecycle/NrtPanel";
@@ -145,6 +146,8 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
       content: revision ? (
         <ScenariosTab
           key={`${revision.id}-${reloadKey}`}
+          featureId={feature.id}
+          onImported={() => void reload()}
           revision={revision}
           editable={editable}
           writer={writer}
@@ -237,12 +240,16 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
 }
 
 function ScenariosTab({
+  featureId,
+  onImported,
   revision,
   editable,
   writer,
   openComments,
   onComment,
 }: {
+  featureId: string;
+  onImported: () => void;
   revision: TlRevision;
   editable: boolean;
   writer: TlRevisionWriter;
@@ -275,6 +282,17 @@ function ScenariosTab({
 
   return (
     <div className="flex flex-col gap-4">
+      {editable && (
+        <ImportFromGitDialog
+          featureId={featureId}
+          revisionId={revision.id}
+          scenarioCount={scenarios.length}
+          currentLock={writer.currentLock}
+          afterPendingWrites={writer.afterPendingWrites}
+          onImported={onImported}
+          disabled={writer.stale}
+        />
+      )}
       <BackgroundEditor
         revision={revision}
         readOnly={!editable}

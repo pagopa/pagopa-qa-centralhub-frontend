@@ -14,6 +14,7 @@ import type {
   TlGherkinValidateResult,
   TlGitStatus,
   TlGitSyncSummary,
+  TlImportGitResult,
   TlHistoryItem,
   TlIssue,
   TlIssueFilters,
@@ -630,3 +631,41 @@ function useScopeAction(action: "execute" | "retry-pr" | "retry-confluence") {
 export const useExecuteTlMigrationScope = () => useScopeAction("execute");
 export const useRetryTlMigrationPr = () => useScopeAction("retry-pr");
 export const useRetryTlMigrationConfluence = () => useScopeAction("retry-confluence");
+
+// ── Importa da Git ────────────────────────────────────────────────────────────
+
+export function useImportTlGit() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({
+      featureId,
+      revisionId,
+      url,
+      lockVersion,
+    }: {
+      featureId: string;
+      revisionId: string;
+      url: string;
+      lockVersion: number;
+    }) =>
+      apiClient<TlImportGitResult>(`${BASE}/features/${featureId}/revisions/${revisionId}/import-git`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor, lock_version: lockVersion, url }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+export function useRetryTlImportCleanup() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({ featureId }: { featureId: string }) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/import-cleanup`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}

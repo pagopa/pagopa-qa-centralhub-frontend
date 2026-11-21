@@ -12,6 +12,7 @@ describe("test lifecycle guide", () => {
       "Chi fa cosa",
       "1. Preparare l'ambito",
       "2. Progettare la feature",
+      "Importa da Git",
       "3. Review",
       "4. PR e merge su GitHub",
       "5. Modifiche fatte direttamente su Git",

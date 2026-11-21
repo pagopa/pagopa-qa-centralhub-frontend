@@ -243,6 +243,7 @@ const EVENT_LABEL: Record<string, string> = {
   "tl.feature.running": "Feature in esecuzione (prima run NRT)",
   "tl.feature.migrated": "Feature migrata da Confluence",
   "tl.feature.aligned": "File allineato allo standard QA Hub",
+  "tl.feature.imported": "Scenari importati da Git",
 };
 
 /** Italian label for a history event action; unknown actions fall back to the raw key. */

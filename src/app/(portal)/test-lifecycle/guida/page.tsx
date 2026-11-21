@@ -108,6 +108,22 @@ export default function TestLifecycleGuidePage() {
         </p>
       </Section>
 
+      <Section title="Importa da Git">
+        <p>
+          Se il feature file esiste già sul repository (anche su un branch di lavoro), non serve riscriverlo: crea la
+          feature nell&apos;hub e importalo.
+        </p>
+        <Steps
+          items={[
+            <>Crea la feature (ambito e titolo) e apri il tab <strong>Scenari</strong> della bozza.</>,
+            <>Clicca <strong>Importa da Git</strong> e incolla il link GitHub del file, per esempio <Code>https://github.com/…/blob/&lt;branch&gt;/…/file.feature</Code>. Se la bozza ha già scenari, l&apos;hub chiede conferma e li sostituisce.</>,
+            <>Contesto, descrizione e scenari arrivano dal file; il titolo della feature resta quello dell&apos;hub. Gli scenari prendono i tag dell&apos;hub, i vecchi tag restano collegati allo storico NRT e i tag di categoria (<Code>@runnable</Code>…) restano. I tag sconosciuti vengono elencati come &quot;non importati&quot;.</>,
+            <>Da qui si procede come sempre: review e approvazione. All&apos;approvazione la PR dell&apos;hub scrive il file <strong>nello stesso percorso</strong> del file importato.</>,
+            <>Se il file veniva da un branch diverso da <Code>main</Code>, l&apos;hub apre anche una <strong>PR di pulizia</strong> verso quel branch, che toglie il file: così le due PR non vanno in conflitto. La trovi nel tab <strong>Git</strong>, con &quot;Riprova&quot; se non è stato possibile crearla.</>,
+          ]}
+        />
+      </Section>
+
       <Section title="3. Review">
         <Steps
           items={[

@@ -162,6 +162,30 @@ export interface TlFeatureDetail {
   migration_note?: string | null;
   migrated_from?: TlMigratedFrom | null;
   alignment_pending?: boolean;
+  import_source?: TlImportSource | null;
+}
+
+export interface TlImportCleanup {
+  state: "pending" | "open" | "not_needed" | "error";
+  pr_number: number | null;
+  pr_url: string | null;
+  error: string | null;
+  note: string | null;
+}
+
+export interface TlImportSource {
+  url: string;
+  branch: string;
+  path: string;
+  blob_sha: string;
+  imported_at: string;
+  cleanup: TlImportCleanup;
+}
+
+export interface TlImportGitResult {
+  feature: TlFeatureDetail;
+  ignored_tags: string[];
+  replaced: number;
 }
 
 export interface TlMigratedFrom {
