@@ -193,11 +193,27 @@ export default function TestLifecycleGuidePage() {
           items={[
             <><strong>Analizza</strong>: l&apos;hub legge le pagine FEAT dell&apos;albero &quot;Testing Suites&quot; e i feature file su <Code>main</Code>, senza modificare nulla, e propone per ogni feature ambito, numero, stato, owner, reviewer e chiavi Jira.</>,
             <>Le righe con problemi (numero doppio, pagina senza file, file senza pagina, reviewer di gruppo, fixture…) vanno <strong>corrette</strong>, <strong>confermate</strong> o <strong>escluse</strong>. Una nuova analisi conserva le decisioni prese.</>,
-            <>Decidi quali tag trovati nei file <strong>mantenere</strong> come tag di categoria: quelli usati dalle run NRT restano sempre.</>,
+            <>Nel pannello <strong>Tag trovati nei feature file</strong> togli la spunta ai tag che non vuoi portare nell&apos;hub (vedi sotto). Fallo prima di eseguire l&apos;ambito.</>,
             <><strong>Esegui</strong> un ambito alla volta: l&apos;hub crea le feature (scenari dal file, o dalle tabelle della pagina se il file non c&apos;è), salva i vecchi tag come alias per lo storico NRT e apre una <strong>PR di allineamento</strong> che aggiunge l&apos;intestazione <Code># qa-hub:</Code> e i tag nuovi, senza spostare i file.</>,
             <>Quando il team integra la PR, le feature non sono più &quot;in attesa di allineamento&quot; e il sync le gestisce come tutte le altre.</>,
           ]}
         />
+        <h3 className="text-[14px] font-semibold text-text">Il pannello &quot;Tag trovati nei feature file&quot;</h3>
+        <p>
+          Elenca i tag dei feature file che non identificano feature o scenari (per esempio <Code>@regression</Code>,{" "}
+          <Code>@checkout</Code>, <Code>@eBollo</Code>), con quante volte compaiono. I tag identità (<Code>@FEAT_008_Checkout</Code>,{" "}
+          <Code>@FDR3_001_01</Code>…) e <Code>@positivo</Code> / <Code>@negativo</Code> non ci sono: l&apos;hub li gestisce da solo.
+        </p>
+        <ul className="list-disc pl-5 flex flex-col gap-1">
+          <li><strong>Spuntato = mantieni</strong> (scelta di partenza): il tag resta sugli scenari migrati e nel file riscritto dalla PR di allineamento, e diventa selezionabile su tutti gli scenari. Se nel file era sulla feature intera, viene copiato su ogni scenario.</li>
+          <li><strong>Senza spunta = rimuovi</strong>: il tag sparisce dagli scenari migrati e, dopo il merge della PR di allineamento, anche dal file su Git.</li>
+          <li><strong>Spunta bloccata</strong>: <Code>@runnable</Code>, <Code>@e2e</Code>, <Code>@ui</Code> e <Code>@skip</Code> servono alle run NRT e restano sempre.</li>
+          <li>La scelta vale per gli ambiti eseguiti da quel momento in poi: quelli già eseguiti non cambiano.</li>
+        </ul>
+        <p>
+          Togli la spunta solo ai tag che sei sicuro non servano a nessuno (per esempio <Code>@test</Code> o tag rimasti da
+          prove vecchie). Nel dubbio mantieni: un tag si toglie facilmente da uno scenario, recuperarlo dopo la migrazione no.
+        </p>
         <p>
           Le pagine Confluence migrate ricevono in cima l&apos;avviso &quot;Migrata su QA Hub&quot; con il link alla feature, solo se
           la scrittura su Confluence è stata attivata. Quello che non si è riusciti a leggere dalla pagina resta nella

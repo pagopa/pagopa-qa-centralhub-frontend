@@ -19,9 +19,17 @@ describe("MigrationTagsPanel", () => {
       />,
     );
     expect(screen.getByText("@regression")).toBeInTheDocument();
-    expect(screen.getByText(/4 scenari/)).toBeInTheDocument();
+    expect(screen.getByText("4 volte")).toBeInTheDocument();
+    expect(screen.getByText(/Cosa fare:/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("checkbox", { name: "Mantieni @regression" }));
     expect(mocks.patch).toHaveBeenCalledWith({ name: "regression", decision: "drop" });
     expect(screen.getByRole("checkbox", { name: "Mantieni @e2e" })).toBeDisabled();
+  });
+
+  it("marks removed tags", () => {
+    render(<MigrationTagsPanel tags={[{ name: "test", occurrences: 1, decision: "drop", category: false }]} />);
+    expect(screen.getByText("1 volta")).toBeInTheDocument();
+    expect(screen.getByText("rimosso")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Mantieni @test" })).not.toBeChecked();
   });
 });
