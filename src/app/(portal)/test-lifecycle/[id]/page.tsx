@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
+import { GitPanel } from "@/components/test-lifecycle/GitPanel";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
 import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
@@ -150,6 +151,11 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
       ),
     },
     { value: "storico", label: "Storico", content: <HistoryPanel featureId={feature.id} /> },
+    {
+      value: "git",
+      label: feature.open_issues ? `Git (${feature.open_issues})` : "Git",
+      content: <GitPanel feature={feature} disabled={!sessionReady} />,
+    },
     {
       value: "anteprima",
       label: "Anteprima file",

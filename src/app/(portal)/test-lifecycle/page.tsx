@@ -1,20 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Settings } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Plus, Settings } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { CreateFeatureDialog } from "@/components/test-lifecycle/CreateFeatureDialog";
 import { FeatureTable } from "@/components/test-lifecycle/FeatureTable";
+import { GitSyncButton } from "@/components/test-lifecycle/GitSyncButton";
 import { ScopeManagerDialog } from "@/components/test-lifecycle/ScopeManagerDialog";
 import { ScopeOverview } from "@/components/test-lifecycle/ScopeOverview";
 import type { TlFeatureFilters } from "@/types/test-lifecycle";
 import { Gate } from "@/lib/permissions";
+import { useTlIssues } from "@/hooks/useTestLifecycle";
 
 export default function TestLifecyclePage() {
   const { status } = useSession();
   const [createOpen, setCreateOpen] = useState(false);
   const [scopesOpen, setScopesOpen] = useState(false);
   const [filters, setFilters] = useState<TlFeatureFilters>({});
+  const openIssues = useTlIssues({ status: "open" }).data?.length ?? 0;
   const scopeId = filters.scope_id;
   const selectScope = (id: string | undefined) =>
     setFilters((prev) => {
@@ -28,7 +32,16 @@ export default function TestLifecyclePage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-semibold text-text">Test Lifecycle</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2 flex-wrap">
+          <Link
+            href="/test-lifecycle/anomalie"
+            className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface text-text-dim text-[13px] px-3 py-1.5 hover:bg-hover transition-colors"
+          >
+            <AlertTriangle size={14} /> Anomalie ({openIssues})
+          </Link>
+          <Gate action="manage:tl_git">
+            <GitSyncButton disabled={status === "loading"} />
+          </Gate>
           <Gate action="manage:tl_scopes">
             <button
               onClick={() => setScopesOpen(true)}

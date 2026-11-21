@@ -70,3 +70,22 @@ describe("FeatureHeader", () => {
     expect(screen.getByRole("button", { name: "Riapri" })).toBeDisabled();
   });
 });
+
+describe("FeatureHeader stale base", () => {
+  it("shows 'Base superata' with a Riallinea action when the draft is stale", async () => {
+    const onRebase = vi.fn();
+    const stale = {
+      ...FEATURE,
+      working_revision: { ...FEATURE.working_revision!, base_stale: true },
+    } as TlFeatureDetail;
+    render(<FeatureHeader feature={stale} onTransition={vi.fn()} onRebase={onRebase} />);
+    expect(screen.getByText("Base superata")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Riallinea" }));
+    expect(onRebase).toHaveBeenCalled();
+  });
+
+  it("has no stale badge on a fresh draft", () => {
+    render(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} onRebase={vi.fn()} />);
+    expect(screen.queryByText("Base superata")).not.toBeInTheDocument();
+  });
+});

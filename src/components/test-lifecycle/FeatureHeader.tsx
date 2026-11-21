@@ -61,8 +61,11 @@ export function FeatureHeader({
   disabled = false,
   pending = false,
   error = null,
+  onRebase,
 }: {
   feature: TlFeatureDetail;
+  /** Opens the three-way rebase dialog (shown when the working draft is stale). */
+  onRebase?: () => void;
   /** Resolves to false when the transition failed (the note dialog then stays open). */
   onTransition: (action: TlTransitionAction, note?: string) => Promise<boolean | void> | void;
   /** True while the session loads: write actions stay disabled. */
@@ -108,11 +111,26 @@ export function FeatureHeader({
                 Rev. {revision.number} · {REVISION_STATUS_LABEL[revision.status]}
               </span>
             )}
+            {feature.working_revision?.base_stale && (
+              <span
+                className="rounded-full text-[11px] px-2 py-0.5"
+                style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+              >
+                Base superata
+              </span>
+            )}
           </div>
           <h1 className="text-xl font-semibold text-text break-words">{revision?.title ?? feature.code}</h1>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {feature.working_revision?.base_stale && onRebase && (
+            <Gate action="edit:tl_feature">
+              <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={disabled || pending} onClick={onRebase}>
+                Riallinea
+              </button>
+            </Gate>
+          )}
           {feature.transitions.map((check) => (
             <Gate key={check.action} action={TRANSITION_PERMISSION[check.action]}>
               <TransitionButton check={check} disabled={disabled || pending} onClick={() => run(check.action)} />

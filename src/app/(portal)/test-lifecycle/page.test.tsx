@@ -28,6 +28,9 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useCreateTlScope: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
   useUpdateTlScope: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
   useCreateTlFeature: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+  useTlIssues: () => ({ data: [], isLoading: false, isError: false }),
+  useTlGitStatus: () => ({ data: { configured: false }, isLoading: false }),
+  useTlGitSync: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 describe("TestLifecyclePage", () => {

@@ -39,6 +39,9 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useAddTlComment: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useResolveTlComment: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlHistory: () => ({ data: [], isLoading: false, isError: false }),
+  useTlIssues: () => ({ data: [], isLoading: false, isError: false }),
+  useUpdateTlIssue: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  usePublishTlRevision: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlVersion: () => ({ data: undefined, isLoading: false, isError: false }),
   useTlPreview: () => ({ data: { file: "# qa-hub: FEAT_001_FdR3", errors: [] }, isLoading: false }),
 }));
@@ -117,7 +120,7 @@ describe("FeatureDetailPage", () => {
   it("lists tabs in order and jumps to Review with the scenario preselected", async () => {
     render(<FeatureDetailPage />);
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "Scenari", "Review", "Storico", "Anteprima file",
+      "Scenari", "Review", "Storico", "Git", "Anteprima file",
     ]);
     await userEvent.click(screen.getAllByRole("button", { name: /Commenta/ })[0]);
     expect(await screen.findByLabelText("Scenario")).toHaveValue("sc1");
