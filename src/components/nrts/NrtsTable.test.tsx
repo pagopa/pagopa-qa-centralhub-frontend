@@ -301,8 +301,8 @@ describe("NrtsTable run note", () => {
   });
 
   // The page keeps the edited rows in its state: the table only reports changes.
-  function Harness() {
-    const [runs, setRuns] = useState<NrtsListObject[]>([makeRun({ test_origin: "GHA", note: "old" })]);
+  function Harness({ overrides = {} }: { overrides?: Partial<NrtsListObject["test_run"]> }) {
+    const [runs, setRuns] = useState<NrtsListObject[]>([makeRun({ test_origin: "GHA", note: "old", ...overrides })]);
     return (
       <NrtsTable
         runs={runs}
@@ -330,6 +330,20 @@ describe("NrtsTable run note", () => {
     await userEvent.click(screen.getAllByRole("button", { name: "Salva modifiche" })[0]);
     expect(mocks.updateMutate).toHaveBeenCalledTimes(1);
     expect(mocks.updateMutate.mock.calls[0][0].test_runs[0]).toMatchObject({ id: "run-1", note: "edited", revisioned_by: "me@x.it" });
+  });
+
+  it.each([
+    ["product", "Ticket prodotto", { product_issue: "PIDM-1", product_issue_status: "Done" }],
+    ["qa", "Ticket QA", { qa_issue: "PQ-825", qa_issue_status: "Done" }],
+  ] as const)("clears the %s ticket status when the ticket is removed", async (_field, label, overrides) => {
+    render(<Harness overrides={overrides} />);
+    expect(screen.getAllByText("Done").length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByRole("textbox", { name: label }), { target: { value: "" } });
+    expect(screen.queryByText("Done")).not.toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: "Salva modifiche" })[0]);
+    expect(mocks.updateMutate.mock.calls[0][0].test_runs[0]).toMatchObject(
+      label === "Ticket QA" ? { qa_issue: "", qa_issue_status: null } : { product_issue: "", product_issue_status: null },
+    );
   });
 
   it("sends an empty note when the user clears it", async () => {

@@ -248,6 +248,7 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
   }
 
   function handleIssueInputChange(event: ChangeEvent<HTMLInputElement>, runId: string, field: "product" | "qa") {
+    const cleared = event.target.value.trim() === "";
     const details = runs.map((nrt) => {
       if(nrt.test_run.id === runId) {
         return {
@@ -256,6 +257,9 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
             ...nrt.test_run,
             product_issue: field === "product" ? event.target.value : nrt.test_run.product_issue,
             qa_issue: field === "qa" ? event.target.value : nrt.test_run.qa_issue,
+            // A removed ticket must not keep showing the status of the previous one.
+            product_issue_status: field === "product" && cleared ? null : nrt.test_run.product_issue_status,
+            qa_issue_status: field === "qa" && cleared ? null : nrt.test_run.qa_issue_status,
           },
         };
       }
