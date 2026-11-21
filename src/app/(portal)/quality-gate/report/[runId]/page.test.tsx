@@ -4,6 +4,7 @@ import QualityGateReportPage from "./page";
 
 const mocks = vi.hoisted(() => ({ can: vi.fn(), run: vi.fn() }));
 
+vi.mock("@/components/test-lifecycle/TlRunLinks", () => ({ TlRunLinks: () => null }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ runId: "run-1" }) }));
 vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: mocks.can }) }));
 vi.mock("@/hooks/useQualityGate", () => ({

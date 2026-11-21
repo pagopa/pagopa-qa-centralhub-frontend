@@ -170,6 +170,20 @@ export default function TestLifecycleGuidePage() {
         </ul>
       </Section>
 
+      <Section title="NRT">
+        <p>
+          L&apos;hub collega ogni scenario alle esecuzioni NRT tramite il suo <strong>tag</strong> (es.{" "}
+          <Code>@FDR3_001_01</Code>): non serve configurare nulla, basta che la run contenga lo scenario con il suo tag.
+        </p>
+        <ul className="list-disc pl-5 flex flex-col gap-1">
+          <li>Il tab <strong>NRT</strong> della feature mostra, per ogni scenario, l&apos;ultimo esito per ambiente (con link al report Allure), il pass rate sulle ultime 10 run e il segnale <strong>Flaky</strong>.</li>
+          <li>Alla prima esecuzione di uno scenario, una feature <strong>Implementata</strong> diventa <strong>In esecuzione</strong> da sola, e non torna indietro.</li>
+          <li>Dal report di una run NRT, TAS o Quality Gate, la sezione <strong>Feature collegate</strong> porta alle feature eseguite.</li>
+          <li>Nella panoramica, ogni ambito mostra il pass rate NRT complessivo dei suoi scenari.</li>
+          <li>Se cambi il tag di uno scenario a mano su Git, le esecuzioni non vengono più collegate: i tag li gestisce l&apos;hub.</li>
+        </ul>
+      </Section>
+
       <Section title="Anomalie">
         <p>
           Le anomalie sono le situazioni che richiedono una persona: modifiche strutturali, file illeggibili o

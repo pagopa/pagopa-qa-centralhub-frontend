@@ -35,6 +35,7 @@ export interface TlScope {
   status_counts: Record<string, number>;
   jira_qa_epic_key: string | null;
   jira_component: string | null;
+  nrt_pass_rate?: number | null;
 }
 
 export interface TlScopeCreate {
@@ -400,4 +401,43 @@ export interface TlStepSuggestion {
   text: string;
   occurrences: number;
   implemented: boolean;
+}
+
+// ── NRT (fase 4) ──────────────────────────────────────────────────────────────
+
+export type TlNrtStatus = "PASSED" | "FAILED" | "BROKEN" | "SKIPPED";
+
+export interface TlNrtEnvResult {
+  env: string;
+  status: TlNrtStatus;
+  run_id: string;
+  run_at: string | null;
+  allure_url: string | null;
+  origin: string | null;
+}
+
+export interface TlScenarioNrt {
+  scenario_id: string;
+  number: number;
+  tag: string;
+  title: string;
+  envs: TlNrtEnvResult[];
+  pass_rate: number | null;
+  runs: number;
+  flaky: boolean;
+  last_run_at: string | null;
+}
+
+export interface TlFeatureNrt {
+  feature_id: string;
+  last_run_at: string | null;
+  pass_rate: number | null;
+  scenarios: TlScenarioNrt[];
+}
+
+export interface TlNrtRunLink {
+  execution_id: string;
+  feature_id: string;
+  feature_code: string;
+  scenario_tag: string;
 }

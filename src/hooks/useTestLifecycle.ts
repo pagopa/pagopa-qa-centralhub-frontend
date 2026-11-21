@@ -8,6 +8,7 @@ import type {
   TlFeatureDetail,
   TlFeatureFilters,
   TlFeatureListItem,
+  TlFeatureNrt,
   TlFeatureUpdate,
   TlGherkinValidateRequest,
   TlGherkinValidateResult,
@@ -18,6 +19,7 @@ import type {
   TlIssueFilters,
   TlJiraLink,
   TlJiraTaskKind,
+  TlNrtRunLink,
   TlRebaseSide,
   TlRebaseView,
   TlStepKeyword,
@@ -496,5 +498,24 @@ export function useTlJiraEpics(q: string, enabled = true) {
       apiClient<TlJiraLink[]>(`${BASE}/jira/epics?${new URLSearchParams({ q: query }).toString()}`),
     enabled,
     staleTime: 60_000,
+  });
+}
+
+// ── NRT (fase 4) ──────────────────────────────────────────────────────────────
+
+export function useTlFeatureNrt(featureId: string | undefined) {
+  return useQuery<TlFeatureNrt>({
+    queryKey: ["tl", "nrt", featureId],
+    queryFn: () => apiClient<TlFeatureNrt>(`${BASE}/features/${featureId}/nrt`),
+    enabled: !!featureId,
+  });
+}
+
+/** Feature dell'hub collegate alle esecuzioni di una run NRT/TAS/Quality Gate. */
+export function useTlRunLinks(runId: string | undefined, enabled = true) {
+  return useQuery<TlNrtRunLink[]>({
+    queryKey: ["tl", "run-links", runId],
+    queryFn: () => apiClient<TlNrtRunLink[]>(`${BASE}/nrt/runs/${runId}/links`),
+    enabled: enabled && !!runId,
   });
 }

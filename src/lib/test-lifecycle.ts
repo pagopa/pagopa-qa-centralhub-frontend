@@ -2,6 +2,7 @@ import { ApiError } from "@/lib/api";
 import type {
   TlFeatureStatus,
   TlJiraCategory,
+  TlNrtStatus,
   TlIssueKind,
   TlIssueStatus,
   TlPrState,
@@ -38,6 +39,25 @@ export const JIRA_CATEGORY_COLOR: Record<TlJiraCategory | "unverified", { color:
   done: { color: "var(--success)", bg: "var(--success-soft)" },
   unverified: { color: "var(--warning)", bg: "var(--warning-soft)" },
 };
+
+export const NRT_STATUS_LABEL: Record<TlNrtStatus, string> = {
+  PASSED: "Passato",
+  FAILED: "Fallito",
+  BROKEN: "Rotto",
+  SKIPPED: "Saltato",
+};
+
+export const NRT_STATUS_COLOR: Record<TlNrtStatus, { color: string; bg: string }> = {
+  PASSED: { color: "var(--success)", bg: "var(--success-soft)" },
+  FAILED: { color: "var(--danger)", bg: "var(--danger-soft)" },
+  BROKEN: { color: "var(--warning)", bg: "var(--warning-soft)" },
+  SKIPPED: { color: "var(--text-muted)", bg: "var(--neutral-soft)" },
+};
+
+/** Percentuale intera ("67%") o null senza dati. */
+export function formatRate(rate: number | null | undefined): string | null {
+  return rate == null ? null : `${Math.round(rate * 100)}%`;
+}
 
 export const REVISION_STATUS_LABEL: Record<TlRevisionStatus, string> = {
   draft: "Bozza",
@@ -220,6 +240,7 @@ const EVENT_LABEL: Record<string, string> = {
   "tl.jira.task_created": "Task Jira creato",
   "tl.jira.task_linked": "Task Jira collegato",
   "tl.jira.refreshed": "Stato Jira aggiornato",
+  "tl.feature.running": "Feature in esecuzione (prima run NRT)",
 };
 
 /** Italian label for a history event action; unknown actions fall back to the raw key. */

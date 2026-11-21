@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { QualityGateReportView } from "@/components/nrts/QualityGateReportView";
+import { TlRunLinks } from "@/components/test-lifecycle/TlRunLinks";
 import { Gate } from "@/lib/permissions";
 import { useRunReport } from "@/hooks/useQualityGate";
 import type { RunReportKind } from "@/utils/qualityGateReport";
@@ -35,6 +36,7 @@ export function RunReportPage({ kind, listHref, listAction }: RunReportPageProps
       )}
       {isError && <p role="alert" className="text-[13px] text-danger">Report non trovato o non disponibile.</p>}
       {run && <QualityGateReportView run={run} kind={kind} />}
+      {run && <TlRunLinks runId={run.test_run.id} />}
     </div>
   );
 }

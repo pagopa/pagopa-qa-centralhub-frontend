@@ -17,6 +17,7 @@ describe("test lifecycle guide", () => {
       "5. Modifiche fatte direttamente su Git",
       "6. Riaprire e riallineare",
       "Jira",
+      "NRT",
       "Anomalie",
       "Domande frequenti",
     ]) {

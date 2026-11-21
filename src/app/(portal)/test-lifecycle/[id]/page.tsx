@@ -11,6 +11,7 @@ import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { GitPanel } from "@/components/test-lifecycle/GitPanel";
 import { JiraLinks } from "@/components/test-lifecycle/JiraLinks";
+import { NrtPanel } from "@/components/test-lifecycle/NrtPanel";
 import { RebaseDialog } from "@/components/test-lifecycle/RebaseDialog";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
 import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
@@ -180,6 +181,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
       label: feature.jira_error ? "Jira (!)" : "Jira",
       content: <JiraLinks feature={feature} disabled={!sessionReady} />,
     },
+    { value: "nrt", label: "NRT", content: <NrtPanel featureId={feature.id} /> },
     {
       value: "anteprima",
       label: "Anteprima file",

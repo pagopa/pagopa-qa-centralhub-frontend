@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useTlScopes } from "@/hooks/useTestLifecycle";
-import { FEATURE_STATUS_COLOR, FEATURE_STATUS_LABEL } from "@/lib/test-lifecycle";
+import { FEATURE_STATUS_COLOR, FEATURE_STATUS_LABEL, formatRate } from "@/lib/test-lifecycle";
 import type { TlFeatureStatus, TlScope } from "@/types/test-lifecycle";
 
 const STATUSES = Object.keys(FEATURE_STATUS_LABEL) as TlFeatureStatus[];
@@ -62,6 +62,11 @@ export function ScopeOverview({
                     </span>
                   </div>
                   <span className="text-[13px] text-text-dim">{s.name}</span>
+                  {formatRate(s.nrt_pass_rate) && (
+                    <span className="text-[12px] text-text-muted" title="Pass rate NRT sulle ultime run degli scenari">
+                      NRT {formatRate(s.nrt_pass_rate)}
+                    </span>
+                  )}
                   <div className="flex flex-wrap gap-1.5">
                     {STATUSES.filter((st) => (s.status_counts[st] ?? 0) > 0).map((st) => (
                       <span
