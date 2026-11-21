@@ -178,6 +178,29 @@ describe("NrtsTable (Quality Gate)", () => {
     expect(screen.getByRole("link", { name: /report NRT di checkout/ })).toHaveAttribute("href", "/nrts/report/run-1");
   });
 
+  it("links the ticket status chips to the Jira issues without selecting the row", async () => {
+    mocks.can.mockReturnValue(false);
+    const { onRowClick } = renderTable(
+      "TAS",
+      [makeRun({ test_origin: "GHA", product_issue: "PIDM-1", product_issue_status: "Done", qa_issue: "PQ-825", qa_issue_status: "In Progress" })],
+      false,
+    );
+    const product = screen.getByRole("link", { name: "Apri ticket prodotto PIDM-1 su Jira, stato Done" });
+    const qa = screen.getByRole("link", { name: "Apri ticket QA PQ-825 su Jira, stato In Progress" });
+    expect(product).toHaveAttribute("href", "https://pagopa.atlassian.net/browse/PIDM-1");
+    expect(qa).toHaveAttribute("href", "https://pagopa.atlassian.net/browse/PQ-825");
+    expect(qa).toHaveAttribute("target", "_blank");
+    qa.addEventListener("click", (event) => event.preventDefault());
+    await userEvent.click(qa);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("renders no ticket links when the run has no tickets", () => {
+    mocks.can.mockReturnValue(false);
+    renderTable("TAS", [makeRun({ test_origin: "GHA" })], false);
+    expect(screen.queryByRole("link", { name: /ticket .* su Jira/ })).not.toBeInTheDocument();
+  });
+
   it("keeps trigger and origin on the TAS list without the outcome", () => {
     renderTable("TAS");
     const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);

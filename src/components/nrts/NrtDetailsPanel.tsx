@@ -18,6 +18,7 @@ import {
   NRT_SCENARIO_TABLE_HEADERS,
 } from "@/utils/nrtsCostants";
 import {DetailField} from "./DetailField";
+import { parseJiraIssueKey } from "@/utils/jiraIssue";
 import { JiraIssueField } from "./JiraIssueField";
 import { ghaRunId } from "@/utils/qualityGateReport";
 import { flakyScoreKey, useRunScenarioScores } from "@/hooks/useFlaky";
@@ -164,8 +165,14 @@ export function NrtDetailsPanel({
     setJiraIssueNotFound((current) => ({ ...current, [field]: false }));
     if (!issueId.trim() || !details) return;
 
+    const issueKey = parseJiraIssueKey(issueId);
+    if (!issueKey) {
+      setJiraIssueNotFound((current) => ({ ...current, [field]: true }));
+      return;
+    }
+
     try {
-      const found = await fetchJiraIssue(issueId.trim(), details.test_run, isQaIssue);
+      const found = await fetchJiraIssue(issueKey, details.test_run, isQaIssue);
       setJiraIssueNotFound((current) => ({ ...current, [field]: !found }));
     } catch {
       return

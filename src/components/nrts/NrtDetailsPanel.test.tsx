@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlakyScenarioRow } from "@/types/flaky";
 import type { FlakyScenario, NrtsListObject, TestExecution } from "@/types";
@@ -125,6 +125,33 @@ describe("NrtDetailsPanel", () => {
     expect(handleIssueInputChange).toHaveBeenLastCalledWith(expect.anything(), "run-1", field);
   });
 
+  it("extracts the key from a pasted Jira URL before checking the ticket", async () => {
+    const pasted = {
+      ...details,
+      test_run: {
+        ...details.test_run,
+        qa_issue: "https://pagopa.atlassian.net/browse/pq-456?focusedCommentId=1",
+      },
+    };
+    const { fetchJiraIssue } = renderPanel(false, undefined, null, pasted);
+
+    fireEvent.blur(getTicketField("Ticket QA").getByRole("textbox"));
+
+    await waitFor(() => expect(fetchJiraIssue).toHaveBeenCalledOnce());
+    expect(fetchJiraIssue).toHaveBeenCalledWith("PQ-456", pasted.test_run, true);
+  });
+
+  it("flags text that is neither a key nor a Jira URL without calling the lookup", async () => {
+    const invalid = { ...details, test_run: { ...details.test_run, qa_issue: "hello" } };
+    const { fetchJiraIssue } = renderPanel(false, undefined, null, invalid);
+    const ticket = getTicketField("Ticket QA");
+
+    fireEvent.blur(ticket.getByRole("textbox"));
+
+    expect(await ticket.findByText("Nessuna issue Jira trovata")).toBeInTheDocument();
+    expect(fetchJiraIssue).not.toHaveBeenCalled();
+  });
+
   it("renders test object details and hides both tickets in TAS mode", () => {
     renderPanel(true);
 
@@ -144,7 +171,8 @@ describe("NrtDetailsPanel", () => {
     renderPanel(isTasOnly, origin);
     expect(screen.queryByText(/Allure/)).not.toBeInTheDocument();
     expect(screen.queryByText(/AI Analysis/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    const nonJiraLinks = screen.queryAllByRole("link").filter((link) => link.getAttribute("aria-label") !== "Apri ticket Jira");
+    expect(nonJiraLinks).toHaveLength(0);
   });
 
   it.each([

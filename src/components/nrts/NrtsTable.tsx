@@ -2,6 +2,7 @@ import NrtPagination from "@/components/nrts/NrtPagination";
 import { Chip, } from "@/components/primitives/Chip";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useJiraIssue } from "@/hooks/useJira";
+import { buildJiraIssueUrl, parseJiraIssueKey } from "@/utils/jiraIssue";
 import { useSaveFlakyScenarios, useUpdateNrt } from "@/hooks/useNrts";
 import type { FlakyScenario, NrtsListObject, TestExecution, TestRun } from "@/types";
 import {
@@ -88,6 +89,23 @@ interface NrtsTableProps {
   flakyScenariosData: FlakyScenario[];
   /** Controls that act on this list (filter, refresh): shown in the header of the list card. */
   toolbar?: ReactNode;
+}
+
+function IssueStatusLink({ issue, status, kind, children }: { issue: string | null; status: string | null; kind: string; children: ReactNode }) {
+  const key = parseJiraIssueKey(issue);
+  if (!key) return <>{children}</>;
+  return (
+    <a
+      href={buildJiraIssueUrl(key)}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Apri ticket ${kind} ${key} su Jira${status ? `, stato ${status}` : ""}`}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      {children}
+    </a>
+  );
 }
 
 export default function NrtsTable({
@@ -351,10 +369,10 @@ const flakyToUse = flakyScenarios.length > 0 ? flakyScenarios : flakyScenariosDa
                       {visibleColumnIds.has("trigger") && <td className="px-3 py-2 text-text-muted">{nrt.test_run.trigger_type}</td>}
                       {visibleColumnIds.has("origin") && <td className="px-3 py-2 text-text-muted">{nrt.test_run.test_origin ?? "—"}</td>}
                       {visibleColumnIds.has("productIssueStatus") && <td className="py-2 text-text-muted">
-                         <div className="flex justify-center"><Chip variant="issueStatus" value={nrt.test_run.product_issue_status ?? ""} /></div>
+                         <div className="flex justify-center"><IssueStatusLink issue={nrt.test_run.product_issue} status={nrt.test_run.product_issue_status} kind="prodotto"><Chip variant="issueStatus" value={nrt.test_run.product_issue_status ?? ""} /></IssueStatusLink></div>
                       </td>}
                       {visibleColumnIds.has("qaIssueStatus") && <td className="py-2 text-text-muted">
-                         <div className="flex justify-center"><Chip variant="issueStatus" value={nrt.test_run.qa_issue_status ?? ""} /></div>
+                         <div className="flex justify-center"><IssueStatusLink issue={nrt.test_run.qa_issue} status={nrt.test_run.qa_issue_status} kind="QA"><Chip variant="issueStatus" value={nrt.test_run.qa_issue_status ?? ""} /></IssueStatusLink></div>
                       </td>}
                       {visibleColumnIds.has("result") && <td><select
                       className="w-auto h-10 border border-border rounded" 

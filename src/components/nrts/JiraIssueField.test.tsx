@@ -43,4 +43,19 @@ describe("JiraIssueField", () => {
     );
     expect(screen.getByText("Nessuna issue Jira trovata")).toBeInTheDocument();
   });
+
+  it("renders an open-in-Jira link only when the value contains a key", () => {
+    const { rerender } = render(
+      <JiraIssueField field="qa" value="PQ-825" issueNotFound={false} onBlur={vi.fn()} onChange={vi.fn()} />,
+    );
+    const link = screen.getByRole("link", { name: "Apri ticket Jira" });
+    expect(link).toHaveAttribute("href", "https://pagopa.atlassian.net/browse/PQ-825");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+
+    for (const value of ["", "hello"]) {
+      rerender(<JiraIssueField field="qa" value={value} issueNotFound={false} onBlur={vi.fn()} onChange={vi.fn()} />);
+      expect(screen.queryByRole("link", { name: "Apri ticket Jira" })).not.toBeInTheDocument();
+    }
+  });
 });
