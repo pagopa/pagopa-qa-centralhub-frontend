@@ -25,6 +25,7 @@ vi.mock("next-auth/react", () => ({
 vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: () => true }) }));
 vi.mock("@/hooks/useUsers", () => ({ useUsers: () => ({ data: { items: [] } }) }));
 vi.mock("@/hooks/useTestLifecycle", () => ({
+  useTlStepSuggestions: () => ({ data: [] }),
   useTlFeature: () => ({ data: FEATURE, isLoading: false, isError: false, refetch: mocks.refetch }),
   useTlTransition: () => ({ mutateAsync: mocks.transition, isPending: false }),
   useUpdateTlRevision: () => ({ mutateAsync: mocks.updateRevision }),

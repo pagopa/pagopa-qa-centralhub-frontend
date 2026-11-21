@@ -199,6 +199,7 @@ export function ScenarioCard({
       </div>
 
       <StepsEditor
+        autocomplete
         value={draft.steps}
         readOnly={readOnly}
         errors={errors}

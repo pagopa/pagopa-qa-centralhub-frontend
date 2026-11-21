@@ -1,6 +1,9 @@
 "use client";
 
+import { useRef, useState, type KeyboardEvent } from "react";
+import { applySuggestion, currentStepQuery } from "@/lib/step-autocomplete";
 import type { TlLineError } from "@/types/test-lifecycle";
+import { StepSuggestions, type StepSuggestionsHandle } from "./StepSuggestions";
 
 /**
  * Monospace steps editor with a line-number gutter. Lines reported in `errors`
@@ -9,7 +12,8 @@ import type { TlLineError } from "@/types/test-lifecycle";
  * without scroll syncing; long lines never wrap: the text area is as wide as
  * the longest line and its wrapper scrolls horizontally, so the gutter stays in
  * place and the scrollbar never covers the last line. `notice` is a short message shown
- * under the editor (e.g. live validation unavailable).
+ * under the editor (e.g. live validation unavailable). With `autocomplete` the
+ * editor suggests existing steps for the line being typed (↑/↓, Enter/Tab, Esc).
  */
 export function StepsEditor({
   value,
@@ -19,6 +23,7 @@ export function StepsEditor({
   readOnly = false,
   label = "Step",
   notice = null,
+  autocomplete = false,
 }: {
   value: string;
   onChange?: (value: string) => void;
@@ -27,7 +32,30 @@ export function StepsEditor({
   readOnly?: boolean;
   label?: string;
   notice?: string | null;
+  autocomplete?: boolean;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const menuRef = useRef<StepSuggestionsHandle>(null);
+  const [caret, setCaret] = useState<number | null>(null);
+  const [dismissedAt, setDismissedAt] = useState<number | null>(null);
+  const query =
+    autocomplete && !readOnly && caret !== null && dismissedAt !== caret
+      ? currentStepQuery(value, caret)
+      : null;
+
+  const trackCaret = () => setCaret(textareaRef.current?.selectionStart ?? null);
+  const pick = (text: string) => {
+    if (caret === null) return;
+    const next = applySuggestion(value, caret, text);
+    onChange?.(next.text);
+    setCaret(next.caret);
+    setDismissedAt(next.caret);
+    requestAnimationFrame(() => textareaRef.current?.setSelectionRange(next.caret, next.caret));
+  };
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (query) menuRef.current?.handleKey(e);
+  };
+
   const lines = value.split("\n");
   const errorLines = new Set(errors.map((e) => e.line));
   const rows = Math.max(lines.length, 3);
@@ -72,11 +100,20 @@ export function StepsEditor({
               ))}
             </div>
             <textarea
+              ref={textareaRef}
               aria-label={label}
               value={value}
               readOnly={readOnly}
-              onChange={(e) => onChange?.(e.target.value)}
-              onBlur={onBlur}
+              onChange={(e) => {
+                onChange?.(e.target.value);
+                setCaret(e.target.selectionStart);
+              }}
+              onSelect={trackCaret}
+              onKeyDown={onKeyDown}
+              onBlur={() => {
+                setCaret(null);
+                onBlur?.();
+              }}
               rows={rows}
               wrap="off"
               spellCheck={false}
@@ -86,6 +123,16 @@ export function StepsEditor({
           </div>
         </div>
       </div>
+      {query && (
+        <div className="relative">
+          <StepSuggestions
+            ref={menuRef}
+            query={query}
+            onPick={pick}
+            onDismiss={() => setDismissedAt(caret)}
+          />
+        </div>
+      )}
       {notice && (
         <p role="status" className="text-[12px] text-text-muted">
           {notice}

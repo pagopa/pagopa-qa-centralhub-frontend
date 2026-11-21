@@ -51,6 +51,7 @@ export function BackgroundEditor({
         </span>
       </div>
       <StepsEditor
+        autocomplete
         label="Step del contesto"
         value={draft}
         readOnly={readOnly}
