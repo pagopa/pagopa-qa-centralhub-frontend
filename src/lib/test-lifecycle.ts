@@ -241,6 +241,8 @@ const EVENT_LABEL: Record<string, string> = {
   "tl.jira.task_linked": "Task Jira collegato",
   "tl.jira.refreshed": "Stato Jira aggiornato",
   "tl.feature.running": "Feature in esecuzione (prima run NRT)",
+  "tl.feature.migrated": "Feature migrata da Confluence",
+  "tl.feature.aligned": "File allineato allo standard QA Hub",
 };
 
 /** Italian label for a history event action; unknown actions fall back to the raw key. */

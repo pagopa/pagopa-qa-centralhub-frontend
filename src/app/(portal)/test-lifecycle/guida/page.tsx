@@ -184,6 +184,27 @@ export default function TestLifecycleGuidePage() {
         </ul>
       </Section>
 
+      <Section title="Migrazione da Confluence">
+        <p>
+          Una tantum, da chi ha il permesso di migrazione, dalla pagina <strong>Migrazione</strong> (pulsante nella
+          pagina Test Lifecycle).
+        </p>
+        <Steps
+          items={[
+            <><strong>Analizza</strong>: l&apos;hub legge le pagine FEAT dell&apos;albero &quot;Testing Suites&quot; e i feature file su <Code>main</Code>, senza modificare nulla, e propone per ogni feature ambito, numero, stato, owner, reviewer e chiavi Jira.</>,
+            <>Le righe con problemi (numero doppio, pagina senza file, file senza pagina, reviewer di gruppo, fixture…) vanno <strong>corrette</strong>, <strong>confermate</strong> o <strong>escluse</strong>. Una nuova analisi conserva le decisioni prese.</>,
+            <>Decidi quali tag trovati nei file <strong>mantenere</strong> come tag di categoria: quelli usati dalle run NRT restano sempre.</>,
+            <><strong>Esegui</strong> un ambito alla volta: l&apos;hub crea le feature (scenari dal file, o dalle tabelle della pagina se il file non c&apos;è), salva i vecchi tag come alias per lo storico NRT e apre una <strong>PR di allineamento</strong> che aggiunge l&apos;intestazione <Code># qa-hub:</Code> e i tag nuovi, senza spostare i file.</>,
+            <>Quando il team integra la PR, le feature non sono più &quot;in attesa di allineamento&quot; e il sync le gestisce come tutte le altre.</>,
+          ]}
+        />
+        <p>
+          Le pagine Confluence migrate ricevono in cima l&apos;avviso &quot;Migrata su QA Hub&quot; con il link alla feature, solo se
+          la scrittura su Confluence è stata attivata. Quello che non si è riusciti a leggere dalla pagina resta nella
+          <strong> nota di migrazione</strong> della feature.
+        </p>
+      </Section>
+
       <Section title="Anomalie">
         <p>
           Le anomalie sono le situazioni che richiedono una persona: modifiche strutturali, file illeggibili o

@@ -11,6 +11,7 @@ import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { GitPanel } from "@/components/test-lifecycle/GitPanel";
 import { JiraLinks } from "@/components/test-lifecycle/JiraLinks";
+import { MigrationInfo } from "@/components/test-lifecycle/MigrationInfo";
 import { NrtPanel } from "@/components/test-lifecycle/NrtPanel";
 import { RebaseDialog } from "@/components/test-lifecycle/RebaseDialog";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
@@ -201,6 +202,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         pending={transition.isPending}
         error={transitionError}
       />
+      <MigrationInfo key={`migration-${feature.id}-${reloadKey}`} feature={feature} />
       <FeatureMetaPanel
         key={`${revision?.id}-${reloadKey}`}
         feature={feature}

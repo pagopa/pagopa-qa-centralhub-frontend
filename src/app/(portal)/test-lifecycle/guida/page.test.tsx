@@ -18,6 +18,7 @@ describe("test lifecycle guide", () => {
       "6. Riaprire e riallineare",
       "Jira",
       "NRT",
+      "Migrazione da Confluence",
       "Anomalie",
       "Domande frequenti",
     ]) {
