@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/api";
 import type {
   TlFeatureStatus,
+  TlJiraCategory,
   TlIssueKind,
   TlIssueStatus,
   TlPrState,
@@ -23,6 +24,19 @@ export const FEATURE_STATUS_COLOR: Record<TlFeatureStatus, { color: string; bg: 
   designed: { color: "var(--info)", bg: "var(--info-soft)" },
   implemented: { color: "var(--accent)", bg: "var(--accent-soft)" },
   running: { color: "var(--success)", bg: "var(--success-soft)" },
+};
+
+export const JIRA_CATEGORY_LABEL: Record<TlJiraCategory, string> = {
+  new: "Da fare",
+  indeterminate: "In corso",
+  done: "Fatto",
+};
+
+export const JIRA_CATEGORY_COLOR: Record<TlJiraCategory | "unverified", { color: string; bg: string }> = {
+  new: { color: "var(--text-muted)", bg: "var(--neutral-soft)" },
+  indeterminate: { color: "var(--info)", bg: "var(--info-soft)" },
+  done: { color: "var(--success)", bg: "var(--success-soft)" },
+  unverified: { color: "var(--warning)", bg: "var(--warning-soft)" },
 };
 
 export const REVISION_STATUS_LABEL: Record<TlRevisionStatus, string> = {
@@ -203,6 +217,9 @@ const EVENT_LABEL: Record<string, string> = {
   "tl.revision.stale": "Bozza superata da Git",
   "tl.issue.updated": "Anomalia aggiornata",
   "tl.feature.implemented": "Feature implementata",
+  "tl.jira.task_created": "Task Jira creato",
+  "tl.jira.task_linked": "Task Jira collegato",
+  "tl.jira.refreshed": "Stato Jira aggiornato",
 };
 
 /** Italian label for a history event action; unknown actions fall back to the raw key. */

@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/formStyles";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCreateTlScope, useTlScopes, useUpdateTlScope } from "@/hooks/useTestLifecycle";
-import { apiErrorMessage } from "@/lib/test-lifecycle";
+import { apiErrorCode, apiErrorMessage } from "@/lib/test-lifecycle";
+import { QaEpicPicker } from "./QaEpicPicker";
 import type { TlScope } from "@/types/test-lifecycle";
 
 const CODE_PATTERN = /^[A-Za-z][A-Za-z0-9]{1,19}$/;
@@ -28,9 +29,15 @@ interface FormState {
   area: string;
   repo_folder: string;
   owner_team: string;
+  jira_qa_epic_key: string;
+  jira_component: string;
 }
 
-const EMPTY: FormState = { code: "", name: "", area: "", repo_folder: "", owner_team: "" };
+const EMPTY: FormState = {
+  code: "", name: "", area: "", repo_folder: "", owner_team: "", jira_qa_epic_key: "", jira_component: "",
+};
+
+const EPIC_ERRORS = new Set(["jira_not_an_epic", "jira_issue_not_found"]);
 
 function toForm(scope: TlScope): FormState {
   return {
@@ -39,6 +46,8 @@ function toForm(scope: TlScope): FormState {
     area: scope.area ?? "",
     repo_folder: scope.repo_folder ?? "",
     owner_team: scope.owner_team ?? "",
+    jira_qa_epic_key: scope.jira_qa_epic_key ?? "",
+    jira_component: scope.jira_component ?? "",
   };
 }
 
@@ -85,6 +94,8 @@ export function ScopeManagerDialog({
       area: nullable(form.area),
       repo_folder: nullable(form.repo_folder),
       owner_team: nullable(form.owner_team),
+      jira_qa_epic_key: nullable(form.jira_qa_epic_key)?.toUpperCase() ?? null,
+      jira_component: nullable(form.jira_component),
     };
     if (editing === "new") {
       createScope.mutate({ code: form.code.trim(), ...common }, done);
@@ -103,9 +114,12 @@ export function ScopeManagerDialog({
   const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const errorText = mutation.error
-    ? apiErrorMessage(mutation.error) ?? "Salvataggio non riuscito."
-    : null;
+  const epicError =
+    mutation.error && EPIC_ERRORS.has(apiErrorCode(mutation.error) ?? "")
+      ? apiErrorMessage(mutation.error)
+      : null;
+  const errorText =
+    mutation.error && !epicError ? apiErrorMessage(mutation.error) ?? "Salvataggio non riuscito." : null;
 
   const codeInput = (
     <input
@@ -178,6 +192,16 @@ export function ScopeManagerDialog({
             <label className="flex flex-col gap-1 text-xs text-text-dim">
               Team owner
               <input className={INPUT_CLASS} value={form.owner_team} onChange={set("owner_team")} />
+            </label>
+            <QaEpicPicker
+              value={form.jira_qa_epic_key}
+              onChange={(key) => setForm((prev) => ({ ...prev, jira_qa_epic_key: key }))}
+              scopeId={editing === "new" ? null : editing.id}
+              error={epicError}
+            />
+            <label className="flex flex-col gap-1 text-xs text-text-dim">
+              Componente Jira
+              <input className={INPUT_CLASS} value={form.jira_component} onChange={set("jira_component")} placeholder="Es. FDR" />
             </label>
             {errorText && (
               <p role="alert" className="text-danger text-[13px]">{errorText}</p>

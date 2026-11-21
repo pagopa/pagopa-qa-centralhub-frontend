@@ -126,7 +126,7 @@ describe("FeatureDetailPage", () => {
   it("lists tabs in order and jumps to Review with the scenario preselected", async () => {
     render(<FeatureDetailPage />);
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "Scenari", "Review", "Storico", "Git", "Anteprima file",
+      "Scenari", "Review", "Storico", "Git", "Jira", "Anteprima file",
     ]);
     await userEvent.click(screen.getAllByRole("button", { name: /Commenta/ })[0]);
     expect(await screen.findByLabelText("Scenario")).toHaveValue("sc1");

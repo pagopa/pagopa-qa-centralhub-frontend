@@ -10,6 +10,7 @@ import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles"
 import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
 import { GitPanel } from "@/components/test-lifecycle/GitPanel";
+import { JiraLinks } from "@/components/test-lifecycle/JiraLinks";
 import { RebaseDialog } from "@/components/test-lifecycle/RebaseDialog";
 import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
 import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
@@ -173,6 +174,11 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
       value: "git",
       label: feature.open_issues ? `Git (${feature.open_issues})` : "Git",
       content: <GitPanel feature={feature} disabled={!sessionReady} />,
+    },
+    {
+      value: "jira",
+      label: feature.jira_error ? "Jira (!)" : "Jira",
+      content: <JiraLinks feature={feature} disabled={!sessionReady} />,
     },
     {
       value: "anteprima",

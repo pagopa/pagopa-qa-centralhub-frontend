@@ -100,6 +100,7 @@ export function FeatureMetaPanel({
   const [jira, setJira] = useState({
     jira_design_key: feature.jira_design_key ?? "",
     jira_impl_key: feature.jira_impl_key ?? "",
+    jira_qa_epic_key: feature.jira_qa_epic_key ?? "",
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -225,6 +226,15 @@ export function FeatureMetaPanel({
           () => {
             if (orNull(jira.jira_impl_key) !== feature.jira_impl_key) saveFeature({ jira_impl_key: orNull(jira.jira_impl_key) });
           },
+        )}
+        {text(
+          "Epic QA (sovrascrive quella dell'Ambito)",
+          jira.jira_qa_epic_key,
+          (v) => setJira({ ...jira, jira_qa_epic_key: v }),
+          () => {
+            if (orNull(jira.jira_qa_epic_key) !== feature.jira_qa_epic_key) saveFeature({ jira_qa_epic_key: orNull(jira.jira_qa_epic_key) });
+          },
+          feature.jira_qa_epic_effective ?? "PQ-123",
         )}
       </div>
 

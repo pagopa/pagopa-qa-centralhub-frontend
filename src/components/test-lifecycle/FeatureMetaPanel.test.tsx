@@ -125,4 +125,24 @@ describe("FeatureMetaPanel", () => {
     expect(screen.queryByText(TITLE_REQUIRED)).not.toBeInTheDocument();
     expect(title).not.toHaveAttribute("aria-invalid");
   });
+
+  it("saves the feature QA epic override, showing the effective one as placeholder", () => {
+    renderPanel({ feat: { jira_qa_epic_effective: "PQ-495" } });
+    const epic = screen.getByLabelText("Epic QA (sovrascrive quella dell'Ambito)");
+    expect(epic).toHaveAttribute("placeholder", "PQ-495");
+    fireEvent.change(epic, { target: { value: "PQ-777" } });
+    fireEvent.blur(epic);
+    expect(mocks.mutate).toHaveBeenCalledWith({ id: "f1", jira_qa_epic_key: "PQ-777" }, expect.anything());
+  });
+
+  it("shows the not-an-epic error from the backend", () => {
+    mocks.mutate.mockImplementation((_p: unknown, opts?: { onError?: (e: unknown) => void }) => {
+      opts?.onError?.(new ApiError(422, { detail: { code: "jira_not_an_epic", message: "PQ-12 non è un'Epic" } }));
+    });
+    renderPanel();
+    const epic = screen.getByLabelText("Epic QA (sovrascrive quella dell'Ambito)");
+    fireEvent.change(epic, { target: { value: "PQ-12" } });
+    fireEvent.blur(epic);
+    expect(screen.getByRole("alert")).toHaveTextContent("PQ-12 non è un'Epic");
+  });
 });

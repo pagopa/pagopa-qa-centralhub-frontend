@@ -84,6 +84,7 @@ export default function TestLifecycleGuidePage() {
             <>Nella pagina Test Lifecycle clicca <strong>Gestisci ambiti</strong>.</>,
             <>Inserisci il <strong>codice</strong> (es. <Code>FdR3</Code>): diventa parte dei codici FEAT e dei tag (<Code>@FDR3_001_01</Code>) e non si può più cambiare quando esistono feature.</>,
             <>Indica la <strong>cartella nel repository</strong> dove andranno i feature file (es. <Code>src/integration/fdr/features</Code>). Senza cartella non si può inviare in review.</>,
+            <>Collega l&apos;<strong>Epic QA</strong>: cercala per nome tra le Epic esistenti del progetto PQ, scrivi la chiave, oppure clicca <strong>Crea Epic QA</strong> (crea <Code>[QA Epic] &lt;nome ambito&gt;</Code> su Jira). Indica anche il <strong>componente Jira</strong>. Sono i valori di default dei task Jira delle feature.</>,
           ]}
         />
       </Section>
@@ -92,7 +93,7 @@ export default function TestLifecycleGuidePage() {
         <Steps
           items={[
             <>Clicca <strong>Nuova feature</strong>, scegli l&apos;ambito e il titolo. Il codice (<Code>FEAT_001_FdR3</Code>) lo assegna l&apos;hub.</>,
-            <>Compila i metadati: reviewer, chiave Jira di progettazione (<Code>PQ-…</Code>), Epic/Story di prodotto oppure &quot;reverse engineering&quot;, requisiti e stime.</>,
+            <>Compila i metadati: reviewer, Epic/Story di prodotto oppure &quot;reverse engineering&quot;, requisiti e stime. Il task Jira di progettazione lo crea l&apos;hub dal tab <strong>Jira</strong> (vedi sotto), oppure ne scrivi la chiave se esiste già.</>,
             <>Scrivi il <strong>Contesto</strong> (solo step <Code>Dato</Code>/<Code>E</Code>) e aggiungi gli <strong>scenari</strong>. Tag e numero dello scenario li gestisce l&apos;hub; tu scrivi titolo, tipo, polarità e step.</>,
             <>Gli step si scrivono in Gherkin italiano (<Code>Dato</Code>, <Code>Quando</Code>, <Code>Allora</Code>, <Code>E</Code>, <Code>Ma</Code>). Gli errori compaiono mentre scrivi, riga per riga.</>,
             <>Mentre scrivi uno step l&apos;editor <strong>suggerisce le frasi già usate nel repository</strong>: quelle marcate &quot;implementato&quot; hanno già una step definition. Riusarle fa risparmiare lavoro al QA Engineer. Si sceglie con ↑/↓ e Invio, si chiude con Esc.</>,
@@ -156,6 +157,17 @@ export default function TestLifecycleGuidePage() {
             <>Dopo il riallineamento si invia e si approva come sempre; l&apos;hub aggiorna la stessa PR.</>,
           ]}
         />
+      </Section>
+
+      <Section title="Jira">
+        <p>L&apos;hub crea e collega i task Jira del progetto PQ, così non vanno aperti a mano.</p>
+        <ul className="list-disc pl-5 flex flex-col gap-1">
+          <li><strong>Progettazione</strong> (&quot;Progettazione Scenari e casi di test&quot;): si crea dal tab Jira con <strong>Crea task Progettazione</strong>, mentre la feature è in bozza.</li>
+          <li><strong>Implementazione</strong> (&quot;Implementazione suite di TA&quot;): l&apos;hub la crea da solo all&apos;approvazione. Se Jira non risponde compare l&apos;errore e il pulsante <strong>Riprova task Implementazione</strong>.</li>
+          <li>Ogni task ha etichetta <Code>testing</Code>, sta sotto l&apos;Epic QA (quella dell&apos;ambito, o quella indicata nella feature), ha il componente dell&apos;ambito, è assegnato all&apos;owner della fase ed è collegato (&quot;relates to&quot;) all&apos;Epic/Story di prodotto.</li>
+          <li>Se un task con lo stesso titolo esiste già, l&apos;hub lo ricollega invece di crearne un doppione.</li>
+          <li>Le chiavi scritte a mano vengono verificate su Jira. Lo stato dei task (Da fare, In corso, Fatto) si aggiorna da solo ogni 15 minuti, o subito con <strong>Aggiorna da Jira</strong>.</li>
+        </ul>
       </Section>
 
       <Section title="Anomalie">

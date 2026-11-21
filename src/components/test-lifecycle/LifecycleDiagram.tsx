@@ -36,6 +36,17 @@ function Label({ x, y, children, anchor = "middle" }: { x: number; y: number; ch
   );
 }
 
+function JiraTag({ x, y, text }: { x: number; y: number; text: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={NODE_W} height={18} rx={9} fill="var(--info-soft)" />
+      <text x={x + NODE_W / 2} y={y + 13} textAnchor="middle" fontSize={10} fill="var(--info)">
+        {text}
+      </text>
+    </g>
+  );
+}
+
 export function LifecycleDiagram() {
   const hubY = 110;
   const gitY = 262;
@@ -91,6 +102,10 @@ export function LifecycleDiagram() {
         <Label x={868} y={gitY - 50} anchor="start">Sync: nuova</Label>
         <Label x={868} y={gitY - 35} anchor="start">versione o</Label>
         <Label x={868} y={gitY - 20} anchor="start">anomalia</Label>
+
+        {/* task Jira */}
+        <JiraTag x={20} y={hubY + NODE_H + 6} text="task Jira Progettazione" />
+        <JiraTag x={410} y={hubY - 24} text="task Jira Implementazione" />
 
         {/* ritorni */}
         <path d={`M290,${hubY} C290,72 110,72 110,${hubY - 2}`} fill="none" stroke="var(--warning)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
