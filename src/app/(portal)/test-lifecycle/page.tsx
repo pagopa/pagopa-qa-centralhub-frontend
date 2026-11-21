@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BookOpen, Plus, Settings } from "lucide-react";
+import { AlertTriangle, BookOpen, Plus, Settings, ArrowRightLeft } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { CreateFeatureDialog } from "@/components/test-lifecycle/CreateFeatureDialog";
 import { FeatureTable } from "@/components/test-lifecycle/FeatureTable";
@@ -47,6 +47,14 @@ export default function TestLifecyclePage() {
           </Link>
           <Gate action="manage:tl_git">
             <GitSyncButton disabled={status === "loading"} />
+          </Gate>
+          <Gate action="manage:tl_migration">
+            <Link
+              href="/test-lifecycle/migrazione"
+              className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface text-text-dim text-[13px] px-3 py-1.5 hover:bg-hover transition-colors"
+            >
+              <ArrowRightLeft size={14} /> Migrazione
+            </Link>
           </Gate>
           <Gate action="manage:tl_scopes">
             <button

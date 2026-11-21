@@ -8,6 +8,7 @@ import { ScenarioCard } from "./ScenarioCard";
 const mocks = vi.hoisted(() => ({ validate: vi.fn() }));
 
 vi.mock("@/hooks/useTestLifecycle", () => ({
+  useTlCategoryTags: () => ({ data: undefined }),
   useTlStepSuggestions: () => ({ data: [] }),
   useValidateSteps: () => ({ mutate: mocks.validate }),
 }));

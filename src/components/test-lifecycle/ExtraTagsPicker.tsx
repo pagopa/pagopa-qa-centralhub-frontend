@@ -1,20 +1,26 @@
 import { ALLOWED_EXTRA_TAGS } from "@/lib/test-lifecycle";
 
-/** Multi-select of the controlled extra tags (ALLOWED_EXTRA_TAGS), rendered as toggle chips. */
+/**
+ * Multi-select of the category tags, rendered as toggle chips. `options` comes from the backend
+ * (base tags plus those added by the migration); tags already on the scenario are always shown.
+ */
 export function ExtraTagsPicker({
   value,
   readOnly,
   onToggle,
+  options = ALLOWED_EXTRA_TAGS,
 }: {
   value: string[];
   readOnly: boolean;
   onToggle: (tag: string) => void;
+  options?: readonly string[];
 }) {
+  const tags = [...new Set([...options, ...value])];
   return (
     <fieldset className="flex flex-col gap-1 text-xs text-text-dim">
       <legend className="mb-1">Tag aggiuntivi</legend>
       <div className="flex gap-1.5 flex-wrap">
-        {ALLOWED_EXTRA_TAGS.map((tag) => {
+        {tags.map((tag) => {
           const active = value.includes(tag);
           return (
             <label

@@ -21,6 +21,7 @@ import type {
   TlScenarioUpdate,
 } from "@/types/test-lifecycle";
 import { EMPTY_EXAMPLES, ExamplesGrid } from "./ExamplesGrid";
+import { useTlCategoryTags } from "@/hooks/useTestLifecycle";
 import { ExtraTagsPicker } from "./ExtraTagsPicker";
 import { StepsEditor } from "./StepsEditor";
 
@@ -113,6 +114,7 @@ export function ScenarioCard({
     if (opts.save) void save();
   };
 
+  const categoryTags = useTlCategoryTags();
   const toggleTag = (tag: string) => {
     const tags = draft.extra_tags.includes(tag)
       ? draft.extra_tags.filter((t) => t !== tag)
@@ -195,7 +197,7 @@ export function ScenarioCard({
             <option value="negativo">Negativo</option>
           </select>
         </label>
-        <ExtraTagsPicker value={draft.extra_tags} readOnly={readOnly} onToggle={toggleTag} />
+        <ExtraTagsPicker value={draft.extra_tags} readOnly={readOnly} onToggle={toggleTag} options={categoryTags.data} />
       </div>
 
       <StepsEditor

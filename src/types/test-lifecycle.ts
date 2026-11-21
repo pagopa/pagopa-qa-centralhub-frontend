@@ -159,6 +159,16 @@ export interface TlFeatureDetail {
   jira_qa_epic_key: string | null;
   jira_qa_epic_effective: string | null;
   jira_warning?: string | null;
+  migration_note?: string | null;
+  migrated_from?: TlMigratedFrom | null;
+  alignment_pending?: boolean;
+}
+
+export interface TlMigratedFrom {
+  page_id: string | null;
+  page_url: string | null;
+  file_path: string | null;
+  commit_sha: string | null;
 }
 
 // ── Jira (fase 3) ─────────────────────────────────────────────────────────────
@@ -196,6 +206,7 @@ export interface TlFeatureUpdate {
   jira_design_key?: string | null;
   jira_impl_key?: string | null;
   jira_qa_epic_key?: string | null;
+  migration_note?: string | null;
 }
 
 export interface TlRevisionUpdate {
@@ -440,4 +451,90 @@ export interface TlNrtRunLink {
   feature_id: string;
   feature_code: string;
   scenario_tag: string;
+}
+
+// ── Migrazione da Confluence (fase 5) ─────────────────────────────────────────
+
+export type TlMigrationDecision = "pending" | "confirmed" | "excluded";
+
+export interface TlMigrationProblem {
+  code: string;
+  message: string;
+}
+
+export interface TlMigrationOverrides {
+  scope_code?: string;
+  number?: number;
+  title?: string;
+  status?: TlFeatureStatus;
+  owner_id?: string | null;
+  reviewer_id?: string | null;
+  file_path?: string | null;
+}
+
+export interface TlMigrationEffective {
+  scope_code: string;
+  number: number | null;
+  title: string;
+  status: TlFeatureStatus;
+  owner_id: string | null;
+  reviewer_id: string | null;
+  file_path: string | null;
+}
+
+export interface TlMigrationItem {
+  id: string;
+  page_id: string | null;
+  page_title: string | null;
+  page_url: string | null;
+  file_path: string | null;
+  scope_code: string;
+  number: number | null;
+  title: string;
+  status: TlFeatureStatus;
+  decision: TlMigrationDecision;
+  problems: TlMigrationProblem[];
+  proposal: Record<string, unknown>;
+  overrides: TlMigrationOverrides;
+  effective: TlMigrationEffective;
+  feature_id: string | null;
+  executed_at: string | null;
+}
+
+export interface TlMigrationScope {
+  scope_code: string;
+  items: number;
+  pending: number;
+  confirmed: number;
+  excluded: number;
+  executed: number;
+  with_problems: number;
+  executed_at: string | null;
+  pr_number: number | null;
+  pr_url: string | null;
+  pr_state: string | null;
+  pr_error: string | null;
+  confluence_errors: { page_id: string | null; message: string }[];
+}
+
+export interface TlMigrationTag {
+  name: string;
+  occurrences: number;
+  decision: "keep" | "drop";
+  category: boolean;
+}
+
+export interface TlMigrationSummary {
+  status: "idle" | "running" | "error";
+  analyzed_at: string | null;
+  error: string | null;
+  confluence_write: boolean;
+  scopes: TlMigrationScope[];
+  tags: TlMigrationTag[];
+}
+
+export interface TlMigrationItemFilters {
+  scope_code?: string;
+  decision?: TlMigrationDecision | "executed";
+  problem?: string;
 }

@@ -19,6 +19,12 @@ import type {
   TlIssueFilters,
   TlJiraLink,
   TlJiraTaskKind,
+  TlMigrationDecision,
+  TlMigrationItem,
+  TlMigrationItemFilters,
+  TlMigrationOverrides,
+  TlMigrationScope,
+  TlMigrationSummary,
   TlNrtRunLink,
   TlRebaseSide,
   TlRebaseView,
@@ -519,3 +525,108 @@ export function useTlRunLinks(runId: string | undefined, enabled = true) {
     enabled: enabled && !!runId,
   });
 }
+
+// ── Tag di categoria e migrazione (fase 5) ────────────────────────────────────
+
+export function useTlCategoryTags() {
+  return useQuery<string[]>({
+    queryKey: ["tl", "category-tags"],
+    queryFn: () => apiClient<string[]>(`${BASE}/category-tags`),
+    staleTime: 300_000,
+  });
+}
+
+export function useTlMigration() {
+  const actor = useActorEmail();
+  return useQuery<TlMigrationSummary>({
+    queryKey: ["tl", "migration", "summary"],
+    queryFn: () =>
+      apiClient<TlMigrationSummary>(
+        `${BASE}/migration?${new URLSearchParams({ actor_email: actor ?? "" }).toString()}`,
+      ),
+    enabled: !!actor,
+  });
+}
+
+export function useTlMigrationItems(filters: TlMigrationItemFilters = {}) {
+  const actor = useActorEmail();
+  const params = new URLSearchParams({ actor_email: actor ?? "" });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, String(value));
+  }
+  return useQuery<TlMigrationItem[]>({
+    queryKey: ["tl", "migration", "items", filters],
+    queryFn: () => apiClient<TlMigrationItem[]>(`${BASE}/migration/items?${params.toString()}`),
+    enabled: !!actor,
+  });
+}
+
+function useInvalidateMigration() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: ["tl", "migration"] });
+}
+
+export function useAnalyzeTlMigration() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateMigration();
+  return useMutation({
+    mutationFn: () =>
+      apiClient<TlMigrationSummary>(`${BASE}/migration/analyze`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function usePatchTlMigrationItem() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateMigration();
+  return useMutation({
+    mutationFn: ({
+      id,
+      decision,
+      overrides,
+    }: {
+      id: string;
+      decision?: TlMigrationDecision;
+      overrides?: TlMigrationOverrides;
+    }) =>
+      apiClient<TlMigrationItem>(`${BASE}/migration/items/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ actor_email: actor, decision, overrides }),
+      }),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function usePatchTlMigrationTag() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateMigration();
+  return useMutation({
+    mutationFn: ({ name, decision }: { name: string; decision: "keep" | "drop" }) =>
+      apiClient<TlMigrationSummary>(`${BASE}/migration/tags/${encodeURIComponent(name)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ actor_email: actor, decision }),
+      }),
+    onSuccess: () => invalidate(),
+  });
+}
+
+function useScopeAction(action: "execute" | "retry-pr" | "retry-confluence") {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ scopeCode }: { scopeCode: string }) =>
+      apiClient<TlMigrationScope>(
+        `${BASE}/migration/scopes/${encodeURIComponent(scopeCode)}/${action}`,
+        { method: "POST", body: JSON.stringify({ actor_email: actor }) },
+      ),
+    // l'esecuzione crea feature e ambiti: si ricarica tutto il modulo
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tl"] }),
+  });
+}
+
+export const useExecuteTlMigrationScope = () => useScopeAction("execute");
+export const useRetryTlMigrationPr = () => useScopeAction("retry-pr");
+export const useRetryTlMigrationConfluence = () => useScopeAction("retry-confluence");
