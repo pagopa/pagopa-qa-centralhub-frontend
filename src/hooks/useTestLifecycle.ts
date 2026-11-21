@@ -11,7 +11,15 @@ import type {
   TlFeatureUpdate,
   TlGherkinValidateRequest,
   TlGherkinValidateResult,
+  TlGitStatus,
+  TlGitSyncSummary,
   TlHistoryItem,
+  TlIssue,
+  TlIssueFilters,
+  TlRebaseSide,
+  TlRebaseView,
+  TlStepKeyword,
+  TlStepSuggestion,
   TlPreview,
   TlRevision,
   TlRevisionUpdate,
@@ -40,6 +48,8 @@ function useInvalidateFeature() {
       qc.invalidateQueries({ queryKey: ["tl", "features"] }),
       qc.invalidateQueries({ queryKey: ["tl", "history", featureId] }),
       qc.invalidateQueries({ queryKey: ["tl", "preview", featureId] }),
+      qc.invalidateQueries({ queryKey: ["tl", "issues"] }),
+      qc.invalidateQueries({ queryKey: ["tl", "rebase", featureId] }),
     ]);
 }
 
@@ -315,5 +325,121 @@ export function useValidateSteps() {
         method: "POST",
         body: JSON.stringify(data),
       }),
+  });
+}
+
+// ── Git (fase 2) ──────────────────────────────────────────────────────────────
+
+export function usePublishTlRevision() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({ featureId, revisionId }: { featureId: string; revisionId: string }) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/revisions/${revisionId}/pr`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+export function useTlGitStatus() {
+  return useQuery<TlGitStatus>({
+    queryKey: ["tl", "git", "status"],
+    queryFn: () => apiClient<TlGitStatus>(`${BASE}/git/status`),
+  });
+}
+
+export function useTlGitSync() {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiClient<TlGitSyncSummary>(`${BASE}/git/sync`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    // il sync può toccare qualsiasi feature: si ricarica tutto il modulo
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tl"] }),
+  });
+}
+
+export function useTlIssues(filters: TlIssueFilters = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  return useQuery<TlIssue[]>({
+    queryKey: ["tl", "issues", filters],
+    queryFn: () => apiClient<TlIssue[]>(`${BASE}/issues${qs ? `?${qs}` : ""}`),
+  });
+}
+
+export function useUpdateTlIssue() {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({
+      issueId,
+      status,
+    }: {
+      issueId: string;
+      status: "acknowledged" | "resolved";
+      featureId?: string | null;
+    }) =>
+      apiClient<TlIssue>(`${BASE}/issues/${issueId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status, actor_email: actor }),
+      }),
+    onSuccess: (_d, vars) =>
+      vars.featureId
+        ? invalidate(vars.featureId)
+        : qc.invalidateQueries({ queryKey: ["tl", "issues"] }),
+  });
+}
+
+export function useTlRebase(featureId: string | undefined, revisionId: string | undefined, enabled = true) {
+  return useQuery<TlRebaseView>({
+    queryKey: ["tl", "rebase", featureId, revisionId],
+    queryFn: () => apiClient<TlRebaseView>(`${BASE}/features/${featureId}/revisions/${revisionId}/rebase`),
+    enabled: enabled && !!featureId && !!revisionId,
+  });
+}
+
+export function useApplyTlRebase() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({
+      featureId,
+      revisionId,
+      lockVersion,
+      choices,
+    }: {
+      featureId: string;
+      revisionId: string;
+      lockVersion: number;
+      choices: Record<string, TlRebaseSide>;
+    }) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/revisions/${revisionId}/rebase`, {
+        method: "POST",
+        body: JSON.stringify({ lock_version: lockVersion, actor_email: actor, choices }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+export function useTlStepSuggestions(q: string, keyword: TlStepKeyword | null) {
+  const query = q.trim();
+  const params = new URLSearchParams({ q: query });
+  if (keyword) params.set("keyword", keyword);
+  params.set("limit", "10");
+  return useQuery<TlStepSuggestion[]>({
+    queryKey: ["tl", "steps", query, keyword],
+    queryFn: () => apiClient<TlStepSuggestion[]>(`${BASE}/steps?${params.toString()}`),
+    enabled: query.length >= 2,
+    staleTime: 60_000,
   });
 }

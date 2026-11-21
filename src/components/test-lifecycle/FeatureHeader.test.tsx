@@ -18,9 +18,11 @@ const FEATURE = {
     description: null, background_steps: null, requirements_url: null, product_issue_key: null,
     reverse_engineering: false, design_estimate_days: null, impl_estimate_days: null,
     created_by: "a@x.it", approved_by: null, approved_at: null, created_at: "", updated_at: "",
-    scenarios: [], background_errors: [],
+    scenarios: [], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, base_stale: false, merged_commit_sha: null,
   },
   published_revision: null,
+  git_path: null,
+  open_issues: 0,
   transitions: [
     { action: "submit", allowed: false, reasons: ["Nessuno scenario", "Reviewer non assegnato"] },
     { action: "approve", allowed: false, reasons: ["La revisione non è in review"] },

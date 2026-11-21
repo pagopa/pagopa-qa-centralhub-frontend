@@ -29,7 +29,7 @@ function revision(overrides: Partial<TlRevision> = {}): TlRevision {
     reverse_engineering: false, design_estimate_days: null, impl_estimate_days: null,
     created_by: "anna@x.it", approved_by: null, approved_at: null,
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",
-    scenarios: [], background_errors: [],
+    scenarios: [], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, base_stale: false, merged_commit_sha: null,
     ...overrides,
   };
 }
@@ -40,7 +40,7 @@ function feature(rev: TlRevision, overrides: Partial<TlFeatureDetail> = {}): TlF
     design_owner_id: "u1", reviewer_id: "u2", impl_owner_id: null,
     jira_design_key: "PQ-1", jira_impl_key: null, created_by: "anna@x.it",
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",
-    working_revision: rev, published_revision: null, transitions: [],
+    working_revision: rev, published_revision: null, transitions: [], git_path: null, open_issues: 0,
     ...overrides,
   };
 }

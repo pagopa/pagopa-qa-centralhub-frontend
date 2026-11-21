@@ -7,6 +7,18 @@ export type TlScenarioKind = "scenario" | "outline";
 export type TlPolarity = "positivo" | "negativo";
 export type TlTransitionAction = "submit" | "approve" | "request_changes" | "reopen";
 export type TlExtraTag = "runnable" | "e2e" | "ui" | "skip";
+export type TlPrState = "open" | "merged" | "closed";
+export type TlIssueKind =
+  | "structural_change"
+  | "new_scenario_from_git"
+  | "file_deleted"
+  | "unknown_feature_code"
+  | "parse_error"
+  | "pr_closed_unmerged"
+  | "pr_creation_failed";
+export type TlIssueStatus = "open" | "acknowledged" | "resolved";
+export type TlStepKeyword = "given" | "when" | "then";
+export type TlRebaseSide = "git" | "draft";
 
 export interface TlScope {
   id: string;
@@ -83,6 +95,13 @@ export interface TlRevision {
   updated_at: string;
   scenarios: TlScenario[];
   background_errors: TlLineError[];
+  origin: "hub" | "git";
+  pr_number: number | null;
+  pr_url: string | null;
+  pr_state: TlPrState | null;
+  pr_error: string | null;
+  base_stale: boolean;
+  merged_commit_sha: string | null;
 }
 
 /** Result of the transition pre-check, one entry per workflow action. */
@@ -125,6 +144,8 @@ export interface TlFeatureDetail {
   working_revision: TlRevision | null;
   published_revision: TlRevision | null;
   transitions: TransitionCheck[];
+  git_path: string | null;
+  open_issues: number;
 }
 
 export interface TlFeatureFilters {
@@ -248,4 +269,99 @@ export type TlErrorCode =
   | "not_reviewer"
   | "revision_not_commentable"
   | "scope_code_conflict"
-  | "scope_code_locked";
+  | "scope_code_locked"
+  | "git_not_configured"
+  | "github_error"
+  | "pr_not_allowed"
+  | "pr_in_progress"
+  | "repo_folder_missing"
+  | "sync_in_progress"
+  | "rebase_required"
+  | "rebase_not_needed"
+  | "issue_already_resolved";
+
+// ── Git (fase 2) ──────────────────────────────────────────────────────────────
+
+export interface TlIssue {
+  id: string;
+  feature_id: string | null;
+  revision_id: string | null;
+  kind: TlIssueKind;
+  status: TlIssueStatus;
+  path: string | null;
+  commit_sha: string | null;
+  detail: Record<string, unknown>;
+  created_at: string;
+  updated_by: string | null;
+  updated_at: string;
+  feature_code: string | null;
+  feature_title: string | null;
+}
+
+export interface TlIssueFilters {
+  status?: TlIssueStatus;
+  feature_id?: string;
+  kind?: TlIssueKind;
+}
+
+export interface TlGitStatus {
+  configured: boolean;
+  last_main_sha: string | null;
+  last_run_at: string | null;
+  last_error: string | null;
+  last_summary: Record<string, unknown> | null;
+}
+
+export interface TlGitSyncSummary {
+  prs_merged: number;
+  prs_closed: number;
+  files_imported: number;
+  issues_opened: number;
+  steps_indexed: boolean;
+  head_sha: string;
+  full_resync: boolean;
+}
+
+export interface TlScenarioContent {
+  position: number;
+  title: string;
+  kind: TlScenarioKind;
+  polarity: TlPolarity;
+  extra_tags: string[];
+  steps: string;
+  examples: TlExamples | null;
+  detail_link: string | null;
+}
+
+export interface TlRebaseScenario {
+  scenario_id: string;
+  tag: string;
+  base: TlScenarioContent | null;
+  git: TlScenarioContent | null;
+  draft: TlScenarioContent | null;
+  conflict: boolean;
+}
+
+export interface TlRebaseField {
+  field: "title" | "description" | "background";
+  base: string | null;
+  git: string | null;
+  draft: string | null;
+  conflict: boolean;
+}
+
+export interface TlRebaseView {
+  revision_id: string;
+  base_revision_id: string | null;
+  published_revision_id: string | null;
+  lock_version: number;
+  metadata: TlRebaseField[];
+  scenarios: TlRebaseScenario[];
+}
+
+export interface TlStepSuggestion {
+  keyword: TlStepKeyword;
+  text: string;
+  occurrences: number;
+  implemented: boolean;
+}

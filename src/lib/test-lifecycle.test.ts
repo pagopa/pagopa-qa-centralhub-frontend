@@ -153,3 +153,15 @@ describe("tlEventLabel", () => {
     expect(tlEventLabel(null)).toBe("Evento");
   });
 });
+
+describe("git labels", () => {
+  it("labels issue kinds, statuses, PR states and new events in Italian", async () => {
+    const lib = await import("@/lib/test-lifecycle");
+    expect(lib.ISSUE_KIND_LABEL.structural_change).toBe("Modifica strutturale");
+    expect(lib.ISSUE_KIND_LABEL.pr_creation_failed).toBe("Creazione PR fallita");
+    expect(lib.ISSUE_STATUS_LABEL.acknowledged).toBe("Presa visione");
+    expect(lib.PR_STATE_LABEL.merged).toBe("Integrata");
+    expect(lib.tlEventLabel("tl.pr.created")).toBe("PR aperta");
+    expect(lib.tlEventLabel("tl.revision.rebased")).toBe("Bozza riallineata");
+  });
+});

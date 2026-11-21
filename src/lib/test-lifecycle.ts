@@ -1,6 +1,9 @@
 import { ApiError } from "@/lib/api";
 import type {
   TlFeatureStatus,
+  TlIssueKind,
+  TlIssueStatus,
+  TlPrState,
   TlRevisionStatus,
   TlTransitionAction,
   TransitionCheck,
@@ -28,6 +31,28 @@ export const REVISION_STATUS_LABEL: Record<TlRevisionStatus, string> = {
   approved: "Approvata",
   merged: "Integrata",
   superseded: "Sostituita",
+};
+
+export const ISSUE_KIND_LABEL: Record<TlIssueKind, string> = {
+  structural_change: "Modifica strutturale",
+  new_scenario_from_git: "Nuovo scenario da Git",
+  file_deleted: "File eliminato",
+  unknown_feature_code: "Codice feature sconosciuto",
+  parse_error: "File non leggibile",
+  pr_closed_unmerged: "PR chiusa senza merge",
+  pr_creation_failed: "Creazione PR fallita",
+};
+
+export const ISSUE_STATUS_LABEL: Record<TlIssueStatus, string> = {
+  open: "Aperta",
+  acknowledged: "Presa visione",
+  resolved: "Risolta",
+};
+
+export const PR_STATE_LABEL: Record<TlPrState, string> = {
+  open: "Aperta",
+  merged: "Integrata",
+  closed: "Chiusa senza merge",
 };
 
 export const TRANSITION_LABEL: Record<TlTransitionAction, string> = {
@@ -167,6 +192,16 @@ const EVENT_LABEL: Record<string, string> = {
   "tl.comment.added": "Commento aggiunto",
   "tl.comment.resolved": "Commento risolto",
   "tl.comment.reopened": "Commento riaperto",
+  "tl.pr.created": "PR aperta",
+  "tl.pr.updated": "PR aggiornata",
+  "tl.pr.merged": "PR integrata",
+  "tl.pr.closed": "PR chiusa senza merge",
+  "tl.git.imported": "File importato da Git",
+  "tl.revision.reopened": "Feature riaperta",
+  "tl.revision.rebased": "Bozza riallineata",
+  "tl.revision.stale": "Bozza superata da Git",
+  "tl.issue.updated": "Anomalia aggiornata",
+  "tl.feature.implemented": "Feature implementata",
 };
 
 /** Italian label for a history event action; unknown actions fall back to the raw key. */
