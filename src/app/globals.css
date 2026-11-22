@@ -27,6 +27,10 @@
   --danger-soft: oklch(0.96 0.05 27);
   --warning: oklch(0.74 0.15 75);
   --warning-soft: oklch(0.96 0.05 75);
+  --warning-ink: oklch(0.5 0.12 70); /* text on --warning-soft */
+  --warning-strong: oklch(0.62 0.16 65); /* solid amber that keeps white text readable */
+  --warning-fg: #1f1300; /* text on solid --warning */
+  --danger-fg: #ffffff; /* text on solid --danger */
   --info: oklch(0.62 0.13 230);
   --info-soft: oklch(0.96 0.03 230);
   --neutral-soft: oklch(0.95 0.005 250);
@@ -102,6 +106,10 @@
   --danger-soft: oklch(0.26 0.08 27);
   --warning: oklch(0.78 0.14 75);
   --warning-soft: oklch(0.26 0.08 75);
+  --warning-ink: oklch(0.85 0.12 78);
+  --warning-strong: oklch(0.62 0.16 65);
+  --warning-fg: #1f1300;
+  --danger-fg: #0c0d10;
   --info: oklch(0.72 0.13 230);
   --info-soft: oklch(0.26 0.06 230);
   --neutral-soft: oklch(0.22 0.005 250);
@@ -270,5 +278,20 @@ textarea::placeholder {
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Notification bell: a short wobble every few seconds, only when motion is allowed. */
+@keyframes bell-ring {
+  0%, 88%, 100% { transform: rotate(0); }
+  91% { transform: rotate(14deg); }
+  94% { transform: rotate(-12deg); }
+  97% { transform: rotate(7deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bell-ring svg {
+    animation: bell-ring 2.6s ease-in-out infinite;
+    transform-origin: 50% 10%;
   }
 }
