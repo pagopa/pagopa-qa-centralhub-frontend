@@ -206,6 +206,25 @@ La route `/ea-map` (`view:ea_map`) mostra la mappa di Enterprise Architecture de
 
 Le schede di componenti e prodotti mostrano il pannello "Dati nel Data Lake" con i dataset prodotti.
 
+## Messaggi e campanella
+
+Centro messaggi della QA: la campanella in alto a destra e la pagina `/messages` mostrano gli avvisi che il
+backend (QA Messaging Hub) invia in base al ruolo dell'utente (esito dei Quality Gate, run NRT da analizzare,
+controlli SANP Health in KO o warning). Codice: `src/components/messaging/`, `src/hooks/useMessaging.ts`,
+`src/lib/messaging.ts`.
+
+- **Campanella** (`NotificationBell`, nella `Topbar`): tre stati distinti. Nessun messaggio (spenta), tutti letti
+  (spunta verde), non letti (cerchio colorato con contatore, "9+" oltre nove; la tinta segue il messaggio non letto
+  più grave: info blu, warning ambra, critical rosso). Il clic apre un pannello con gli ultimi messaggi.
+- **Pagina `/messages`**: messaggi raggruppati per giorno, filtri per non letti, severità e tipo, pulsante verso la
+  sezione da attenzionare (`link` del messaggio) e "Segna come letto". Voce "Messaggi" nella sidebar con il numero
+  di non letti.
+- **Permesso** `view:inbox` (spento per `guest`): senza, non compaiono né la campanella né la voce di menu.
+- **Aggiornamento**: il riepilogo si rilegge ogni 60 secondi e al ritorno sulla finestra (nessun WebSocket).
+- **Identità provvisoria**: finché il backend non verifica il JWT, le chiamate inviano l'email della sessione
+  nell'header `X-User-Email`; le richieste partono solo con sessione e permesso presenti.
+- Il backend va rilasciato prima del frontend (le rotte `/api/v1/messaging/*` sono nuove).
+
 ## Auth & RBAC
 
 Login tramite **Google SSO** (NextAuth v5). Ad ogni login/refresh il frontend chiama `POST /api/v1/users/sync-login` sul backend, che crea/aggiorna l'utente e restituisce `role` + `is_active`.
