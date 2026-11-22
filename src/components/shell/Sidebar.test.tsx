@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "./Sidebar";
 
 const mocks = vi.hoisted(() => ({
   apiClient: vi.fn(),
   can: vi.fn((action: string) => Boolean(action)),
+  unread: 0,
 }));
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
@@ -13,6 +14,9 @@ vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({ can: mocks.can, role: "superadmin", isLoading: false }),
 }));
 vi.mock("@/lib/api", () => ({ apiClient: mocks.apiClient }));
+vi.mock("@/hooks/useMessaging", () => ({
+  useInboxSummary: () => ({ data: { unread: mocks.unread, total: mocks.unread, max_unread_severity: null } }),
+}));
 
 const featureItems = [
   ["overview", "Overview", "/", "view:overview", false],
@@ -58,6 +62,7 @@ describe("Sidebar feature visibility", () => {
     });
     vi.stubEnv("NEXT_PUBLIC_NRT_METRICS_URL", "https://grafana.example.com/d/nrt?orgId=1&kiosk");
     mocks.can.mockImplementation((action: string) => Boolean(action));
+    mocks.unread = 0;
     mocks.apiClient.mockReset();
     mocks.apiClient.mockResolvedValue({
       items: featureItems.map(([key, label, route, action, external]) => ({
@@ -118,6 +123,30 @@ describe("Sidebar feature visibility", () => {
     }
   });
 
+  it("shows the Messaggi entry with the unread count as a pill", async () => {
+    mocks.unread = 3;
+    renderSidebar();
+
+    const link = await screen.findByRole("link", { name: /Messaggi/ });
+    expect(link).toHaveAttribute("href", "/messages");
+    expect(within(link).getByTestId("sidebar-unread")).toHaveTextContent("3");
+  });
+
+  it("shows the Messaggi entry without a pill when everything has been read", async () => {
+    renderSidebar();
+
+    const link = await screen.findByRole("link", { name: /Messaggi/ });
+    expect(within(link).queryByTestId("sidebar-unread")).toBeNull();
+  });
+
+  it("hides the Messaggi entry without the view:inbox permission", async () => {
+    mocks.can.mockImplementation((action: string) => action !== "view:inbox");
+    renderSidebar();
+
+    await screen.findByRole("link", { name: "API Docs" });
+    expect(screen.queryByRole("link", { name: /Messaggi/ })).toBeNull();
+  });
+
   it("opens API Docs as an internal page, not as a link to the backend", async () => {
     renderSidebar();
 
@@ -166,12 +195,13 @@ describe("Sidebar feature visibility", () => {
     },
   );
 
-  it("lists the architecture map right after the overview", async () => {
+  it("lists the architecture map right after the overview and its messages entry", async () => {
     renderSidebar();
 
     expect(await screen.findByRole("link", { name: "EA Map" })).toBeInTheDocument();
     const labels = screen.getAllByRole("link").map((link) => link.textContent?.trim());
-    expect(labels.indexOf("EA Map")).toBe(labels.indexOf("Overview") + 1);
+    expect(labels.indexOf("Messaggi")).toBe(labels.indexOf("Overview") + 1);
+    expect(labels.indexOf("EA Map")).toBe(labels.indexOf("Messaggi") + 1);
   });
 
   it("lists the flaky scenarios page right after the NRT page", async () => {
