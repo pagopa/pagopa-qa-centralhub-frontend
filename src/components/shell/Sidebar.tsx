@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   Activity,
   BookOpen,
   CreditCard,
@@ -27,6 +28,7 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import { useInboxSummary } from "@/hooks/useMessaging";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
 import { useStoredFlag } from "@/lib/stored-flag";
@@ -50,7 +52,10 @@ interface NavItem {
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Workspace",
-    items: [{ href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" }],
+    items: [
+      { href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" },
+      { href: "/messages", label: "Messaggi", icon: Bell, action: "view:inbox" },
+    ],
   },
   {
     label: "Architettura",
@@ -120,6 +125,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { can, role, isLoading } = usePermissions();
   const featuresQuery = useFeatureVisibility();
+  const unreadMessages = useInboxSummary().data?.unread ?? 0;
   const [collapsed, setCollapsed] = useStoredFlag(COLLAPSED_KEY);
 
   useEffect(() => {
@@ -257,6 +263,15 @@ export function Sidebar() {
                   >
                     <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} className="shrink-0" />
                     {label}
+                    {!collapsed && item.href === "/messages" && unreadMessages > 0 && (
+                      <span
+                        data-testid="sidebar-unread"
+                        className="ml-auto rounded-full px-[7px] text-[11px] font-bold leading-[18px]"
+                        style={{ background: "var(--accent)", color: "var(--accent-fg, #fff)" }}
+                      >
+                        {unreadMessages}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
