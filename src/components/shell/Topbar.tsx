@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "@/lib/theme";
+import { NotificationBell } from "@/components/messaging/NotificationBell";
 import { usePermissions } from "@/hooks/usePermissions";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -15,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/sanp-health": "SANP Health",
   "/bugs": "Defect Tracker",
   "/releases": "Status Page",
+  "/messages": "Messaggi",
   "/docs": "Docs & Decks",
   "/api-docs": "API Docs",
   "/ea-map": "EA Map",
@@ -84,6 +86,8 @@ export function Topbar() {
       >
         {theme === "dark" ? <Sun size={16} strokeWidth={1.7} /> : <Moon size={16} strokeWidth={1.7} />}
       </button>
+
+      <NotificationBell />
 
       {/* Role badge */}
       {roleLabel && (
