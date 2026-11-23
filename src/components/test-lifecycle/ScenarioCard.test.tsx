@@ -40,6 +40,20 @@ describe("ScenarioCard", () => {
   beforeEach(() => mocks.validate.mockReset());
   afterEach(() => vi.useRealTimers());
 
+  it("links the saved detail only when it is an http(s) URL", () => {
+    renderCard({ readOnly: true, scenario: scenario({ detail_link: "https://docs.example.test/req#3" }) });
+    expect(screen.getByRole("link", { name: "https://docs.example.test/req#3" })).toHaveAttribute(
+      "href",
+      "https://docs.example.test/req#3",
+    );
+  });
+
+  it("shows a non-http detail as plain text", () => {
+    renderCard({ readOnly: true, scenario: scenario({ detail_link: "javascript:alert(1)" }) });
+    expect(screen.getByText("javascript:alert(1)")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("renders the identity tag and number read-only", () => {
     renderCard();
     expect(screen.getByText("@FDR3_001_02")).toBeInTheDocument();

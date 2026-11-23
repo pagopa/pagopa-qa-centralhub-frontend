@@ -122,7 +122,8 @@ export function ScenarioCard({
     update({ extra_tags: tags }, { save: true });
   };
 
-  const detailUrl = safeHttpUrl(draft.detail_link);
+  // Link shown read-only: taken from the saved scenario, never from what is being typed.
+  const detailUrl = safeHttpUrl(scenario.detail_link);
 
   return (
     <article className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
@@ -220,15 +221,15 @@ export function ScenarioCard({
       )}
 
       {readOnly ? (
-        draft.detail_link && (
+        scenario.detail_link && (
           <p className="text-xs text-text-dim">
             Dettaglio:{" "}
             {detailUrl ? (
               <a href={detailUrl} target="_blank" rel="noopener noreferrer" className="text-accent underline">
-                {draft.detail_link}
+                {scenario.detail_link}
               </a>
             ) : (
-              <span>{draft.detail_link}</span>
+              <span>{scenario.detail_link}</span>
             )}
           </p>
         )

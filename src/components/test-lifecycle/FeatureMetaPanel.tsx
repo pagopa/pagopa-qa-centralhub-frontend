@@ -165,7 +165,9 @@ export function FeatureMetaPanel({
     </Field>
   );
 
-  const requirementsUrl = safeHttpUrl(rev.requirements_url);
+  // Link shown read-only: taken from the saved revision, never from what is being typed.
+  const savedRequirementsUrl = revision?.requirements_url ?? "";
+  const requirementsUrl = safeHttpUrl(savedRequirementsUrl);
   // An empty title is never sent (the backend requires one): flag it until fixed.
   const titleMissing = !readOnly && !rev.title.trim();
 
@@ -265,10 +267,10 @@ export function FeatureMetaPanel({
         <Field label="Requisiti">
           {requirementsUrl ? (
             <a href={requirementsUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] text-accent underline break-all">
-              {rev.requirements_url}
+              {savedRequirementsUrl}
             </a>
           ) : (
-            <span className="text-[14px] text-text break-all">{rev.requirements_url || "—"}</span>
+            <span className="text-[14px] text-text break-all">{savedRequirementsUrl || "—"}</span>
           )}
         </Field>
       ) : (

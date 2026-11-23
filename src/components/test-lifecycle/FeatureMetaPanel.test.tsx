@@ -85,6 +85,20 @@ describe("FeatureMetaPanel", () => {
     expect(screen.getByLabelText("Owner implementazione")).toHaveValue("u3");
   });
 
+  it("links the saved requirements only when they are an http(s) URL", () => {
+    renderPanel({ rev: revision({ status: "approved", requirements_url: "https://wiki.example.test/srs" }), readOnly: true });
+    expect(screen.getByRole("link", { name: "https://wiki.example.test/srs" })).toHaveAttribute(
+      "href",
+      "https://wiki.example.test/srs",
+    );
+  });
+
+  it("shows non-http requirements as plain text", () => {
+    renderPanel({ rev: revision({ status: "approved", requirements_url: "javascript:alert(1)" }), readOnly: true });
+    expect(screen.getByText("javascript:alert(1)")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /javascript/ })).not.toBeInTheDocument();
+  });
+
   it("keeps only the reviewer editable while the revision is in review", async () => {
     renderPanel({ rev: revision({ status: "in_review" }), readOnly: true, reviewerEditable: true });
     expect(screen.queryByRole("combobox", { name: "Owner design" })).not.toBeInTheDocument();
