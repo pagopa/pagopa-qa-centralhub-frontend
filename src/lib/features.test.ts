@@ -16,6 +16,8 @@ describe("featureKeyForPath", () => {
     ["/flaky-scenarios", "flaky_scenarios"],
     ["/releases", "release_status"],
     ["/releases/catalog", "release_status"],
+    ["/test-lifecycle", "test_lifecycle"],
+    ["/test-lifecycle/abc", "test_lifecycle"],
   ])("maps %s to feature %s", (pathname, expectedKey) => {
     expect(featureKeyForPath(pathname)).toBe(expectedKey);
   });
