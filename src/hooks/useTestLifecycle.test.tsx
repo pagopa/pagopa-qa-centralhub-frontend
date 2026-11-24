@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useAddTlComment,
   useAddTlScenario,
+  useTlDelete,
+  useTlDeletePreview,
   useRemoveTlScenario,
   useTlFeature,
   useTlFeatures,
@@ -129,5 +131,45 @@ describe("test lifecycle hooks", () => {
     const { wrapper } = setup();
     renderHook(() => useTlVersion("f1", undefined), { wrapper });
     expect(api.apiClient).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch the delete preview without an id", () => {
+    const { wrapper } = setup();
+    renderHook(() => useTlDeletePreview("feature", null), { wrapper });
+    expect(api.apiClient).not.toHaveBeenCalled();
+  });
+
+  it("requests the feature delete preview url", async () => {
+    api.apiClient.mockResolvedValue({ deletable: true });
+    const { wrapper } = setup();
+    renderHook(() => useTlDeletePreview("feature", "f1"), { wrapper });
+    await waitFor(() =>
+      expect(api.apiClient).toHaveBeenCalledWith("/api/v1/test-lifecycle/features/f1/delete-preview"),
+    );
+  });
+
+  it("requests the scope delete preview url", async () => {
+    api.apiClient.mockResolvedValue({ deletable: true });
+    const { wrapper } = setup();
+    renderHook(() => useTlDeletePreview("scope", "s1"), { wrapper });
+    await waitFor(() =>
+      expect(api.apiClient).toHaveBeenCalledWith("/api/v1/test-lifecycle/scopes/s1/delete-preview"),
+    );
+  });
+
+  it("sends actor_email and delete_jira_keys in the DELETE body and invalidates tl queries", async () => {
+    api.apiClient.mockResolvedValue({ deleted_features: 1, jira_results: [] });
+    const { wrapper, invalidate } = setup();
+    const { result } = renderHook(() => useTlDelete("feature"), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ id: "f1", deleteJiraKeys: ["PQ-1"] });
+    });
+    expect(api.apiClient).toHaveBeenCalledWith("/api/v1/test-lifecycle/features/f1", {
+      method: "DELETE",
+      body: JSON.stringify({ actor_email: "qa+a@example.com", delete_jira_keys: ["PQ-1"] }),
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "features"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["tl", "scopes"] });
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ["tl", "feature", "f1"] });
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useTlGitStatus, useTlGitSync } from "@/hooks/useTestLifecycle";
@@ -35,11 +36,11 @@ export function GitSyncButton({ disabled = false }: { disabled?: boolean }) {
         onClick={() => void run()}
         disabled={disabled || !configured || sync.isPending}
         title={configured ? undefined : "Git non configurato"}
-        className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-border bg-surface text-text-dim text-[13px] px-3 py-1.5 hover:bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className={SECONDARY_BUTTON_CLASS}
       >
         <RefreshCw size={14} className={sync.isPending ? "animate-spin" : undefined} /> Sincronizza ora
       </button>
-      <span className="text-[11px] text-text-muted">
+      <span className="font-mono text-[11px] text-text-muted">
         {!status.isLoading && !configured
           ? "Git non configurato: sync e PR disattivati"
           : lastRun

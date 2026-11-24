@@ -25,6 +25,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useDeleteRun } from "@/hooks/useQualityGate";
 import { DeleteRunDialog } from "./DeleteRunDialog";
 import Link from "next/link";
+import { ROW_ICON_CLASS } from "@/components/ui/formStyles";
 import { RunModal } from "./RunModal";
 import { useSession } from "next-auth/react";
 import { ChangeEvent, Fragment, type MouseEvent, type ReactNode, useState } from "react";
@@ -35,9 +36,6 @@ import NrtSaveButton from "./NrtSaveButton";
 function hasFailures(run: TestRun): boolean {
   return (run.failed_scenario ?? 0) + (run.broken_scenario ?? 0) + (run.skipped_scenario ?? 0) > 0;
 }
-
-const ROW_ICON_CLASS =
-  "rounded-sm p-1 text-text-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 function NrtColumnHeader({ label, description }: { label: string; description: string }) {
   const [tooltipOpen, setTooltipOpen] = useState(false);

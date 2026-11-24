@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ChevronLeft, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import { FilePreview } from "@/components/test-lifecycle/FilePreview";
 import { ReviewPanel } from "@/components/test-lifecycle/ReviewPanel";
 import { ScenarioCard } from "@/components/test-lifecycle/ScenarioCard";
 import { StaleLockBanner } from "@/components/test-lifecycle/StaleLockBanner";
+import { TlDeleteDialog } from "@/components/test-lifecycle/TlDeleteDialog";
 import { useApplyTlRebase, useTlComments, useTlFeature, useTlTransition } from "@/hooks/useTestLifecycle";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTlRevisionWriter, type TlRevisionWriter } from "@/hooks/useTlRevisionWriter";
@@ -58,6 +59,8 @@ function BackLink() {
 }
 
 function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch: () => Promise<unknown> }) {
+  const router = useRouter();
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { status: sessionStatus } = useSession();
   const { can } = usePermissions();
   const transition = useTlTransition();
@@ -201,6 +204,8 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         feature={feature}
         onTransition={runTransition}
         onRebase={() => setRebaseOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
+        deletable={!feature.git_path && !feature.published_revision}
         disabled={!sessionReady}
         pending={transition.isPending}
         error={transitionError}
@@ -235,6 +240,11 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
           </TabsContent>
         ))}
       </Tabs>
+      <TlDeleteDialog
+        target={deleteOpen ? { kind: "feature", id: feature.id, label: feature.code } : null}
+        onClose={() => setDeleteOpen(false)}
+        onDeleted={() => router.push("/test-lifecycle")}
+      />
     </div>
   );
 }

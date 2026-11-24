@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { Gate } from "@/lib/permissions";
@@ -62,8 +63,14 @@ export function FeatureHeader({
   pending = false,
   error = null,
   onRebase,
+  onDelete,
+  deletable = true,
 }: {
   feature: TlFeatureDetail;
+  /** Opens the delete confirmation; the button is shown only when provided (and gated by permission). */
+  onDelete?: () => void;
+  /** False when the feature cannot be deleted (published on Git or open PR). */
+  deletable?: boolean;
   /** Opens the three-way rebase dialog (shown when the working draft is stale). */
   onRebase?: () => void;
   /** Resolves to false when the transition failed (the note dialog then stays open). */
@@ -101,7 +108,7 @@ export function FeatureHeader({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[13px] text-text-muted">{feature.code}</span>
+            <span className="font-mono text-[13px] font-medium text-text-muted">{feature.code}</span>
             <FeatureStatusBadge status={feature.status} />
             {revision && (
               <span
@@ -136,6 +143,20 @@ export function FeatureHeader({
               <TransitionButton check={check} disabled={disabled || pending} onClick={() => run(check.action)} />
             </Gate>
           ))}
+          {onDelete && (
+            <Gate action="edit:tl_feature">
+              <span title={deletable ? undefined : "Feature pubblicata su Git o con PR aperta: non eliminabile"}>
+                <button
+                  type="button"
+                  className={`${SECONDARY_BUTTON_CLASS} hover:!text-danger disabled:hover:!text-text`}
+                  disabled={disabled || pending || !deletable}
+                  onClick={onDelete}
+                >
+                  <Trash2 size={16} aria-hidden /> Elimina
+                </button>
+              </span>
+            </Gate>
+          )}
         </div>
       </div>
 

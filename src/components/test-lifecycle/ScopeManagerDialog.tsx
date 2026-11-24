@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
 import {
   INPUT_CLASS,
   PRIMARY_BUTTON_CLASS,
+  ROW_ICON_CLASS,
   SECONDARY_BUTTON_CLASS,
 } from "@/components/ui/formStyles";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,6 +22,7 @@ import { QaEpicPicker } from "./QaEpicPicker";
 import type { TlScope } from "@/types/test-lifecycle";
 
 const CODE_PATTERN = /^[A-Za-z][A-Za-z0-9]{1,19}$/;
+const NOT_DELETABLE_HINT = "Ambito con feature pubblicate o PR aperte: non eliminabile";
 const LOCKED_REASON = "Il codice non può cambiare: esistono già feature in questo ambito";
 
 interface FormState {
@@ -56,17 +58,23 @@ const nullable = (v: string) => v.trim() || null;
 export function ScopeManagerDialog({
   open,
   onOpenChange,
+  onDeleteScope,
+  initialEditScope,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, each scope row shows a delete icon; the caller owns the confirmation flow. */
+  onDeleteScope?: (scope: TlScope) => void;
+  /** Opens directly in edit mode for this scope (the caller remounts via `key` to change it). */
+  initialEditScope?: TlScope;
 }) {
   const { data: scopes, isLoading } = useTlScopes();
   const createScope = useCreateTlScope();
   const updateScope = useUpdateTlScope();
 
   // null = list view, "new" = create form, otherwise the edited scope.
-  const [editing, setEditing] = useState<TlScope | "new" | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const [editing, setEditing] = useState<TlScope | "new" | null>(initialEditScope ?? null);
+  const [form, setForm] = useState<FormState>(initialEditScope ? toForm(initialEditScope) : EMPTY);
 
   const mutation = editing === "new" ? createScope : updateScope;
   const isPending = mutation.isPending;
@@ -149,21 +157,34 @@ export function ScopeManagerDialog({
               <div key={s.id} className="flex items-center gap-2 text-[13px]">
                 <span className="font-mono font-semibold w-24 shrink-0">{s.code}</span>
                 <span className="flex-1 text-text-dim truncate">{s.name}</span>
-                <span className="text-text-muted text-[12px]">{s.feature_count} feature</span>
+                <span className="font-mono text-text-muted text-[12px]">{s.feature_count} feature</span>
                 <button
                   type="button"
                   onClick={() => startEdit(s)}
-                  className="text-text-muted hover:bg-hover rounded-[var(--radius-sm)] p-1"
+                  className={ROW_ICON_CLASS}
                   aria-label={`Modifica ambito ${s.code}`}
+                  title="Modifica"
                 >
-                  <Pencil size={14} />
+                  <Pencil size={16} aria-hidden />
                 </button>
+                {onDeleteScope && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteScope(s)}
+                    disabled={!s.deletable}
+                    className={`${ROW_ICON_CLASS} hover:!text-danger disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:!text-text-muted`}
+                    aria-label={`Elimina ambito ${s.code}`}
+                    title={s.deletable ? "Elimina" : NOT_DELETABLE_HINT}
+                  >
+                    <Trash2 size={16} aria-hidden />
+                  </button>
+                )}
               </div>
             ))}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1 text-xs text-text-dim">
+            <div className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               <label htmlFor="tl-scope-code">Codice</label>
               {codeLocked ? (
                 <Tooltip>
@@ -177,19 +198,19 @@ export function ScopeManagerDialog({
                 <span className="text-danger">2-20 caratteri alfanumerici, il primo è una lettera</span>
               )}
             </div>
-            <label className="flex flex-col gap-1 text-xs text-text-dim">
+            <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               Nome
               <input className={INPUT_CLASS} value={form.name} onChange={set("name")} />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-text-dim">
+            <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               Area
               <input className={INPUT_CLASS} value={form.area} onChange={set("area")} />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-text-dim">
+            <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               Cartella repository
               <input className={INPUT_CLASS} value={form.repo_folder} onChange={set("repo_folder")} />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-text-dim">
+            <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               Team owner
               <input className={INPUT_CLASS} value={form.owner_team} onChange={set("owner_team")} />
             </label>
@@ -199,7 +220,7 @@ export function ScopeManagerDialog({
               scopeId={editing === "new" ? null : editing.id}
               error={epicError}
             />
-            <label className="flex flex-col gap-1 text-xs text-text-dim">
+            <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               Componente Jira
               <input className={INPUT_CLASS} value={form.jira_component} onChange={set("jira_component")} placeholder="Es. FDR" />
             </label>

@@ -36,6 +36,8 @@ export interface TlScope {
   jira_qa_epic_key: string | null;
   jira_component: string | null;
   nrt_pass_rate?: number | null;
+  /** False when a feature of the scope is published on Git or has an open PR. */
+  deletable: boolean;
 }
 
 export interface TlScopeCreate {
@@ -132,6 +134,8 @@ export interface TlFeatureListItem {
   impl_owner_id: string | null;
   scenario_count: number;
   updated_at: string;
+  /** False when the feature is published on Git or has an open PR. */
+  deletable: boolean;
 }
 
 export interface TlFeatureDetail {
@@ -562,3 +566,42 @@ export interface TlMigrationItemFilters {
   decision?: TlMigrationDecision | "executed";
   problem?: string;
 }
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+export interface TlDeleteJiraIssue {
+  key: string;
+  role: "design" | "impl" | "qa_epic";
+  summary: string | null;
+  status: string | null;
+  url: string | null;
+  feature_code: string | null;
+  default_selected: boolean;
+}
+
+export interface TlDeleteBlocker {
+  feature_id: string;
+  code: string;
+  reason: "published" | "pr_open";
+}
+
+export interface TlDeletePreview {
+  deletable: boolean;
+  blockers: TlDeleteBlocker[];
+  features: { id: string; code: string; title: string | null }[];
+  scenario_count: number;
+  jira_issues: TlDeleteJiraIssue[];
+}
+
+export interface TlJiraDeleteResult {
+  key: string;
+  status: "deleted" | "failed";
+  reason: string | null;
+}
+
+export interface TlDeleteResult {
+  deleted_features: number;
+  jira_results: TlJiraDeleteResult[];
+}
+
+export type TlDeleteKind = "feature" | "scope";

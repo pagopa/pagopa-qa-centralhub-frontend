@@ -26,3 +26,7 @@ export const SECONDARY_BUTTON_CLASS =
   "bg-surface px-3 font-sans text-[14px] text-text shadow-[var(--shadow-sm)] transition " +
   "hover:bg-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 " +
   "disabled:opacity-50 disabled:cursor-not-allowed";
+
+/** Icon-only action in a table row (view, edit, delete...). Add `hover:!text-danger` for destructive ones. */
+export const ROW_ICON_CLASS =
+  "rounded-sm p-1 text-text-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
