@@ -7,11 +7,13 @@ const mocks = vi.hoisted(() => ({
   apiClient: vi.fn(),
   can: vi.fn((action: string) => Boolean(action)),
   unread: 0,
+  pathname: "/",
+  role: "superadmin",
 }));
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname }));
 vi.mock("@/hooks/usePermissions", () => ({
-  usePermissions: () => ({ can: mocks.can, role: "superadmin", isLoading: false }),
+  usePermissions: () => ({ can: mocks.can, role: mocks.role, isLoading: false }),
 }));
 vi.mock("@/lib/api", () => ({ apiClient: mocks.apiClient }));
 vi.mock("@/hooks/useMessaging", () => ({
@@ -63,6 +65,8 @@ describe("Sidebar feature visibility", () => {
     vi.stubEnv("NEXT_PUBLIC_NRT_METRICS_URL", "https://grafana.example.com/d/nrt?orgId=1&kiosk");
     mocks.can.mockImplementation((action: string) => Boolean(action));
     mocks.unread = 0;
+    mocks.pathname = "/";
+    mocks.role = "superadmin";
     mocks.apiClient.mockReset();
     mocks.apiClient.mockResolvedValue({
       items: featureItems.map(([key, label, route, action, external]) => ({
@@ -325,7 +329,29 @@ describe("Sidebar feature visibility", () => {
 
     renderSidebar();
 
-    expect(screen.queryByRole("link", { name: "Settings Gherkin" })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /Admin/ }));
+    expect(screen.getByRole("link", { name: "Settings Utenti" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: "Settings Gherkin" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("shows the superadmin-only settings to a superadmin and hides them from other roles", async () => {
+    renderSidebar();
+    fireEvent.click(await screen.findByRole("button", { name: /Admin/ }));
+    for (const name of ["Settings Utenti", "Settings Pagoda", "Risorse T&M"]) {
+      expect(screen.getByRole("link", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("hides the superadmin-only settings from other roles", async () => {
+    mocks.role = "admin";
+    renderSidebar();
+    fireEvent.click(await screen.findByRole("button", { name: /Admin/ }));
+    expect(await screen.findByRole("link", { name: "Settings Gherkin" })).toBeInTheDocument();
+    for (const name of ["Settings Utenti", "Settings Pagoda", "Risorse T&M"]) {
+      expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+    }
   });
 
   it("collapses to an icon rail and keeps accessible link names", async () => {
@@ -347,5 +373,187 @@ describe("Sidebar feature visibility", () => {
     expect(nrtLink.querySelector(".lucide-external-link")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Espandi menu" }));
     expect(document.documentElement.hasAttribute("data-sidebar")).toBe(false);
+  });
+
+  describe("collapsible sections", () => {
+    const allEnabled = () =>
+      mocks.apiClient.mockResolvedValue({
+        items: featureItems.map(([key, label, route, action, external]) => ({
+          key, label, route, action, external, enabled: true,
+        })),
+      });
+
+    it("keeps Admin closed by default and opens it on click", async () => {
+      allEnabled();
+      renderSidebar();
+
+      expect(await screen.findByRole("link", { name: "Overview" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Settings Gherkin" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Admin/ }));
+      expect(screen.getByRole("link", { name: "Settings Gherkin" })).toBeInTheDocument();
+    });
+
+    it("opens the section of the current page", async () => {
+      allEnabled();
+      mocks.pathname = "/settings/bdd";
+      renderSidebar();
+
+      expect(await screen.findByRole("link", { name: "Settings Gherkin" })).toBeInTheDocument();
+    });
+
+    it("shows a section whose only visible entries are in a closed section", async () => {
+      allEnabled();
+      mocks.can.mockImplementation((action: string) => action === "manage:bdd");
+      renderSidebar();
+
+      const button = await screen.findByRole("button", { name: /Admin/ });
+      expect(button).toHaveAttribute("aria-expanded", "false");
+      await waitFor(() => expect(screen.getByTestId("nav-section-count")).toHaveTextContent("4"));
+      expect(screen.getAllByRole("button", { name: /Admin|Workspace|Sapere/ })).toHaveLength(1);
+    });
+
+    it("puts EA Map in its own Architettura section right after Workspace", async () => {
+      allEnabled();
+      renderSidebar();
+
+      expect(await screen.findByRole("link", { name: "EA Map" })).toBeInTheDocument();
+      const titles = screen.getAllByRole("button").map((b) => b.textContent?.trim());
+      expect(titles.indexOf("Architettura")).toBe(titles.indexOf("Workspace") + 1);
+    });
+  });
+
+  describe("filter", () => {
+    beforeEach(() => {
+      mocks.apiClient.mockResolvedValue({
+        items: [...featureItems, ...nrtAndFlakyItems].map(([key, label, route, action, external]) => ({
+          key, label, route, action, external, enabled: true,
+        })),
+      });
+    });
+    const filterInput = () => screen.getByRole("searchbox", { name: "Cerca voce" });
+    const type = (value: string) => fireEvent.change(filterInput(), { target: { value } });
+
+    it("filters entries by label and drops sections without matches", async () => {
+      renderSidebar();
+      expect(await screen.findByRole("link", { name: "Scenari flaky" })).toBeInTheDocument();
+
+      type("flaky");
+      expect(screen.getByRole("link", { name: "Scenari flaky" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Workspace/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Risultati test/ })).toBeInTheDocument();
+    });
+
+    it("ignores case and accents and matches section titles", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      type("QUALITA");
+      expect(screen.getByRole("link", { name: "PSP Commissioni" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Catalogo Controlli" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
+    });
+
+    it("finds entries inside closed sections and restores the state when cleared", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      type("pagoda");
+      expect(screen.getByRole("link", { name: "Settings Pagoda" })).toBeInTheDocument();
+      type("");
+      expect(screen.queryByRole("link", { name: "Settings Pagoda" })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    });
+
+    it("shows an empty message when nothing matches", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      type("zzzz");
+      expect(screen.getByText("Nessuna voce trovata")).toBeInTheDocument();
+      expect(screen.queryAllByRole("button", { name: /Workspace|Admin|Sapere/ })).toHaveLength(0);
+    });
+
+    it("clears the filter with Escape", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      type("flaky");
+      fireEvent.keyDown(filterInput(), { key: "Escape" });
+      expect(filterInput()).toHaveValue("");
+    });
+
+    it.each([["ctrlKey"], ["metaKey"]])("focuses the filter with %s+K", async (modifier) => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      const notPrevented = fireEvent.keyDown(document.body, { key: "k", [modifier]: true });
+      expect(notPrevented).toBe(false);
+      expect(filterInput()).toHaveFocus();
+    });
+
+    it("matches an accented query", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      type("qualità");
+      expect(screen.getByRole("link", { name: "PSP Commissioni" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
+    });
+
+    it("clears the filter when the menu collapses to the icon rail", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      type("flaky");
+      fireEvent.click(screen.getByRole("button", { name: "Riduci menu" }));
+      fireEvent.click(screen.getByRole("button", { name: "Espandi menu" }));
+      expect(filterInput()).toHaveValue("");
+      expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    });
+
+    it("hints Ctrl K by default and the command key on macOS", async () => {
+      const { unmount } = renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+      expect(screen.getByText("Ctrl K")).toBeInTheDocument();
+      unmount();
+
+      vi.spyOn(window.navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)");
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+      expect(screen.getByText("⌘ K")).toBeInTheDocument();
+      vi.restoreAllMocks();
+    });
+
+    it("does not take Ctrl+K from a dialog or with extra modifiers", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      const dialog = document.createElement("div");
+      dialog.setAttribute("role", "dialog");
+      const field = document.createElement("input");
+      dialog.append(field);
+      document.body.append(dialog);
+      field.focus();
+      expect(fireEvent.keyDown(field, { key: "k", ctrlKey: true })).toBe(true);
+      expect(filterInput()).not.toHaveFocus();
+      dialog.remove();
+
+      expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true, shiftKey: true })).toBe(true);
+      expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true, altKey: true })).toBe(true);
+      expect(filterInput()).not.toHaveFocus();
+    });
+
+    it("ignores a plain K and the shortcut while the menu is an icon rail", async () => {
+      renderSidebar();
+      await screen.findByRole("link", { name: "Overview" });
+
+      fireEvent.keyDown(document.body, { key: "k" });
+      expect(filterInput()).not.toHaveFocus();
+
+      fireEvent.click(screen.getByRole("button", { name: "Riduci menu" }));
+      expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+      expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true })).toBe(true);
+    });
   });
 });

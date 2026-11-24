@@ -34,6 +34,23 @@
   --info: oklch(0.62 0.13 230);
   --info-soft: oklch(0.96 0.03 230);
   --neutral-soft: oklch(0.95 0.005 250);
+  /* sidebar area colours: --area-<tone> for icons/markers, -soft for active backgrounds */
+  --area-blue: var(--accent);
+  --area-blue-soft: var(--accent-soft);
+  --area-coral: oklch(0.56 0.17 35);
+  --area-coral-soft: oklch(0.96 0.035 35);
+  --area-violet: oklch(0.52 0.19 295);
+  --area-violet-soft: oklch(0.96 0.035 295);
+  --area-green: oklch(0.5 0.13 145);
+  --area-green-soft: oklch(0.96 0.04 145);
+  --area-amber: oklch(0.54 0.12 85);
+  --area-amber-soft: oklch(0.96 0.045 90);
+  --area-teal: oklch(0.5 0.1 190);
+  --area-teal-soft: oklch(0.96 0.03 190);
+  --area-pink: oklch(0.54 0.18 350);
+  --area-pink-soft: oklch(0.96 0.035 350);
+  --area-gray: oklch(0.5 0.01 260);
+  --area-gray-soft: oklch(0.95 0.005 260);
   /* flakiness levels 1-5 (green → red) */
   --flaky-l1: var(--success);
   --flaky-l2: oklch(0.76 0.15 120);
@@ -113,6 +130,22 @@
   --info: oklch(0.72 0.13 230);
   --info-soft: oklch(0.26 0.06 230);
   --neutral-soft: oklch(0.22 0.005 250);
+  --area-blue: var(--accent);
+  --area-blue-soft: var(--accent-soft);
+  --area-coral: oklch(0.76 0.14 35);
+  --area-coral-soft: oklch(0.27 0.06 35);
+  --area-violet: oklch(0.76 0.14 295);
+  --area-violet-soft: oklch(0.27 0.07 295);
+  --area-green: oklch(0.78 0.15 145);
+  --area-green-soft: oklch(0.27 0.06 145);
+  --area-amber: oklch(0.8 0.13 85);
+  --area-amber-soft: oklch(0.27 0.06 85);
+  --area-teal: oklch(0.78 0.11 190);
+  --area-teal-soft: oklch(0.27 0.05 190);
+  --area-pink: oklch(0.78 0.14 350);
+  --area-pink-soft: oklch(0.27 0.06 350);
+  --area-gray: oklch(0.78 0.01 260);
+  --area-gray-soft: oklch(0.27 0.005 260);
   --flaky-l2: oklch(0.8 0.15 120);
   --flaky-l4: oklch(0.75 0.16 55);
 
