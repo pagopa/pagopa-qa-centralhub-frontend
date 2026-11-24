@@ -1,34 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  Activity,
-  BookOpen,
-  CreditCard,
-  Database,
-  ExternalLink,
-  FileText,
-  Home,
-  LayoutGrid,
-  ListChecks,
-  PackageCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Network,
-  Radar,
-  Receipt,
-  ShieldCheck,
-  Shuffle,
-  Sparkles,
-  Users,
-  Wallet,
-  ClipboardCheck,
-  Workflow,
-  type LucideIcon,
-} from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { NAV_SECTIONS, matchesQuery, type NavItem } from "./nav-config";
+import { NavItemLink } from "./NavItemLink";
+import { NavSection } from "./NavSection";
 import { useInboxSummary } from "@/hooks/useMessaging";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFeatureVisibility } from "@/hooks/useFeatureVisibility";
@@ -39,87 +16,6 @@ const COLLAPSED_KEY = "qa-hub-sidebar-collapsed";
 
 const DEFAULT_NRT_METRICS_URL =
   "https://pagopa-u-weu-grafana-cpavbjb0axhrdcg3.weu.grafana.azure.com/d/an5bhhc/qa-nrt-metrics?theme=light&orgId=1&from=now-30d&to=now&timezone=browser&var-test_object=checkout&var-test_object=wisp&var-test_object=fdr3&editIndex=0&tab=transformations&kiosk";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  external?: boolean;
-  action?: string;
-  requiresSuperadmin?: boolean;
-  featureKey?: string;
-}
-
-const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
-  {
-    label: "Workspace",
-    items: [
-      { href: "/", label: "Overview", icon: Home, action: "view:overview", featureKey: "overview" },
-      { href: "/messages", label: "Messaggi", icon: Bell, action: "view:inbox" },
-    ],
-  },
-  {
-    label: "Architettura",
-    items: [{ href: "/ea-map", label: "EA Map", icon: Network, action: "view:ea_map", featureKey: "ea_map" }],
-  },
-  {
-    label: "BDD",
-    items: [{ href: "/bdd", label: "Gherkin Generator", icon: Sparkles, action: "view:bdd", featureKey: "bdd" }],
-  },
-  {
-    label: "Test Design",
-    items: [
-      { href: "/test-lifecycle", label: "Test Lifecycle", icon: ListChecks, action: "view:test_lifecycle", featureKey: "test_lifecycle" },
-    ],
-  },
-  {
-    label: "Test Results",
-    items: [
-      { href: "/sanp-health", label: "SANP Health", icon: Radar, action: "view:sanp_health" },
-      { href: "/nrts", label: "Non-Regression Tests (NRT)", icon: ClipboardCheck, action: "view:nrts", featureKey: "nrts" },
-      { href: "/flaky-scenarios", label: "Scenari flaky", icon: Shuffle, action: "view:flaky", featureKey: "flaky_scenarios" },
-      { href: "/tas-nrts", label: "Test Automation Service (TAS)", icon: Workflow, action: "view:tas_nrts", featureKey: "tas_nrts" },
-      { href: "/quality-gate", label: "Quality Gate", icon: ShieldCheck, action: "view:qg_nrts", featureKey: "qg_nrts" },
-      { href: "", label: "NRT Metrics", icon: Activity, external: true, action: "view:nrt_metrics", featureKey: "nrt_metrics" },
-    ],
-  },
-  {
-    label: "Release",
-    items: [{ href: "/releases", label: "Status Page", icon: PackageCheck, action: "view:status_page", featureKey: "release_status" }],
-  },
-  {
-    label: "Project Tracking",
-    items: [{ href: "/jira", label: "KPI Jira", icon: LayoutGrid, action: "view:jira", featureKey: "jira" }],
-  },
-  {
-    label: "Data Hub",
-    items: [
-      { href: "/data-hub/psp-fees", label: "PSP Commissioni", icon: CreditCard, action: "view:data_hub", featureKey: "psp_fees" },
-      { href: "/data-hub/gpd-positions", label: "Posizioni Debitorie GPD", icon: Wallet, action: "view:data_hub", featureKey: "gpd_positions" },
-    ],
-  },
-  {
-    label: "Data Quality",
-    items: [
-      { href: "/data-quality/catalog", label: "Catalogo Controlli", icon: ShieldCheck, action: "view:data_quality", featureKey: "dq_catalog" },
-      { href: "/data-quality/domains", label: "Controlli per Dominio", icon: Database, action: "view:data_quality", featureKey: "dq_domains" },
-    ],
-  },
-  {
-    label: "Knowledge Base",
-    items: [{ href: "/docs", label: "Docs & Decks", icon: FileText, action: "view:docs", featureKey: "docs" }],
-  },
-  {
-    label: "Amministrazione",
-    items: [
-      { href: "/settings/bdd", label: "Settings Gherkin", icon: Sparkles, action: "manage:bdd", featureKey: "settings_gherkin" },
-      { href: "/settings/users", label: "Settings Utenti", icon: Users, requiresSuperadmin: true },
-      { href: "/settings/ea-assistant", label: "Settings Pagoda", icon: Sparkles, requiresSuperadmin: true },
-      { href: "/settings/tm-resources", label: "Risorse T&M", icon: Receipt, requiresSuperadmin: true },
-      { href: "/api-docs", label: "API Docs", icon: BookOpen, action: "view:api_docs", featureKey: "api_docs" },
-    ],
-  },
-];
 
 export function Sidebar() {
   const configuredDashboardUrl = process.env.NEXT_PUBLIC_NRT_METRICS_URL?.trim() || DEFAULT_NRT_METRICS_URL;
@@ -134,6 +30,29 @@ export function Sidebar() {
   const featuresQuery = useFeatureVisibility();
   const unreadMessages = useInboxSummary().data?.unread ?? 0;
   const [collapsed, setCollapsed] = useStoredFlag(COLLAPSED_KEY);
+  const [query, setQuery] = useState("");
+  const filterRef = useRef<HTMLInputElement>(null);
+  const isMac = useSyncExternalStore(
+    () => () => {},
+    () => /Mac|iPhone|iPad/.test(navigator.userAgent),
+    () => false,
+  );
+  const filtering = !collapsed && query.trim() !== "";
+
+  useEffect(() => {
+    if (collapsed) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.shiftKey || event.altKey) return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        // Leave dialogs alone: moving focus out of them would break their focus trap.
+        if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return;
+        event.preventDefault();
+        filterRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [collapsed]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -151,6 +70,16 @@ export function Sidebar() {
     if (item.action) return can(item.action);
     return true;
   }
+
+  const isItemActive = (item: NavItem) =>
+    !item.external && (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
+
+  /** Sections with at least one entry to show; `visible` ignores the filter, `items` applies it. */
+  const sections = NAV_SECTIONS.map((section) => {
+    const visible = section.items.filter(isVisible);
+    const items = filtering ? visible.filter((item) => matchesQuery(section, item, query)) : visible;
+    return { section, visible, items };
+  }).filter(({ items }) => items.length > 0);
 
   return (
     <aside className="flex flex-col h-screen border-r border-border bg-surface">
@@ -190,107 +119,66 @@ export function Sidebar() {
         </svg>
       </div>
 
+      {!collapsed && (
+        <div className="relative mx-[10px] mt-[10px] mb-1">
+          <Search size={15} className="pointer-events-none absolute left-[10px] top-[10px] text-text-dim" aria-hidden="true" />
+          <input
+            ref={filterRef}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setQuery("");
+            }}
+            placeholder="Cerca voce"
+            aria-label="Cerca voce"
+            className="h-[34px] w-full rounded-[var(--radius-sm)] border border-border bg-subtle pl-[32px] pr-[52px] text-[13px] text-text placeholder:text-text-dim focus:border-[color:var(--accent)] focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+          />
+          <kbd className="pointer-events-none absolute right-2 top-[8px] rounded-[4px] border border-border px-[5px] font-mono text-[11px] text-text-dim">
+            {isMac ? "⌘ K" : "Ctrl K"}
+          </kbd>
+        </div>
+      )}
+
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2 min-h-0">
-        {NAV_GROUPS.map((group) => {
-          const items = group.items.filter(isVisible);
-          if (items.length === 0) return null;
-
-          return (
-            <div key={group.label} className="px-2 py-1">
-              {collapsed ? (
-                <div className="mx-2 my-[6px] border-t border-border" aria-hidden="true" />
-              ) : (
-                <div
-                  className="text-text-muted font-mono font-medium uppercase px-[10px] pt-2 pb-[6px]"
-                  style={{ fontSize: 10, letterSpacing: ".08em" }}
-                >
-                  {group.label}
-                </div>
-              )}
-              {items.map((item) => {
-                const href = item.featureKey === "nrt_metrics" ? withTheme(dashboardUrl, activeTheme) : item.href;
-                const isActive =
-                  !item.external &&
-                  (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
-                const Icon = item.icon;
-                const linkStyle = {
-                  color: isActive ? "var(--accent)" : "var(--text-dim)",
-                  background: isActive ? "var(--accent-soft)" : "transparent",
-                  fontWeight: isActive ? 500 : 450,
-                };
-                const linkClassName = `flex items-center gap-[10px] py-[7px] rounded-[var(--radius-sm)] no-underline transition-colors text-[14px] ${
-                  collapsed ? "justify-center px-0" : "px-[10px]"
-                }`;
-                const label = collapsed ? <span className="sr-only">{item.label}</span> : item.label;
-
-                if (item.external) {
-                  if (!href) {
-                    return (
-                      <span
-                        key={item.featureKey}
-                        aria-disabled="true"
-                        className={`${linkClassName} cursor-not-allowed opacity-50`}
-                        style={linkStyle}
-                        title={`${item.label}: configurare NEXT_PUBLIC_NRT_METRICS_URL con un URL HTTP o HTTPS valido`}
-                      >
-                        <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} aria-hidden="true" />
-                        {label}
-                      </span>
-                    );
-                  }
-                  return (
-                    <a
-                      key={href}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={linkClassName}
-                      style={linkStyle}
-                      title={`${item.label} (si apre in una nuova scheda)`}
-                      aria-describedby="sidebar-new-tab"
-                    >
-                      <span className="relative shrink-0">
-                        <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} aria-hidden="true" />
-                        {collapsed && <ExternalLink size={9} className="absolute -right-1 -bottom-1 bg-surface" aria-hidden="true" />}
-                      </span>
-                      {label}
-                      {!collapsed && <ExternalLink size={12} className="ml-auto shrink-0" aria-hidden="true" />}
-                    </a>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={linkClassName}
-                    style={linkStyle}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon size={collapsed ? 17 : 15} strokeWidth={1.6} className="shrink-0" />
-                    {label}
-                    {!collapsed && item.href === "/messages" && unreadMessages > 0 && (
-                      <span
-                        data-testid="sidebar-unread"
-                        className="ml-auto rounded-full px-[7px] text-[11px] font-bold leading-[18px]"
-                        style={{ background: "var(--accent)", color: "var(--accent-fg, #fff)" }}
-                      >
-                        {unreadMessages}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
+        {sections.map(({ section, visible, items }) => (
+          <NavSection
+            key={section.id}
+            id={section.id}
+            label={section.label}
+            tone={section.tone}
+            defaultClosed={section.defaultClosed}
+            count={visible.length}
+            hasActive={visible.some(isItemActive)}
+            forceOpen={filtering}
+            rail={collapsed}
+          >
+            {items.map((item) => (
+              <NavItemLink
+                key={item.featureKey ?? item.href}
+                item={item}
+                href={item.featureKey === "nrt_metrics" ? withTheme(dashboardUrl, activeTheme) : item.href}
+                tone={section.tone}
+                active={isItemActive(item)}
+                rail={collapsed}
+                unread={unreadMessages}
+              />
+            ))}
+          </NavSection>
+        ))}
+        {filtering && sections.length === 0 && (
+          <p className="px-[18px] py-4 text-[13px] text-text-dim">Nessuna voce trovata</p>
+        )}
       </nav>
 
       <div className={`border-t border-border p-2 ${collapsed ? "flex justify-center" : ""}`}>
         <button
           type="button"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => {
+            if (!collapsed) setQuery("");
+            setCollapsed(!collapsed);
+          }}
           aria-expanded={!collapsed}
           aria-label={collapsed ? "Espandi menu" : "Riduci menu"}
           title={collapsed ? "Espandi menu" : "Riduci menu"}
