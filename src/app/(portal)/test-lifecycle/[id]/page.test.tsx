@@ -7,6 +7,7 @@ import type { TlFeatureDetail, TlScenario } from "@/types/test-lifecycle";
 import FeatureDetailPage from "./page";
 
 const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
   refetch: vi.fn(),
   transition: vi.fn(),
   updateRevision: vi.fn(),
@@ -18,7 +19,19 @@ const mocks = vi.hoisted(() => ({
   rebaseView: null as unknown,
 }));
 
-vi.mock("next/navigation", () => ({ useParams: () => ({ id: "f1" }) }));
+vi.mock("next/navigation", () => ({
+  useParams: () => ({ id: "f1" }),
+  useRouter: () => ({ push: mocks.push }),
+}));
+vi.mock("@/components/test-lifecycle/TlDeleteDialog", () => ({
+  TlDeleteDialog: ({ target, onDeleted }: { target: { id: string; label: string } | null; onDeleted?: () => void }) =>
+    target ? (
+      <div data-testid="delete-dialog">
+        {`feature:${target.id}`}
+        <button onClick={() => onDeleted?.()}>confirm-delete</button>
+      </div>
+    ) : null,
+}));
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ status: "authenticated", data: { user: { email: "a@x.it" } } }),
 }));
@@ -234,5 +247,22 @@ describe("FeatureDetailPage rebase", () => {
     } finally {
       working.base_stale = false;
     }
+  });
+});
+
+describe("FeatureDetailPage delete", () => {
+  beforeEach(() => mocks.push.mockReset());
+
+  it("Elimina opens the dialog and navigates to the list after deletion", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getByRole("button", { name: "Elimina" }));
+    expect(screen.getByTestId("delete-dialog")).toHaveTextContent("feature:f1");
+    await userEvent.click(screen.getByRole("button", { name: "confirm-delete" }));
+    expect(mocks.push).toHaveBeenCalledWith("/test-lifecycle");
+  });
+
+  it("metadata labels use the mono label style", () => {
+    render(<FeatureDetailPage />);
+    expect(screen.getByText("Titolo").closest("label")!.className).toContain("font-mono");
   });
 });

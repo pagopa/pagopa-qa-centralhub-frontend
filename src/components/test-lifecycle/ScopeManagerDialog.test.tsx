@@ -8,11 +8,11 @@ import { ScopeManagerDialog } from "./ScopeManagerDialog";
 const SCOPES: TlScope[] = [
   {
     id: "s1", code: "FdR3", name: "Fondo rischi", area: "Core", repo_folder: null, owner_team: null,
-    next_feature_number: 3, created_at: "", updated_at: "", feature_count: 2, status_counts: {}, jira_qa_epic_key: null, jira_component: null,
+    next_feature_number: 3, created_at: "", updated_at: "", feature_count: 2, status_counts: {}, jira_qa_epic_key: null, jira_component: null, deletable: false,
   },
   {
     id: "s2", code: "Vuoto", name: "Senza feature", area: null, repo_folder: null, owner_team: null,
-    next_feature_number: 1, created_at: "", updated_at: "", feature_count: 0, status_counts: {}, jira_qa_epic_key: null, jira_component: null,
+    next_feature_number: 1, created_at: "", updated_at: "", feature_count: 0, status_counts: {}, jira_qa_epic_key: null, jira_component: null, deletable: true,
   },
 ];
 
@@ -107,5 +107,26 @@ describe("ScopeManagerDialog", () => {
     render(<ScopeManagerDialog open onOpenChange={() => {}} />);
     await userEvent.click(screen.getByRole("button", { name: "Modifica ambito FdR3" }));
     expect(screen.getByLabelText("Epic QA")).toHaveAccessibleDescription("PQ-12 non è un'Epic");
+  });
+
+  it("lists a delete icon per scope and reports the chosen scope", async () => {
+    const onDeleteScope = vi.fn();
+    render(<ScopeManagerDialog open onOpenChange={() => {}} onDeleteScope={onDeleteScope} />);
+    await userEvent.click(screen.getByRole("button", { name: "Elimina ambito Vuoto" }));
+    expect(onDeleteScope).toHaveBeenCalledWith(expect.objectContaining({ id: "s2" }));
+  });
+
+  it("disables the delete icon of a non deletable scope", () => {
+    render(<ScopeManagerDialog open onOpenChange={() => {}} onDeleteScope={vi.fn()} />);
+    const blocked = screen.getByRole("button", { name: "Elimina ambito FdR3" });
+    expect(blocked).toBeDisabled();
+    expect(blocked).toHaveAttribute("title", expect.stringContaining("non eliminabile"));
+    expect(screen.getByRole("button", { name: "Elimina ambito Vuoto" })).toBeEnabled();
+  });
+
+  it("opens directly in edit mode for the initial scope", () => {
+    render(<ScopeManagerDialog open onOpenChange={() => {}} initialEditScope={SCOPES[1]} />);
+    expect(screen.getByText("Modifica ambito Vuoto")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nome")).toHaveValue("Senza feature");
   });
 });

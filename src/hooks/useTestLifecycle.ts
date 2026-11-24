@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type {
   TlComment,
+  TlDeleteKind,
+  TlDeletePreview,
+  TlDeleteResult,
   TlCommentCreate,
   TlFeatureCreate,
   TlFeatureDetail,
@@ -667,5 +670,41 @@ export function useRetryTlImportCleanup() {
         body: JSON.stringify({ actor_email: actor }),
       }),
     onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+const DELETE_PATH: Record<TlDeleteKind, string> = { feature: "features", scope: "scopes" };
+
+/** What deleting a feature/scope would remove, plus blockers and linked Jira issues. */
+export function useTlDeletePreview(kind: TlDeleteKind, id: string | null) {
+  return useQuery<TlDeletePreview>({
+    queryKey: ["tl", "delete-preview", kind, id],
+    queryFn: () => apiClient<TlDeletePreview>(`${BASE}/${DELETE_PATH[kind]}/${id}/delete-preview`),
+    enabled: !!id,
+    gcTime: 0,
+    retry: false,
+  });
+}
+
+export function useTlDelete(kind: TlDeleteKind) {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, deleteJiraKeys }: { id: string; deleteJiraKeys: string[] }) =>
+      apiClient<TlDeleteResult>(`${BASE}/${DELETE_PATH[kind]}/${id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ actor_email: actor, delete_jira_keys: deleteJiraKeys }),
+      }),
+    onSuccess: (_data, { id }) => {
+      // The deleted entity's own queries would refetch a 404 and flash an error: drop them.
+      qc.removeQueries({ queryKey: ["tl", "delete-preview", kind, id] });
+      if (kind === "feature") {
+        for (const key of ["feature", "history", "preview"]) qc.removeQueries({ queryKey: ["tl", key, id] });
+      }
+      // Lists are refreshed in the background so the dialog can show the result immediately.
+      for (const key of ["features", "scopes", "issues"]) void qc.invalidateQueries({ queryKey: ["tl", key] });
+    },
   });
 }

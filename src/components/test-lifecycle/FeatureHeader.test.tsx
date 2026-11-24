@@ -89,4 +89,20 @@ describe("FeatureHeader stale base", () => {
     render(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} onRebase={vi.fn()} />);
     expect(screen.queryByText("Base superata")).not.toBeInTheDocument();
   });
+
+  it("shows Elimina only when onDelete is provided and calls it", async () => {
+    const { rerender } = render(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Elimina" })).not.toBeInTheDocument();
+    const onDelete = vi.fn();
+    rerender(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} onDelete={onDelete} />);
+    await userEvent.click(screen.getByRole("button", { name: "Elimina" }));
+    expect(onDelete).toHaveBeenCalled();
+  });
+
+  it("disables Elimina with a tooltip when the feature is not deletable", () => {
+    render(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} onDelete={vi.fn()} deletable={false} />);
+    const button = screen.getByRole("button", { name: "Elimina" });
+    expect(button).toBeDisabled();
+    expect(button.closest("span")).toHaveAttribute("title", expect.stringContaining("non eliminabile"));
+  });
 });

@@ -48,7 +48,7 @@ function diffRevision(saved: RevisionDraft, next: RevisionDraft): RevisionPatch 
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-text-dim min-w-0">
+    <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted min-w-0">
       {label}
       {children}
     </label>
