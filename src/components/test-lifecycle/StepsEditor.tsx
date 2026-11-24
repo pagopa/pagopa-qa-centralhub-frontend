@@ -1,9 +1,17 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
+import { highlightLine, type HighlightKind } from "@/lib/gherkin-highlight";
 import { applySuggestion, currentStepQuery } from "@/lib/step-autocomplete";
 import type { TlLineError } from "@/types/test-lifecycle";
 import { StepSuggestions, type StepSuggestionsHandle } from "./StepSuggestions";
+
+const KIND_COLOR: Record<HighlightKind, string> = {
+  keyword: "var(--accent)",
+  tag: "var(--info)",
+  comment: "var(--text-muted)",
+  text: "var(--text)",
+};
 
 /**
  * Monospace steps editor with a line-number gutter. Lines reported in `errors`
@@ -92,11 +100,23 @@ export function StepsEditor({
           {/* As wide as the longest line: the wrapper scrolls horizontally, the gutter stays put. */}
           <div className="relative" style={{ minWidth: `calc(${longest + 2}ch + 1rem)` }}>
             <div aria-hidden className="absolute inset-0 py-2 pointer-events-none">
-              {Array.from({ length: rows }, (_, i) => (
+              {lines.map((line, i) => (
                 <div
                   key={i}
+                  data-testid={`steps-mirror-${i + 1}`}
+                  className="px-2 whitespace-pre"
                   style={{ height: 20, background: errorLines.has(i + 1) ? "var(--danger-soft)" : undefined }}
-                />
+                >
+                  {highlightLine(line).map((span, j) => (
+                    <span key={j} data-kind={span.kind} style={{ color: KIND_COLOR[span.kind] }}>
+                      {span.text}
+                    </span>
+                  ))}
+                </div>
+              ))}
+              {/* min rows: keep the layer as tall as the textarea */}
+              {Array.from({ length: Math.max(rows - lines.length, 0) }, (_, i) => (
+                <div key={`pad-${i}`} style={{ height: 20 }} />
               ))}
             </div>
             <textarea
@@ -117,7 +137,7 @@ export function StepsEditor({
               rows={rows}
               wrap="off"
               spellCheck={false}
-              className="relative block w-full resize-none bg-transparent py-2 px-2 text-text outline-none overflow-hidden whitespace-pre"
+              className="relative block w-full resize-none bg-transparent py-2 px-2 text-transparent caret-[var(--text)] outline-none overflow-hidden whitespace-pre"
               style={{ lineHeight: "20px" }}
             />
           </div>

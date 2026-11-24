@@ -6,8 +6,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { Gate } from "@/lib/permissions";
 import { REVISION_STATUS_LABEL, TRANSITION_LABEL } from "@/lib/test-lifecycle";
+import type { TlSaveState } from "@/lib/test-lifecycle";
 import type { TlFeatureDetail, TlTransitionAction, TransitionCheck } from "@/types/test-lifecycle";
 import { FeatureStatusBadge } from "./FeatureStatusBadge";
+import { ReadinessChecklist } from "./ReadinessChecklist";
+import { SaveIndicator } from "./SaveIndicator";
 
 /** Transitions driven by authors vs reviewers (the backend still checks reviewer identity). */
 const TRANSITION_PERMISSION: Record<TlTransitionAction, string> = {
@@ -65,10 +68,13 @@ export function FeatureHeader({
   onRebase,
   onDelete,
   deletable = true,
+  saveState,
 }: {
   feature: TlFeatureDetail;
   /** Opens the delete confirmation; the button is shown only when provided (and gated by permission). */
   onDelete?: () => void;
+  /** Save status of the drafts, shown next to the actions. */
+  saveState?: TlSaveState;
   /** False when the feature cannot be deleted (published on Git or open PR). */
   deletable?: boolean;
   /** Opens the three-way rebase dialog (shown when the working draft is stale). */
@@ -131,6 +137,7 @@ export function FeatureHeader({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {saveState && <SaveIndicator state={saveState} />}
           {feature.working_revision?.base_stale && onRebase && (
             <Gate action="edit:tl_feature">
               <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={disabled || pending} onClick={onRebase}>
@@ -160,15 +167,10 @@ export function FeatureHeader({
         </div>
       </div>
 
-      {primaryCheck && shownReasons.length > 0 && (
-        <div className="text-[12px] text-text-muted">
-          <span>{TRANSITION_LABEL[primaryCheck.action]} non disponibile:</span>
-          <ul className="list-disc pl-5">
-            {shownReasons.map((r) => (
-              <li key={r}>{r}</li>
-            ))}
-          </ul>
-        </div>
+      {primaryCheck && (primaryCheck.action === "submit" || primaryCheck.action === "approve") && (
+        <Gate action={TRANSITION_PERMISSION[primaryCheck.action]}>
+          <ReadinessChecklist action={primaryCheck.action} reasons={shownReasons} />
+        </Gate>
       )}
 
       {error && (

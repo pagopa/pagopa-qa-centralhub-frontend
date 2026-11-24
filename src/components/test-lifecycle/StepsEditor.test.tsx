@@ -28,4 +28,17 @@ describe("StepsEditor", () => {
     render(<StepsEditor value="" notice="Validazione non disponibile" />);
     expect(screen.getByRole("status")).toHaveTextContent("Validazione non disponibile");
   });
+
+  it("colours the keyword of each line", () => {
+    render(<StepsEditor value={"Quando clicca\nAllora vede"} />);
+    const keyword = screen.getByTestId("steps-mirror-1").querySelector("[data-kind='keyword']");
+    expect(keyword).toHaveTextContent("Quando");
+    expect(keyword).toHaveStyle({ color: "var(--accent)" });
+    expect(screen.getByLabelText("Step")).toHaveValue("Quando clicca\nAllora vede");
+  });
+
+  it("keeps error lines highlighted", () => {
+    render(<StepsEditor value={"Quando x\nbad"} errors={[{ line: 2, message: "Riga non valida" }]} />);
+    expect(screen.getByTestId("steps-mirror-2")).toHaveStyle({ background: "var(--danger-soft)" });
+  });
 });

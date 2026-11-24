@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -163,5 +164,100 @@ describe("ScenarioCard", () => {
   it("shows no badge without open comments", () => {
     renderCard();
     expect(screen.queryByLabelText(/commenti aperti/)).not.toBeInTheDocument();
+  });
+
+  describe("organisation", () => {
+    function Harness(props: Partial<Parameters<typeof ScenarioCard>[0]> & { startCollapsed?: boolean }) {
+      const [collapsed, setCollapsed] = useState(props.startCollapsed ?? false);
+      return (
+        <ScenarioCard
+          scenario={scenario({ errors: [] })}
+          readOnly={false}
+          onSave={vi.fn().mockResolvedValue(undefined)}
+          collapsed={collapsed}
+          onToggleCollapsed={() => setCollapsed((c) => !c)}
+          {...props}
+        />
+      );
+    }
+
+    it("collapsed card shows the title and tag but not the steps editor", () => {
+      render(<Harness startCollapsed />);
+      expect(screen.getByText("Pagamento ok")).toBeInTheDocument();
+      expect(screen.getByText("@FDR3_001_02")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Step")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Espandi scenario #2" })).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("collapse then expand keeps unsaved text", async () => {
+      render(<Harness />);
+      await userEvent.type(screen.getByLabelText("Titolo scenario"), " extra");
+      await userEvent.click(screen.getByRole("button", { name: "Comprimi scenario #2" }));
+      expect(screen.getByText("Pagamento ok extra")).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Espandi scenario #2" }));
+      expect(screen.getByLabelText("Titolo scenario")).toHaveValue("Pagamento ok extra");
+    });
+
+    it("error badge shows the number of live errors", () => {
+      render(
+        <Harness
+          scenario={scenario({ errors: [{ line: 1, message: "a" }, { line: 2, message: "b" }] })}
+          startCollapsed
+        />,
+      );
+      expect(screen.getByText("2 errori")).toBeInTheDocument();
+    });
+
+    it("duplicate sends the current draft, not the saved scenario", async () => {
+      const onDuplicate = vi.fn().mockResolvedValue(undefined);
+      render(<Harness onDuplicate={onDuplicate} />);
+      await userEvent.clear(screen.getByLabelText("Step"));
+      await userEvent.type(screen.getByLabelText("Step"), "Dato nuovo");
+      await userEvent.click(screen.getByRole("button", { name: "Duplica scenario" }));
+      expect(onDuplicate).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Pagamento ok", steps: "Dato nuovo", polarity: "positivo", kind: "scenario" }),
+      );
+    });
+
+    it("Ctrl+Shift+D calls onDuplicate", () => {
+      const onDuplicate = vi.fn().mockResolvedValue(undefined);
+      render(<Harness onDuplicate={onDuplicate} />);
+      fireEvent.keyDown(screen.getByLabelText("Titolo scenario"), { key: "D", ctrlKey: true, shiftKey: true });
+      expect(onDuplicate).toHaveBeenCalledTimes(1);
+    });
+
+    it("move buttons call onMove and are disabled at the edges", async () => {
+      const onMove = vi.fn();
+      const { rerender } = render(<Harness onMove={onMove} canMoveUp canMoveDown />);
+      await userEvent.click(screen.getByRole("button", { name: "Sposta scenario in alto" }));
+      await userEvent.click(screen.getByRole("button", { name: "Sposta scenario in basso" }));
+      expect(onMove).toHaveBeenNthCalledWith(1, "up");
+      expect(onMove).toHaveBeenNthCalledWith(2, "down");
+      rerender(<Harness onMove={onMove} canMoveUp={false} canMoveDown={false} />);
+      expect(screen.getByRole("button", { name: "Sposta scenario in alto" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Sposta scenario in basso" })).toBeDisabled();
+    });
+
+    it("read-only card hides the action icons", () => {
+      render(<Harness readOnly onDuplicate={vi.fn()} onMove={vi.fn()} onRemove={vi.fn()} />);
+      expect(screen.queryByRole("button", { name: "Duplica scenario" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Sposta scenario in alto" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Rimuovi scenario" })).not.toBeInTheDocument();
+    });
+
+    it("delete still needs confirmation", async () => {
+      const onRemove = vi.fn().mockResolvedValue(undefined);
+      render(<Harness onRemove={onRemove} />);
+      await userEvent.click(screen.getByRole("button", { name: "Rimuovi scenario" }));
+      expect(onRemove).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole("button", { name: "Conferma rimozione" }));
+      expect(onRemove).toHaveBeenCalledTimes(1);
+    });
+
+    it("exposes an anchor id and the drag handle", () => {
+      render(<Harness dragHandleProps={{ draggable: true }} />);
+      expect(screen.getByRole("article")).toHaveAttribute("id", "scenario-sc1");
+      expect(screen.getByRole("button", { name: "Trascina scenario" })).toHaveAttribute("draggable", "true");
+    });
   });
 });
