@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ExternalLink } from "lucide-react";
 import { INPUT_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
 import { useUpdateTlFeature } from "@/hooks/useTestLifecycle";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useUsers } from "@/hooks/useUsers";
-import { safeHttpUrl, writeErrorMessage, type Flusher } from "@/lib/test-lifecycle";
-import type { TlFeatureDetail, TlFeatureUpdate, TlRevision, TlRevisionUpdate } from "@/types/test-lifecycle";
+import {
+  JIRA_CATEGORY_COLOR,
+  JIRA_CATEGORY_LABEL,
+  safeHttpUrl,
+  writeErrorMessage,
+  type RegisterFlush,
+} from "@/lib/test-lifecycle";
+import type { TlFeatureDetail, TlFeatureUpdate, TlJiraLink, TlRevision, TlRevisionUpdate } from "@/types/test-lifecycle";
 
 type RevisionPatch = Omit<TlRevisionUpdate, "lock_version">;
 
@@ -46,12 +53,44 @@ function diffRevision(saved: RevisionDraft, next: RevisionDraft): RevisionPatch 
   return patch;
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, title }: { label: string; children: ReactNode; title?: string }) {
   return (
-    <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted min-w-0">
+    <label title={title} className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted min-w-0">
       {label}
       {children}
     </label>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
+      <h3 className="font-mono text-[11px] uppercase font-medium text-text-muted" style={{ letterSpacing: ".08em" }}>
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+/** Jira status of a linked key (from the saved feature), with a link to the issue. */
+function JiraChip({ link }: { link: TlJiraLink }) {
+  const category = link.category ?? "unverified";
+  const { color, bg } = JIRA_CATEGORY_COLOR[category];
+  const url = safeHttpUrl(link.url);
+  return (
+    <span
+      data-testid={`jira-chip-${link.key}`}
+      className="inline-flex items-center gap-2 w-fit rounded-full px-2 py-0.5 font-mono text-[11px]"
+      style={{ color, background: bg }}
+    >
+      {link.status ?? (link.category ? JIRA_CATEGORY_LABEL[link.category] : "Non verificata")}
+      {url && (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline">
+          {link.key} <ExternalLink size={12} aria-hidden />
+        </a>
+      )}
+    </span>
   );
 }
 
@@ -81,7 +120,7 @@ export function FeatureMetaPanel({
   reviewerEditable?: boolean;
   stale?: boolean;
   onSaveRevision: (patch: RevisionPatch) => Promise<unknown>;
-  registerFlush?: (fn: Flusher) => () => void;
+  registerFlush?: RegisterFlush;
 }) {
   const { data: users } = useUsers();
   const updateFeature = useUpdateTlFeature();
@@ -105,6 +144,41 @@ export function FeatureMetaPanel({
   const [error, setError] = useState<string | null>(null);
 
   const activeUsers = users?.items.filter((u) => u.is_active) ?? [];
+
+  // Jira keys are saved on blur through the feature endpoint, outside the revision draft: expose
+  // them to the page (Ctrl+S flush, leave warning) as one more dirty/flushable block.
+  const pendingJira = (): TlFeatureUpdate => {
+    const patch: TlFeatureUpdate = {};
+    if (orNull(jira.jira_design_key) !== feature.jira_design_key) patch.jira_design_key = orNull(jira.jira_design_key);
+    if (orNull(jira.jira_impl_key) !== feature.jira_impl_key) patch.jira_impl_key = orNull(jira.jira_impl_key);
+    if (orNull(jira.jira_qa_epic_key) !== feature.jira_qa_epic_key) patch.jira_qa_epic_key = orNull(jira.jira_qa_epic_key);
+    return patch;
+  };
+  const pendingJiraRef = useRef(pendingJira);
+  const updateFeatureRef = useRef(updateFeature);
+  useEffect(() => {
+    pendingJiraRef.current = pendingJira;
+    updateFeatureRef.current = updateFeature;
+  });
+  useEffect(() => {
+    if (!registerFlush || readOnly) return;
+    const flush = () =>
+      new Promise<boolean>((resolve) => {
+        const patch = pendingJiraRef.current();
+        if (Object.keys(patch).length === 0) return resolve(true);
+        updateFeatureRef.current.mutate(
+          { id: feature.id, ...patch },
+          {
+            onSuccess: () => resolve(true),
+            onError: (err) => {
+              setError(writeErrorMessage(err));
+              resolve(false);
+            },
+          },
+        );
+      });
+    return registerFlush(flush, () => Object.keys(pendingJiraRef.current()).length > 0);
+  }, [registerFlush, readOnly, feature.id]);
 
   const saveFeature = (patch: TlFeatureUpdate, allowed = !readOnly) => {
     if (!allowed) return;
@@ -152,18 +226,31 @@ export function FeatureMetaPanel({
     );
   };
 
-  const text = (label: string, value: string, onChange: (v: string) => void, onBlur: () => void, placeholder?: string) => (
-    <Field label={label}>
-      <input
-        className={INPUT_CLASS}
-        value={value}
-        readOnly={readOnly}
-        placeholder={readOnly ? undefined : placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-      />
-    </Field>
-  );
+  const text = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    onBlur: () => void,
+    placeholder?: string,
+    opts: { title?: string; jiraKey?: boolean } = {},
+  ) => {
+    const link = opts.jiraKey ? feature.jira.find((l) => l.key === value.trim().toUpperCase()) : undefined;
+    return (
+      <div className="flex flex-col gap-1.5 min-w-0">
+        <Field label={label} title={opts.title}>
+          <input
+            className={INPUT_CLASS}
+            value={value}
+            readOnly={readOnly}
+            placeholder={readOnly ? undefined : placeholder}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={onBlur}
+          />
+        </Field>
+        {link && <JiraChip link={link} />}
+      </div>
+    );
+  };
 
   // Link shown read-only: taken from the saved revision, never from what is being typed.
   const savedRequirementsUrl = revision?.requirements_url ?? "";
@@ -175,6 +262,7 @@ export function FeatureMetaPanel({
     <section className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
       <h2 className="text-sm font-semibold text-text">Metadati</h2>
 
+      <Section title="Generale">
       <div className="flex flex-col gap-1">
         <Field label="Titolo">
           <input
@@ -204,13 +292,17 @@ export function FeatureMetaPanel({
           onBlur={saveRevision}
         />
       </Field>
+      </Section>
 
+      <Section title="Persone">
       <div className="grid gap-3 sm:grid-cols-3">
         {userSelect("Owner design", "design_owner_id")}
         {userSelect("Reviewer", "reviewer_id", reviewerEditable)}
         {userSelect("Owner implementazione", "impl_owner_id")}
       </div>
+      </Section>
 
+      <Section title="Jira">
       <div className="grid gap-3 sm:grid-cols-2">
         {text(
           "Jira progettazione",
@@ -220,6 +312,7 @@ export function FeatureMetaPanel({
             if (orNull(jira.jira_design_key) !== feature.jira_design_key) saveFeature({ jira_design_key: orNull(jira.jira_design_key) });
           },
           "PQ-123",
+          { jiraKey: true },
         )}
         {text(
           "Jira implementazione",
@@ -228,6 +321,8 @@ export function FeatureMetaPanel({
           () => {
             if (orNull(jira.jira_impl_key) !== feature.jira_impl_key) saveFeature({ jira_impl_key: orNull(jira.jira_impl_key) });
           },
+          undefined,
+          { jiraKey: true },
         )}
         {text(
           "Epic QA (sovrascrive quella dell'Ambito)",
@@ -237,8 +332,12 @@ export function FeatureMetaPanel({
             if (orNull(jira.jira_qa_epic_key) !== feature.jira_qa_epic_key) saveFeature({ jira_qa_epic_key: orNull(jira.jira_qa_epic_key) });
           },
           feature.jira_qa_epic_effective ?? "PQ-123",
+          { title: "Se compilata, sovrascrive l'Epic QA definita sull'ambito per questa feature", jiraKey: true },
         )}
       </div>
+      </Section>
+
+      <Section title="Prodotto e stime">
 
       <div className="grid gap-3 sm:grid-cols-2 items-end">
         {rev.reverse_engineering ? (
@@ -281,6 +380,7 @@ export function FeatureMetaPanel({
         {text("Stima progettazione (giorni)", rev.design_estimate_days, (v) => setRev({ ...rev, design_estimate_days: v }), saveRevision)}
         {text("Stima implementazione (giorni)", rev.impl_estimate_days, (v) => setRev({ ...rev, impl_estimate_days: v }), saveRevision)}
       </div>
+      </Section>
 
       {(error || revisionError) && (
         <p role="alert" className="text-danger text-[13px]">

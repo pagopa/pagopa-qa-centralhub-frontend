@@ -5,7 +5,14 @@ import {
   useUpdateTlRevision,
   useUpdateTlScenario,
 } from "@/hooks/useTestLifecycle";
-import { isStaleLockError, StaleDraftError, type Flusher } from "@/lib/test-lifecycle";
+import {
+  isStaleLockError,
+  StaleDraftError,
+  writeErrorMessage,
+  type Flusher,
+  type RegisterFlush,
+  type TlSaveState,
+} from "@/lib/test-lifecycle";
 import type {
   TlRevision,
   TlRevisionUpdate,
@@ -41,6 +48,17 @@ export function useTlRevisionWriter(
   const updateScenario = useUpdateTlScenario();
   const removeScenario = useRemoveTlScenario();
 
+  // Save state shown in the header; refs mirror it for the beforeunload check.
+  const [pending, setPending] = useState(0);
+  const pendingRef = useRef(0);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [lastError, setLastErrorState] = useState<string | null>(null);
+  const lastErrorRef = useRef<string | null>(null);
+  const setLastError = (message: string | null) => {
+    lastErrorRef.current = message;
+    setLastErrorState(message);
+  };
+
   const [stale, setStaleState] = useState(false);
   const staleRef = useRef(false);
   const markStale = useCallback(() => {
@@ -50,6 +68,7 @@ export function useTlRevisionWriter(
   const clearStale = useCallback(() => {
     staleRef.current = false;
     setStaleState(false);
+    setLastError(null);
   }, []);
 
   const server = useRef({ key: syncKey, lock: revision?.lock_version ?? 0 });
@@ -59,6 +78,8 @@ export function useTlRevisionWriter(
   const local = useRef<{ key: string; lock: number } | null>(null);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const flushers = useRef(new Set<Flusher>());
+  const dirtyCheckers = useRef(new Map<Flusher, () => boolean>());
+
 
   const currentLock = () => {
     if (!local.current || local.current.key !== server.current.key) {
@@ -71,27 +92,59 @@ export function useTlRevisionWriter(
   };
 
   /** Runs `fn` after every previously queued write has settled; refuses when stale. */
-  function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  /** `track`: draft saves only; their failure shows in the header (transitions, reorders... do not). */
+  function enqueue<T>(fn: () => Promise<T>, track = false): Promise<T> {
     const guarded = async () => {
       if (staleRef.current) throw new StaleDraftError();
       try {
-        return await fn();
+        const result = await fn();
+        if (track) {
+          setSavedAt(Date.now());
+          setLastError(null);
+        }
+        return result;
       } catch (err) {
         if (isStaleLockError(err)) markStale();
+        else if (track) setLastError(writeErrorMessage(err));
         throw err;
       }
     };
+    pendingRef.current += 1;
+    setPending(pendingRef.current);
     const run = queue.current.then(guarded, guarded);
     queue.current = run.catch(() => undefined);
+    const done = () => {
+      pendingRef.current -= 1;
+      setPending(pendingRef.current);
+    };
+    run.then(done, done);
     return run;
   }
 
-  const registerFlush = useCallback((fn: Flusher) => {
+  const registerFlush = useCallback<RegisterFlush>((fn, isDirty) => {
     flushers.current.add(fn);
+    if (isDirty) dirtyCheckers.current.set(fn, isDirty);
     return () => {
       flushers.current.delete(fn);
+      dirtyCheckers.current.delete(fn);
     };
   }, []);
+
+  /** Saves every registered draft; false when any flush failed. */
+  async function saveAll(): Promise<boolean> {
+    const results = await Promise.all([...flushers.current].map((f) => f()));
+    return !results.includes(false);
+  }
+
+  /** Anything not safely on the server: writes in flight or a dirty draft (a failed save keeps it dirty). */
+  const hasUnsaved = () =>
+    pendingRef.current > 0 || [...dirtyCheckers.current.values()].some((isDirty) => isDirty());
+
+  const saveState: TlSaveState = {
+    phase: pending > 0 ? "saving" : lastError !== null ? "error" : "idle",
+    savedAt,
+    error: lastError,
+  };
 
   /**
    * Saves every registered dirty draft, then runs `fn` (e.g. a workflow
@@ -110,6 +163,9 @@ export function useTlRevisionWriter(
     stale,
     clearStale,
     registerFlush,
+    saveAll,
+    hasUnsaved,
+    saveState,
     afterPendingWrites,
     /** Lock version the next write will send (use inside afterPendingWrites). */
     currentLock,
@@ -120,8 +176,8 @@ export function useTlRevisionWriter(
         });
         setLock(res.lock_version);
         return res;
-      }),
-    updateScenario: (scenarioId: string, patch: ScenarioPatch) =>
+      }, true),
+    updateScenario: (scenarioId: string, patch: ScenarioPatch, opts: { silent?: boolean } = {}) =>
       enqueue(async (): Promise<TlScenario> => {
         const lock = currentLock();
         const res = await updateScenario.mutateAsync({
@@ -130,7 +186,7 @@ export function useTlRevisionWriter(
         // The scenario response carries no lock: the server checked ours and bumped it by one.
         setLock(lock + 1);
         return res;
-      }),
+      }, !opts.silent),
     addScenario: (data: TlScenarioCreate) =>
       enqueue(async (): Promise<TlScenario> => {
         const lock = currentLock();

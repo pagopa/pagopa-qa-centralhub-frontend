@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isStaleLockError, StaleDraftError, writeErrorMessage, type Flusher } from "@/lib/test-lifecycle";
+import { isStaleLockError, StaleDraftError, writeErrorMessage, type RegisterFlush } from "@/lib/test-lifecycle";
 
 /**
  * Local draft of an editable block with serialized saves.
@@ -9,7 +9,8 @@ import { isStaleLockError, StaleDraftError, writeErrorMessage, type Flusher } fr
  * - The draft is seeded once; a failed save never discards local text.
  * - Stale-lock errors are left to the page-wide stale state (no inline message).
  * - With `registerFlush`, the block registers itself so pending edits are
- *   saved before a workflow transition runs.
+ *   saved before a workflow transition runs; it also registers a dirty checker
+ *   (draft differs from the saved one, or a save is in flight).
  */
 export function useDraftSave<D, P extends object>({
   initial,
@@ -25,12 +26,13 @@ export function useDraftSave<D, P extends object>({
   onSaved?: (result: unknown) => void;
   /** Read-only or stale: nothing is sent. */
   disabled: boolean;
-  registerFlush?: (fn: Flusher) => () => void;
+  registerFlush?: RegisterFlush;
 }) {
   const [draft, setDraftState] = useState<D>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const draftRef = useRef(draft);
+  const savingRef = useRef(false);
   const saved = useRef(initial);
   const chain = useRef<Promise<boolean>>(Promise.resolve(true));
   const latest = useRef({ diff, persist, onSaved, disabled });
@@ -50,6 +52,7 @@ export function useDraftSave<D, P extends object>({
     const patch = d(saved.current, next);
     if (Object.keys(patch).length === 0) return true;
     setSaving(true);
+    savingRef.current = true;
     setError(null);
     try {
       const result = await p(patch);
@@ -60,6 +63,7 @@ export function useDraftSave<D, P extends object>({
       if (!isStaleLockError(err) && !(err instanceof StaleDraftError)) setError(writeErrorMessage(err));
       return false;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -76,7 +80,10 @@ export function useDraftSave<D, P extends object>({
   });
   useEffect(() => {
     if (!registerFlush) return;
-    return registerFlush(() => saveRef.current());
+    // Stale drafts count too: their typed text is exactly what a reload would lose.
+    const isDirty = () =>
+      savingRef.current || Object.keys(latest.current.diff(saved.current, draftRef.current)).length > 0;
+    return registerFlush(() => saveRef.current(), isDirty);
   }, [registerFlush]);
 
   return { draft, setDraft, save, saving, error, setError };

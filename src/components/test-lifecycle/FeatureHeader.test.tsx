@@ -105,4 +105,24 @@ describe("FeatureHeader stale base", () => {
     expect(button).toBeDisabled();
     expect(button.closest("span")).toHaveAttribute("title", expect.stringContaining("non eliminabile"));
   });
+
+  it("renders the save indicator when saveState is given", () => {
+    render(
+      <FeatureHeader
+        feature={FEATURE}
+        onTransition={vi.fn()}
+        saveState={{ phase: "saving", savedAt: null, error: null }}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Salvataggio…");
+  });
+
+  it("shows the ready state when the primary transition is allowed", () => {
+    const ready = {
+      ...FEATURE,
+      transitions: FEATURE.transitions.map((t) => (t.action === "submit" ? { ...t, allowed: true, reasons: [] } : t)),
+    } as TlFeatureDetail;
+    render(<FeatureHeader feature={ready} onTransition={vi.fn()} />);
+    expect(screen.getByText("Pronta per l'invio in review")).toBeInTheDocument();
+  });
 });

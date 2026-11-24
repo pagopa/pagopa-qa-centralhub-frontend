@@ -159,4 +159,68 @@ describe("FeatureMetaPanel", () => {
     fireEvent.blur(epic);
     expect(screen.getByRole("alert")).toHaveTextContent("PQ-12 non è un'Epic");
   });
+
+  describe("sections", () => {
+    it("renders the four section titles", () => {
+      renderPanel();
+      for (const title of ["Generale", "Persone", "Jira", "Prodotto e stime"]) {
+        expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+      }
+    });
+
+    it("shows the Jira status chip and link under a linked key", () => {
+      renderPanel({
+        feat: {
+          jira: [
+            { role: "design", key: "PQ-1", summary: "Progettazione", status: "In corso", category: "indeterminate", url: "https://jira.test/browse/PQ-1", verified: true },
+          ],
+        },
+      });
+      const chip = screen.getByTestId("jira-chip-PQ-1");
+      expect(chip).toHaveTextContent("In corso");
+      expect(within(chip).getByRole("link", { name: /PQ-1/ })).toHaveAttribute("href", "https://jira.test/browse/PQ-1");
+    });
+
+    it("shows no chip for an unlinked key", () => {
+      renderPanel({ feat: { jira: [] } });
+      expect(screen.queryByTestId("jira-chip-PQ-1")).not.toBeInTheDocument();
+    });
+
+    it("Epic QA field explains the override via title", () => {
+      renderPanel();
+      expect(screen.getByLabelText(/Epic QA/).closest("label")).toHaveAttribute(
+        "title",
+        expect.stringContaining("sovrascrive"),
+      );
+    });
+  });
+
+  describe("pending Jira keys", () => {
+    it("registers a dirty checker and flusher so Ctrl+S and the leave warning cover typed Jira keys", async () => {
+      let flush: (() => Promise<boolean>) | undefined;
+      let dirty: (() => boolean) | undefined;
+      const registerFlush = vi.fn((fn: () => Promise<boolean>, isDirty?: () => boolean) => {
+        // The revision draft registers too: keep the Jira one (the last registered).
+        flush = fn;
+        dirty = isDirty;
+        return () => {};
+      });
+      mocks.mutate.mockImplementation((_patch: unknown, opts?: { onSuccess?: () => void }) => opts?.onSuccess?.());
+      const rev = revision();
+      render(
+        <FeatureMetaPanel
+          feature={feature(rev, { jira_design_key: "PQ-1" })}
+          revision={rev}
+          readOnly={false}
+          onSaveRevision={vi.fn().mockResolvedValue(rev)}
+          registerFlush={registerFlush}
+        />,
+      );
+      await userEvent.clear(screen.getByLabelText("Jira progettazione"));
+      await userEvent.type(screen.getByLabelText("Jira progettazione"), "PQ-2");
+      expect(dirty?.()).toBe(true);
+      await expect(flush?.()).resolves.toBe(true);
+      expect(mocks.mutate).toHaveBeenCalledWith({ id: "f1", jira_design_key: "PQ-2" }, expect.anything());
+    });
+  });
 });

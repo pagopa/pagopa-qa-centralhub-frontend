@@ -130,4 +130,85 @@ describe("useTlRevisionWriter", () => {
     expect(transition).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.stale).toBe(false));
   });
+
+  it("saveState goes saving then idle with savedAt after a write", async () => {
+    let release!: () => void;
+    mocks.updateScenario.mockImplementation(
+      () => new Promise((resolve) => { release = () => resolve({ id: "sc1", errors: [] }); }),
+    );
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    expect(result.current.saveState).toEqual({ phase: "idle", savedAt: null, error: null });
+    let p!: Promise<unknown>;
+    act(() => { p = result.current.updateScenario("sc1", { title: "a" }); });
+    await waitFor(() => expect(result.current.saveState.phase).toBe("saving"));
+    await act(async () => { release(); await p; });
+    expect(result.current.saveState.phase).toBe("idle");
+    expect(result.current.saveState.savedAt).toEqual(expect.any(Number));
+  });
+
+  it("saveState is error after a failed write and clears after the next success", async () => {
+    mocks.updateScenario
+      .mockRejectedValueOnce(new ApiError(500, { detail: "boom" }))
+      .mockResolvedValue({ id: "sc1", errors: [] });
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    await act(async () => {
+      await expect(result.current.updateScenario("sc1", { title: "a" })).rejects.toBeInstanceOf(ApiError);
+    });
+    expect(result.current.saveState.phase).toBe("error");
+    expect(result.current.saveState.error).toEqual(expect.any(String));
+    await act(async () => { await result.current.updateScenario("sc1", { title: "b" }); });
+    expect(result.current.saveState.phase).toBe("idle");
+    expect(result.current.saveState.error).toBeNull();
+  });
+
+  it("hasUnsaved reflects registered dirty checkers", () => {
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    expect(result.current.hasUnsaved()).toBe(false);
+    let dirty = true;
+    act(() => { result.current.registerFlush(async () => true, () => dirty); });
+    expect(result.current.hasUnsaved()).toBe(true);
+    dirty = false;
+    expect(result.current.hasUnsaved()).toBe(false);
+  });
+
+  it("saveAll resolves false when a flusher fails", async () => {
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    act(() => {
+      result.current.registerFlush(async () => true);
+      result.current.registerFlush(async () => false);
+    });
+    await expect(result.current.saveAll()).resolves.toBe(false);
+  });
+
+  it("a failed transition (afterPendingWrites) does not count as a save error", async () => {
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    await act(async () => {
+      await expect(
+        result.current.afterPendingWrites(() => Promise.reject(new ApiError(422, { detail: "no" }))),
+      ).rejects.toBeInstanceOf(ApiError);
+    });
+    expect(result.current.saveState.phase).toBe("idle");
+    expect(result.current.hasUnsaved()).toBe(false);
+  });
+
+  it("a failed silent scenario write (reorder/duplicate) does not count as a save error", async () => {
+    mocks.updateScenario.mockRejectedValue(new ApiError(500, { detail: "boom" }));
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    await act(async () => {
+      await expect(result.current.updateScenario("sc1", { position: 2 }, { silent: true })).rejects.toBeInstanceOf(ApiError);
+    });
+    expect(result.current.saveState.phase).toBe("idle");
+  });
+
+  it("hasUnsaved ignores a past save failure once nothing is dirty, and clearStale resets the error", async () => {
+    mocks.updateScenario.mockRejectedValueOnce(new ApiError(500, { detail: "boom" }));
+    const { result } = renderHook(() => useTlRevisionWriter("f1", REV, "r1:draft:0"));
+    await act(async () => {
+      await expect(result.current.updateScenario("sc1", { title: "a" })).rejects.toBeInstanceOf(ApiError);
+    });
+    expect(result.current.saveState.phase).toBe("error");
+    expect(result.current.hasUnsaved()).toBe(false);
+    act(() => result.current.clearStale());
+    expect(result.current.saveState.phase).toBe("idle");
+  });
 });

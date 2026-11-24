@@ -153,6 +153,16 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
 /** A pending-edit flusher: saves its dirty draft and resolves to false if that failed. */
 export type Flusher = () => Promise<boolean>;
 
+/** Registers a flusher (and optionally a dirty checker) with the revision writer; returns the unregister fn. */
+export type RegisterFlush = (fn: Flusher, isDirty?: () => boolean) => () => void;
+
+/** What the header shows about saving: in flight, failed (until the next success) or last success time. */
+export interface TlSaveState {
+  phase: "idle" | "saving" | "error";
+  savedAt: number | null;
+  error: string | null;
+}
+
 /** Rejection used once the draft is known to be stale: no write leaves the client. */
 export class StaleDraftError extends Error {
   constructor() {

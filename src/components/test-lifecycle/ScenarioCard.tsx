@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Trash2 } from "lucide-react";
-import { INPUT_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
+import { ChevronDown, ChevronRight, Copy, GripVertical, MessageSquare, MoveDown, MoveUp, Trash2 } from "lucide-react";
+import { INPUT_CLASS, ROW_ICON_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
+import { matchShortcut } from "@/lib/shortcuts";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useLiveValidation } from "@/hooks/useLiveValidation";
 import {
@@ -11,7 +12,7 @@ import {
   safeHttpUrl,
   StaleDraftError,
   writeErrorMessage,
-  type Flusher,
+  type RegisterFlush,
 } from "@/lib/test-lifecycle";
 import type {
   TlExamples,
@@ -26,6 +27,17 @@ import { ExtraTagsPicker } from "./ExtraTagsPicker";
 import { StepsEditor } from "./StepsEditor";
 
 export type ScenarioPatch = Omit<TlScenarioUpdate, "lock_version" | "position">;
+
+/** The editable content of a scenario as currently typed (used to duplicate it). */
+export interface ScenarioCopy {
+  title: string;
+  kind: TlScenarioKind;
+  polarity: TlPolarity;
+  extra_tags: string[];
+  steps: string;
+  examples: TlExamples | null;
+  detail_link: string;
+}
 
 interface Draft {
   title: string;
@@ -80,20 +92,37 @@ export function ScenarioCard({
   registerFlush,
   openComments = 0,
   onComment,
+  collapsed = false,
+  onToggleCollapsed,
+  onDuplicate,
+  onMove,
+  canMoveUp = true,
+  canMoveDown = true,
+  dragHandleProps,
 }: {
   scenario: TlScenario;
   readOnly: boolean;
   stale?: boolean;
   onSave: (patch: ScenarioPatch) => Promise<TlScenario | void>;
   onRemove?: () => Promise<unknown>;
-  registerFlush?: (fn: Flusher) => () => void;
+  registerFlush?: RegisterFlush;
   /** Number of unresolved review comments on this scenario. */
   openComments?: number;
   /** Jumps to the Review tab with this scenario preselected. */
   onComment?: () => void;
+  /** Only the header renders when collapsed; the draft stays in this component. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  /** Called with the CURRENT draft (not the saved scenario). */
+  onDuplicate?: (copy: ScenarioCopy) => Promise<unknown> | void;
+  onMove?: (direction: "up" | "down") => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement> & { draggable?: boolean };
 }) {
   const { errors, setErrors, validationError, schedule } = useLiveValidation(scenario.errors);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const { draft, setDraft, save, saving, error: saveError, setError: setSaveError } = useDraftSave<Draft, ScenarioPatch>({
     initial: toDraft(scenario),
     diff,
@@ -122,12 +151,52 @@ export function ScenarioCard({
     update({ extra_tags: tags }, { save: true });
   };
 
+  const duplicate = async () => {
+    if (!onDuplicate || duplicating) return;
+    setDuplicating(true);
+    try {
+      await onDuplicate({
+        title: draft.title,
+        kind: draft.kind,
+        polarity: draft.polarity,
+        extra_tags: draft.extra_tags,
+        steps: draft.steps,
+        examples: draft.kind === "outline" ? draft.examples : null,
+        detail_link: draft.detail_link,
+      });
+    } catch (err) {
+      if (!isStaleLockError(err) && !(err instanceof StaleDraftError)) setSaveError(writeErrorMessage(err));
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   // Link shown read-only: taken from the saved scenario, never from what is being typed.
   const detailUrl = safeHttpUrl(scenario.detail_link);
 
   return (
-    <article className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
+    <article
+      id={`scenario-${scenario.id}`}
+      data-scenario-id={scenario.id}
+      className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4 scroll-mt-4"
+      onKeyDown={(e) => {
+        if (readOnly || !onDuplicate || matchShortcut(e) !== "duplicate") return;
+        e.preventDefault();
+        void duplicate();
+      }}
+    >
       <header className="flex items-center gap-2 flex-wrap">
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            className={ROW_ICON_CLASS}
+            aria-expanded={!collapsed}
+            aria-label={`${collapsed ? "Espandi" : "Comprimi"} scenario #${scenario.number}`}
+            onClick={onToggleCollapsed}
+          >
+            {collapsed ? <ChevronRight size={16} aria-hidden /> : <ChevronDown size={16} aria-hidden />}
+          </button>
+        )}
         <span className="font-mono text-[12px] text-text-muted">#{scenario.number}</span>
         <span
           className="font-mono text-[12px] rounded-full px-2 py-0.5"
@@ -137,6 +206,16 @@ export function ScenarioCard({
           {scenario.tag}
         </span>
         <span className="font-mono text-[12px] text-text-muted">@{draft.polarity}</span>
+        {collapsed && <span className="text-[13px] text-text truncate min-w-0 flex-1">{draft.title}</span>}
+        {errors.length > 0 && (
+          <span
+            className="font-mono text-[11px] rounded-full px-2 py-0.5"
+            style={{ background: "var(--danger-soft)", color: "var(--danger)" }}
+          >
+            <span aria-hidden>{errors.length}</span>
+            <span className="sr-only">{`${errors.length} errori`}</span>
+          </span>
+        )}
         {openComments > 0 && (
           <span
             className="text-[12px] rounded-full px-2 py-0.5"
@@ -146,16 +225,102 @@ export function ScenarioCard({
             {openComments}
           </span>
         )}
-        {onComment && (
-          <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={onComment}>
-            <MessageSquare size={14} /> Commenta
-          </button>
-        )}
-        <span className="ml-auto text-[12px] text-text-muted" aria-live="polite">
-          {saving ? "Salvataggio…" : ""}
+        <span className="ml-auto flex items-center gap-1">
+          <span className="text-[12px] text-text-muted mr-1" aria-live="polite">
+            {saving ? "Salvataggio…" : ""}
+          </span>
+          {onComment && (
+            <button type="button" className={ROW_ICON_CLASS} aria-label="Commenta" title="Commenta" onClick={onComment}>
+              <MessageSquare size={16} aria-hidden />
+            </button>
+          )}
+          {!readOnly && dragHandleProps && (
+            <button
+              type="button"
+              className={`${ROW_ICON_CLASS} cursor-grab`}
+              aria-label="Trascina scenario"
+              title="Trascina per riordinare"
+              {...dragHandleProps}
+            >
+              <GripVertical size={16} aria-hidden />
+            </button>
+          )}
+          {!readOnly && onMove && (
+            <>
+              <button
+                type="button"
+                className={`${ROW_ICON_CLASS} disabled:opacity-40 disabled:cursor-not-allowed`}
+                aria-label="Sposta scenario in alto"
+                title="Sposta in alto"
+                disabled={stale || !canMoveUp}
+                onClick={() => onMove("up")}
+              >
+                <MoveUp size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`${ROW_ICON_CLASS} disabled:opacity-40 disabled:cursor-not-allowed`}
+                aria-label="Sposta scenario in basso"
+                title="Sposta in basso"
+                disabled={stale || !canMoveDown}
+                onClick={() => onMove("down")}
+              >
+                <MoveDown size={16} aria-hidden />
+              </button>
+            </>
+          )}
+          {!readOnly && onDuplicate && (
+            <button
+              type="button"
+              className={`${ROW_ICON_CLASS} disabled:opacity-40 disabled:cursor-not-allowed`}
+              aria-label="Duplica scenario"
+              title="Duplica"
+              disabled={stale || duplicating}
+              onClick={() => void duplicate()}
+            >
+              <Copy size={16} aria-hidden />
+            </button>
+          )}
+          {!readOnly &&
+            onRemove &&
+            (confirmRemove ? (
+              <>
+                <button
+                  type="button"
+                  className={SECONDARY_BUTTON_CLASS}
+                  style={{ color: "var(--danger)" }}
+                  onClick={() => {
+                    setConfirmRemove(false);
+                    onRemove().catch((err) => {
+                      if (!isStaleLockError(err) && !(err instanceof StaleDraftError)) {
+                        setSaveError(writeErrorMessage(err));
+                      }
+                    });
+                  }}
+                >
+                  Conferma rimozione
+                </button>
+                <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={() => setConfirmRemove(false)}>
+                  Annulla
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className={`${ROW_ICON_CLASS} hover:!text-danger disabled:opacity-40 disabled:cursor-not-allowed`}
+                aria-label="Rimuovi scenario"
+                title="Rimuovi"
+                disabled={stale}
+                onClick={() => setConfirmRemove(true)}
+              >
+                <Trash2 size={16} aria-hidden />
+              </button>
+            ))}
         </span>
       </header>
 
+      {collapsed ? null : (
+        <>
       <label className="flex flex-col gap-1 text-xs text-text-dim">
         Titolo scenario
         <input
@@ -257,40 +422,9 @@ export function ScenarioCard({
           <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={saving || stale} onClick={() => void save()}>
             Salva
           </button>
-          {onRemove &&
-            (confirmRemove ? (
-              <>
-                <button
-                  type="button"
-                  className={SECONDARY_BUTTON_CLASS}
-                  style={{ color: "var(--danger)" }}
-                  onClick={() => {
-                    setConfirmRemove(false);
-                    onRemove().catch((err) => {
-                      if (!isStaleLockError(err) && !(err instanceof StaleDraftError)) {
-                        setSaveError(writeErrorMessage(err));
-                      }
-                    });
-                  }}
-                >
-                  Conferma rimozione
-                </button>
-                <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={() => setConfirmRemove(false)}>
-                  Annulla
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                className={`${SECONDARY_BUTTON_CLASS} ml-auto`}
-                aria-label="Rimuovi scenario"
-                disabled={stale}
-                onClick={() => setConfirmRemove(true)}
-              >
-                <Trash2 size={14} />
-              </button>
-            ))}
         </footer>
+      )}
+        </>
       )}
     </article>
   );

@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { useEffect, useReducer } from "react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
@@ -8,6 +9,9 @@ import FeatureDetailPage from "./page";
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
+  comments: null as unknown[] | null,
+  featureData: null as unknown,
+  listeners: new Set<() => void>(),
   refetch: vi.fn(),
   transition: vi.fn(),
   updateRevision: vi.fn(),
@@ -42,7 +46,15 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useImportTlGit: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRetryTlImportCleanup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlStepSuggestions: () => ({ data: [] }),
-  useTlFeature: () => ({ data: FEATURE, isLoading: false, isError: false, refetch: mocks.refetch }),
+  useTlFeature: () => {
+    // Re-renders when the test swaps the feature data, like a react-query refetch would.
+    const [, force] = useReducer((n: number) => n + 1, 0);
+    useEffect(() => {
+      mocks.listeners.add(force);
+      return () => void mocks.listeners.delete(force);
+    }, []);
+    return { data: (mocks.featureData as TlFeatureDetail | null) ?? FEATURE, isLoading: false, isError: false, refetch: mocks.refetch };
+  },
   useTlTransition: () => ({ mutateAsync: mocks.transition, isPending: false }),
   useUpdateTlRevision: () => ({ mutateAsync: mocks.updateRevision }),
   useUpdateTlScenario: () => ({ mutateAsync: mocks.updateScenario }),
@@ -51,7 +63,7 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useUpdateTlFeature: () => ({ mutate: vi.fn() }),
   useValidateSteps: () => ({ mutate: mocks.validate }),
   useTlComments: () => ({
-    data: [{ id: "c1", revision_id: "r1", scenario_id: "sc1", scenario_tag: "@FDR3_001_01", author: "a", body: "x", resolved: false, created_at: "2026-11-20T10:00:00Z" }],
+    data: mocks.comments ?? [{ id: "c1", revision_id: "r1", scenario_id: "sc1", scenario_tag: "@FDR3_001_01", author: "a", body: "x", resolved: false, created_at: "2026-11-20T10:00:00Z" }],
     isLoading: false,
     isError: false,
   }),
@@ -102,6 +114,8 @@ const titles = () => screen.getAllByLabelText("Titolo scenario");
 describe("FeatureDetailPage", () => {
   beforeEach(() => {
     for (const m of Object.values(mocks)) if (vi.isMockFunction(m)) m.mockReset();
+    mocks.comments = null;
+    mocks.featureData = null;
     mocks.refetch.mockResolvedValue({});
     mocks.updateScenario.mockResolvedValue(sc("sc1", 1, "x"));
     mocks.updateRevision.mockImplementation(async (v: { lock_version: number }) => ({
@@ -135,13 +149,14 @@ describe("FeatureDetailPage", () => {
     await userEvent.type(titles()[0], " in corso");
     await userEvent.click(screen.getByRole("tab", { name: "Anteprima file" }));
     expect(await screen.findByText("# qa-hub: FEAT_001_FdR3")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: "Scenari" }));
+    await userEvent.click(screen.getByRole("tab", { name: /^Scenari/ }));
     expect(titles()[0]).toHaveValue("Primo in corso");
   });
 
   it("lists tabs in order and jumps to Review with the scenario preselected", async () => {
     render(<FeatureDetailPage />);
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+    // Counters (scenarios, open comments) are chips inside the trigger text: strip them.
+    expect(screen.getAllByRole("tab").map((t) => t.textContent?.replace(/\d.*$/, ""))).toEqual([
       "Scenari", "Review", "Storico", "Git", "Jira", "NRT", "Anteprima file",
     ]);
     await userEvent.click(screen.getAllByRole("button", { name: /Commenta/ })[0]);
@@ -150,10 +165,10 @@ describe("FeatureDetailPage", () => {
 
   it("keeps the unsent comment draft when switching tabs", async () => {
     render(<FeatureDetailPage />);
-    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    await userEvent.click(screen.getByRole("tab", { name: /^Review/ }));
     await userEvent.type(screen.getByLabelText("Nuovo commento"), "bozza commento");
-    await userEvent.click(screen.getByRole("tab", { name: "Scenari" }));
-    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    await userEvent.click(screen.getByRole("tab", { name: /^Scenari/ }));
+    await userEvent.click(screen.getByRole("tab", { name: /^Review/ }));
     expect(screen.getByLabelText("Nuovo commento")).toHaveValue("bozza commento");
   });
 
@@ -203,6 +218,143 @@ describe("FeatureDetailPage", () => {
       expect.objectContaining({ action: "submit", revisionId: "r1" }),
     ));
     expect(mocks.updateScenario).toHaveBeenCalledTimes(1);
+  });
+
+  it("Ctrl+S in the detail page flushes pending edits and prevents the browser dialog", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.type(titles()[0], " nuovo");
+    const notPrevented = fireEvent.keyDown(titles()[0], { key: "s", ctrlKey: true });
+    expect(notPrevented).toBe(false);
+    await waitFor(() => expect(mocks.updateScenario).toHaveBeenCalledTimes(1));
+  });
+
+  it("Ctrl+Enter focuses the new scenario title when empty and adds the scenario when filled", async () => {
+    mocks.addScenario.mockResolvedValue(sc("sc3", 3, "Nuovo"));
+    render(<FeatureDetailPage />);
+    const input = screen.getByLabelText("Titolo nuovo scenario");
+    fireEvent.keyDown(titles()[0], { key: "Enter", ctrlKey: true });
+    expect(input).toHaveFocus();
+    await userEvent.type(input, "Nuovo");
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
+    await waitFor(() => expect(mocks.addScenario).toHaveBeenCalledTimes(1));
+  });
+
+  it("Comprimi tutti collapses every card and Espandi tutti restores them", async () => {
+    render(<FeatureDetailPage />);
+    expect(titles()).toHaveLength(2);
+    await userEvent.click(screen.getByRole("button", { name: "Comprimi tutti" }));
+    expect(screen.queryAllByLabelText("Titolo scenario")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Espandi tutti" }));
+    expect(titles()).toHaveLength(2);
+  });
+
+  it("duplicate creates a copy titled '<title> (copia)' then copies the content", async () => {
+    mocks.addScenario.mockResolvedValue(sc("sc3", 3, "Primo (copia)"));
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Duplica scenario" })[0]);
+    await waitFor(() => expect(mocks.addScenario).toHaveBeenCalledTimes(1));
+    expect(mocks.addScenario).toHaveBeenCalledWith(
+      expect.objectContaining({ featureId: "f1", title: "Primo (copia)", kind: "scenario", polarity: "positivo" }),
+    );
+    await waitFor(() => expect(mocks.updateScenario).toHaveBeenCalledTimes(1));
+    expect(mocks.updateScenario).toHaveBeenCalledWith(
+      expect.objectContaining({ scenarioId: "sc3", steps: "Dato x", extra_tags: [] }),
+    );
+  });
+
+  it("a duplicated card is remounted with the copied content", async () => {
+    const withCopy = (steps: string): TlFeatureDetail => ({
+      ...FEATURE,
+      working_revision: {
+        ...FEATURE.working_revision!,
+        scenarios: [...FEATURE.working_revision!.scenarios, { ...sc("sc3", 3, "Primo (copia)"), steps }],
+      },
+    });
+    // After the add the refetched card is empty; after the update the server has the content.
+    mocks.featureData = withCopy("");
+    mocks.addScenario.mockResolvedValue(sc("sc3", 3, "Primo (copia)"));
+    mocks.updateScenario.mockImplementation(async () => {
+      mocks.featureData = withCopy("Dato x");
+      mocks.listeners.forEach((l) => l());
+      return sc("sc3", 3, "Primo (copia)");
+    });
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Duplica scenario" })[0]);
+    await waitFor(() => expect(screen.getAllByLabelText("Step")[2]).toHaveValue("Dato x"));
+  });
+
+  it("a drop that is not a scenario drag keeps the browser default", () => {
+    render(<FeatureDetailPage />);
+    const notPrevented = fireEvent.drop(screen.getAllByRole("article")[1], { dataTransfer: { getData: () => "" } });
+    expect(notPrevented).toBe(true);
+  });
+
+  it("Ctrl+Enter inside a steps textarea does not steal the focus", () => {
+    render(<FeatureDetailPage />);
+    const steps = screen.getAllByLabelText("Step")[0];
+    steps.focus();
+    fireEvent.keyDown(steps, { key: "Enter", ctrlKey: true });
+    expect(screen.getByLabelText("Titolo nuovo scenario")).not.toHaveFocus();
+  });
+
+  it("move down sends the next scenario position", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Sposta scenario in basso" })[0]);
+    await waitFor(() => expect(mocks.updateScenario).toHaveBeenCalledTimes(1));
+    expect(mocks.updateScenario).toHaveBeenCalledWith(expect.objectContaining({ scenarioId: "sc1", position: 2 }));
+  });
+
+  it("first scenario cannot move up and last cannot move down", () => {
+    render(<FeatureDetailPage />);
+    expect(screen.getAllByRole("button", { name: "Sposta scenario in alto" })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Sposta scenario in basso" })[1]).toBeDisabled();
+  });
+
+  it("dropping a card on another sends the target position", async () => {
+    render(<FeatureDetailPage />);
+    const handles = screen.getAllByRole("button", { name: "Trascina scenario" });
+    const cards = screen.getAllByRole("article");
+    fireEvent.dragStart(handles[0], { dataTransfer: { setData: vi.fn(), effectAllowed: "" } });
+    fireEvent.drop(cards[1], { dataTransfer: { getData: () => "" } });
+    await waitFor(() => expect(mocks.updateScenario).toHaveBeenCalledTimes(1));
+    expect(mocks.updateScenario).toHaveBeenCalledWith(expect.objectContaining({ scenarioId: "sc1", position: 2 }));
+  });
+
+  it("dropping a card on itself sends nothing", () => {
+    render(<FeatureDetailPage />);
+    const handles = screen.getAllByRole("button", { name: "Trascina scenario" });
+    const cards = screen.getAllByRole("article");
+    fireEvent.dragStart(handles[0], { dataTransfer: { setData: vi.fn(), effectAllowed: "" } });
+    fireEvent.drop(cards[0], { dataTransfer: { getData: () => "" } });
+    expect(mocks.updateScenario).not.toHaveBeenCalled();
+  });
+
+  it("selecting an index item expands a collapsed card", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getByRole("button", { name: "Comprimi tutti" }));
+    await userEvent.click(screen.getByRole("button", { name: /#2 Secondo/ }));
+    expect(titles()).toHaveLength(1);
+    expect(titles()[0]).toHaveValue("Secondo");
+  });
+
+  it("tabs show the scenario count and unresolved comment count", () => {
+    render(<FeatureDetailPage />);
+    expect(within(screen.getByRole("tab", { name: /^Scenari/ })).getByText("2 scenari")).toBeInTheDocument();
+    expect(within(screen.getByRole("tab", { name: /^Review/ })).getByText("1 commenti aperti")).toBeInTheDocument();
+  });
+
+  it("Review tab hides the counter at zero", () => {
+    mocks.comments = [];
+    render(<FeatureDetailPage />);
+    expect(within(screen.getByRole("tab", { name: /^Review/ })).queryByText(/commenti aperti/)).not.toBeInTheDocument();
+  });
+
+  it("tabs keep working by role and name", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getByRole("tab", { name: /^Review/ }));
+    expect(screen.getByRole("tab", { name: /^Review/ })).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(screen.getByRole("tab", { name: "Storico" }));
+    expect(screen.getByRole("tab", { name: "Storico" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("creates one scenario on a double Enter", async () => {

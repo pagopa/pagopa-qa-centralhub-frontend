@@ -2,7 +2,7 @@
 
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useLiveValidation } from "@/hooks/useLiveValidation";
-import type { Flusher } from "@/lib/test-lifecycle";
+import type { RegisterFlush } from "@/lib/test-lifecycle";
 import type { TlRevision, TlRevisionUpdate } from "@/types/test-lifecycle";
 import { StepsEditor } from "./StepsEditor";
 
@@ -23,7 +23,7 @@ export function BackgroundEditor({
   readOnly: boolean;
   stale?: boolean;
   onSave: (patch: BackgroundPatch) => Promise<unknown>;
-  registerFlush?: (fn: Flusher) => () => void;
+  registerFlush?: RegisterFlush;
 }) {
   const { errors, setErrors, validationError, schedule } = useLiveValidation(
     revision.background_errors,
