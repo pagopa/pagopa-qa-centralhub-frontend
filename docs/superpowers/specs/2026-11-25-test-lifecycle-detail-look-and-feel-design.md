@@ -46,8 +46,8 @@ Confirmed by the person: approach B (polish plus structure), staying within the 
 My calls (to confirm when reading):
 - The progress strip follows the current revision: `draft` is Bozza, `in_review` In review, `approved`
   Progettata, `merged` Implementata; when the feature is `running` the last step reads "In esecuzione".
-  A reopened draft of an implemented feature therefore shows Bozza as current, with the earlier steps
-  as done, consistent with the diagram in the guide.
+  A reopened draft of an implemented feature therefore shows Bozza as current and the later steps as
+  upcoming (there is no step before Bozza), consistent with the diagram in the guide.
 - Polarity colours use the existing semantic tokens (`--success`, `--danger` and their `-soft` pairs);
   the polarity is always also written ("Positivo" / "Negativo"), never colour alone.
 - Tipo and Polarità become segmented controls built as a radio group (native radio inputs, arrow-key navigation);

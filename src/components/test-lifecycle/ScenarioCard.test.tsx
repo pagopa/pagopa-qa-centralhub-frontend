@@ -144,6 +144,56 @@ describe("ScenarioCard", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Esempi non validi");
   });
 
+  describe("identity and segmented controls", () => {
+    it("marks the card with its polarity and writes it as text", () => {
+      renderCard({ scenario: scenario({ polarity: "negativo" }) });
+      expect(document.getElementById("scenario-sc1")).toHaveAttribute("data-polarity", "negativo");
+      expect(screen.getByTestId("scenario-polarity")).toHaveTextContent("Negativo");
+    });
+
+    it("changes the polarity from the segmented control and saves", async () => {
+      const { onSave } = renderCard();
+      await userEvent.click(screen.getByRole("radio", { name: "Negativo" }));
+      await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ polarity: "negativo" })));
+      expect(document.getElementById("scenario-sc1")).toHaveAttribute("data-polarity", "negativo");
+    });
+
+    it("switching Tipo to the outline shows the examples and saves", async () => {
+      const { onSave } = renderCard();
+      expect(screen.queryByText("Esempi")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("radio", { name: "Schema dello scenario" }));
+      expect(screen.getByText("Esempi")).toBeInTheDocument();
+      await vi.waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ kind: "outline" })));
+    });
+
+    it("does not clip the step suggestions popup: the card has no overflow-hidden", () => {
+      // The popup is absolutely positioned below the steps block and can be taller than what is left
+      // under it inside the card: clipping the card would hide its lower rows.
+      renderCard();
+      const card = document.getElementById("scenario-sc1")!;
+      expect(card.className).not.toContain("overflow-hidden");
+    });
+
+    it("renders plain chips with the selected values and no radios when read-only", () => {
+      renderCard({ readOnly: true, scenario: scenario({ kind: "outline", polarity: "negativo", examples: { headers: ["a"], rows: [["1"]] } }) });
+      expect(screen.queryAllByRole("radio")).toHaveLength(0);
+      expect(screen.getByRole("group", { name: "Tipo" })).toHaveTextContent("Schema dello scenario");
+      expect(screen.getByRole("group", { name: "Polarità" })).toHaveTextContent("Negativo");
+    });
+
+    it("disables the extra tags too when the draft is stale", () => {
+      renderCard({ stale: true });
+      const boxes = screen.getAllByRole("checkbox");
+      expect(boxes.length).toBeGreaterThan(0);
+      for (const box of boxes) expect(box).toBeDisabled();
+    });
+
+    it("disables the controls when the draft is stale", () => {
+      renderCard({ stale: true });
+      for (const radio of screen.getAllByRole("radio")) expect(radio).toBeDisabled();
+    });
+  });
+
   it("is fully read-only when readOnly", () => {
     renderCard({ readOnly: true });
     expect(screen.getByLabelText("Titolo scenario")).toHaveAttribute("readonly");

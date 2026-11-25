@@ -30,3 +30,7 @@ export const SECONDARY_BUTTON_CLASS =
 /** Icon-only action in a table row (view, edit, delete...). Add `hover:!text-danger` for destructive ones. */
 export const ROW_ICON_CLASS =
   "rounded-sm p-1 text-text-muted transition hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+
+/** Shared surface for page blocks (metadata panel, scenario cards): rounded, hairline border, soft shadow. */
+export const CARD_CLASS =
+  "rounded-[var(--radius)] border border-border bg-surface shadow-[var(--shadow-sm)]";

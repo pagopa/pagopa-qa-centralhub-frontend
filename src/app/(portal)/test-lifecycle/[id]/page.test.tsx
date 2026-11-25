@@ -160,7 +160,7 @@ describe("FeatureDetailPage", () => {
       "Scenari", "Review", "Storico", "Git", "Jira", "NRT", "Anteprima file",
     ]);
     await userEvent.click(screen.getAllByRole("button", { name: /Commenta/ })[0]);
-    expect(await screen.findByLabelText("Scenario")).toHaveValue("sc1");
+    expect(await screen.findByRole("combobox", { name: "Scenario" })).toHaveValue("sc1");
   });
 
   it("keeps the unsent comment draft when switching tabs", async () => {
@@ -355,6 +355,26 @@ describe("FeatureDetailPage", () => {
     expect(screen.getByRole("tab", { name: /^Review/ })).toHaveAttribute("aria-selected", "true");
     await userEvent.click(screen.getByRole("tab", { name: "Storico" }));
     expect(screen.getByRole("tab", { name: "Storico" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("uses the line tab bar and keeps every tab reachable", () => {
+    render(<FeatureDetailPage />);
+    const list = screen.getByRole("tablist");
+    expect(list).toHaveAttribute("data-variant", "line");
+    // overrides that must beat the shadcn variant: auto height, and the underline sitting on the border
+    expect(list.className).toContain("group-data-horizontal/tabs:!h-auto");
+    const first = screen.getAllByRole("tab")[0];
+    expect(first.className).toContain("h-auto");
+    expect(first.className).not.toContain("h-[calc(100%-1px)]");
+    expect(first.className).toContain("after:!-bottom-px");
+    for (const name of [/^Scenari/, /^Review/, "Storico"]) {
+      expect(screen.getByRole("tab", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("renders the lifecycle progress strip under the header", () => {
+    render(<FeatureDetailPage />);
+    expect(screen.getByRole("list", { name: "Avanzamento della feature" })).toBeInTheDocument();
   });
 
   it("creates one scenario on a double Enter", async () => {

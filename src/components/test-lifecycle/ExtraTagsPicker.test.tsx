@@ -14,4 +14,10 @@ describe("ExtraTagsPicker", () => {
     render(<ExtraTagsPicker value={[]} readOnly onToggle={vi.fn()} />);
     expect(screen.getByText("@runnable")).toBeInTheDocument();
   });
+
+  it("marks active and inactive tags", () => {
+    render(<ExtraTagsPicker value={["legacy"]} readOnly={false} onToggle={vi.fn()} options={["e2e"]} />);
+    expect(screen.getByText("@legacy").closest("label")).toHaveAttribute("data-active", "true");
+    expect(screen.getByText("@e2e").closest("label")).toHaveAttribute("data-active", "false");
+  });
 });
