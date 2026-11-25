@@ -25,6 +25,31 @@ describe("test lifecycle guide", () => {
     expect(screen.getByRole("img", { name: /Diagramma del ciclo di vita/ })).toBeInTheDocument();
   });
 
+  it("shows the two backward arrows in the process diagram", () => {
+    render(<Page />);
+    const diagram = screen.getByRole("img", { name: /Diagramma del ciclo di vita/ });
+    expect(within(diagram).getByText("← Ritira")).toBeInTheDocument();
+    expect(within(diagram).getByText("← Riporta")).toBeInTheDocument();
+  });
+
+  it("keeps the backward labels clear of the Jira tag under Bozza", () => {
+    render(<Page />);
+    const diagram = screen.getByRole("img", { name: /Diagramma del ciclo di vita/ });
+    const label = within(diagram).getByText("← Ritira");
+    // the tag ends at x=170: the label starts to its right instead of being centred on the gap
+    expect(label).toHaveAttribute("text-anchor", "start");
+    expect(Number(label.getAttribute("x"))).toBeGreaterThanOrEqual(172);
+  });
+
+  it("explains how to go back and what happens to the open PR", async () => {
+    render(<Page />);
+    await userEvent.click(screen.getByRole("tab", { name: "Progettazione" }));
+    expect(screen.getByText("Ritira in bozza")).toBeInTheDocument();
+    const withdrawApproval = screen.getByText("Riporta in review").closest("li")!;
+    expect(withdrawApproval).toHaveTextContent("resta aperta");
+    expect(withdrawApproval).toHaveTextContent("non mergiarla");
+  });
+
   it.each(SECTIONS)("shows the %s sections", async (tab, headings) => {
     render(<Page />);
     await userEvent.click(screen.getByRole("tab", { name: tab }));

@@ -5,7 +5,13 @@ export type TlFeatureStatus = "draft" | "in_review" | "designed" | "implemented"
 export type TlRevisionStatus = "draft" | "in_review" | "approved" | "merged" | "superseded";
 export type TlScenarioKind = "scenario" | "outline";
 export type TlPolarity = "positivo" | "negativo";
-export type TlTransitionAction = "submit" | "approve" | "request_changes" | "reopen";
+export type TlTransitionAction =
+  | "submit"
+  | "approve"
+  | "request_changes"
+  | "reopen"
+  | "withdraw_approval"
+  | "withdraw";
 export type TlExtraTag = "runnable" | "e2e" | "ui" | "skip";
 export type TlPrState = "open" | "merged" | "closed";
 export type TlIssueKind =

@@ -171,6 +171,8 @@ function Design() {
             <>Il reviewer apre la feature e usa il tab <strong>Review</strong> per commentare la feature o un singolo scenario (pulsante &quot;Commenta&quot; sulla scheda).</>,
             <><strong>Richiedi modifiche</strong> (con una nota obbligatoria) riporta la feature in bozza all&apos;owner.</>,
             <><strong>Approva</strong> chiude la progettazione: la revisione viene salvata nello Storico, l&apos;hub apre la PR e crea il task Jira di implementazione.</>,
+            <><strong>Ritira in bozza</strong>: finché la revisione è in review, l&apos;owner di progettazione può ritirare l&apos;invio e tornare in bozza, senza nota.</>,
+            <><strong>Riporta in review</strong>: dopo l&apos;approvazione, e finché la PR non è stata mergiata, il reviewer può ritirare l&apos;approvazione. La PR su GitHub resta aperta con la versione approvata in precedenza: non mergiarla finché la revisione non è di nuovo approvata. Alla nuova approvazione l&apos;hub aggiorna la stessa PR, senza crearne un&apos;altra né un altro task Jira.</>,
           ]}
         />
         <p>Durante la review si può cambiare solo il reviewer; owner e chiave Jira si modificano solo in bozza.</p>
