@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
 import type { TlFeatureDetail, TlRevision } from "@/types/test-lifecycle";
 import { FeatureMetaPanel, TITLE_REQUIRED } from "./FeatureMetaPanel";
+import type { RegisterFlush } from "@/lib/test-lifecycle";
 
 const mocks = vi.hoisted(() => ({ mutate: vi.fn() }));
 
@@ -46,11 +47,12 @@ function feature(rev: TlRevision, overrides: Partial<TlFeatureDetail> = {}): TlF
   };
 }
 
-function renderPanel(props: { readOnly?: boolean; reviewerEditable?: boolean; rev?: TlRevision; feat?: Partial<TlFeatureDetail> } = {}) {
+function renderPanel(props: { readOnly?: boolean; reviewerEditable?: boolean; rev?: TlRevision; feat?: Partial<TlFeatureDetail>; registerFlush?: RegisterFlush } = {}) {
   const rev = props.rev ?? revision();
   const onSaveRevision = vi.fn().mockResolvedValue(rev);
-  render(
+  const result = render(
     <FeatureMetaPanel
+      registerFlush={props.registerFlush}
       feature={feature(rev, props.feat)}
       revision={rev}
       readOnly={props.readOnly ?? false}
@@ -58,14 +60,23 @@ function renderPanel(props: { readOnly?: boolean; reviewerEditable?: boolean; re
       onSaveRevision={onSaveRevision}
     />,
   );
-  return { onSaveRevision };
+  return { onSaveRevision, ...result };
 }
 
 const optionNames = (select: HTMLElement) =>
   within(select).getAllByRole("option").map((o) => o.textContent);
 
 describe("FeatureMetaPanel", () => {
-  beforeEach(() => mocks.mutate.mockReset());
+  beforeEach(() => {
+    mocks.mutate.mockReset();
+    const storage = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("lists only active users in the pickers and never the owner as reviewer", () => {
     renderPanel();
@@ -221,6 +232,93 @@ describe("FeatureMetaPanel", () => {
       expect(dirty?.()).toBe(true);
       await expect(flush?.()).resolves.toBe(true);
       expect(mocks.mutate).toHaveBeenCalledWith({ id: "f1", jira_design_key: "PQ-2" }, expect.anything());
+    });
+  });
+
+  describe("compact layout", () => {
+    it("shows people as chips with initials when read-only", () => {
+      renderPanel({ rev: revision({ status: "approved" }), readOnly: true, reviewerEditable: false });
+      expect(screen.getByText("Anna Rossi")).toBeInTheDocument();
+      expect(screen.getByText("AR")).toBeInTheDocument();
+      expect(screen.getByText("BB")).toBeInTheDocument();
+      expect(screen.queryAllByRole("combobox")).toHaveLength(0);
+    });
+
+    it("collapses to a summary with owners and Jira keys", async () => {
+      renderPanel();
+      expect(screen.queryByTestId("meta-summary")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Metadati" }));
+
+      expect(screen.getByRole("button", { name: "Metadati" })).toHaveAttribute("aria-expanded", "false");
+      expect(screen.getByLabelText("Titolo")).not.toBeVisible();
+      const summary = screen.getByTestId("meta-summary");
+      expect(within(summary).getByText("Pagamento")).toBeInTheDocument();
+      expect(within(summary).getByText("Anna Rossi")).toBeInTheDocument();
+      expect(within(summary).getByText("Bruno Bianchi")).toBeInTheDocument();
+      expect(within(summary).getByText("PQ-1")).toBeInTheDocument();
+    });
+
+    it("keeps the fields mounted and the flush registered while collapsed", async () => {
+      const unregister = vi.fn();
+      const registerFlush = vi.fn(() => unregister);
+      const { unmount } = renderPanel({ registerFlush });
+      // the draft and the Jira keys each register a flush
+      const registered = registerFlush.mock.calls.length;
+      expect(registered).toBeGreaterThan(0);
+
+      await userEvent.click(screen.getByRole("button", { name: "Metadati" }));
+      expect(screen.getByLabelText("Titolo")).toBeInTheDocument();
+      expect(registerFlush).toHaveBeenCalledTimes(registered);
+      expect(unregister).not.toHaveBeenCalled();
+
+      unmount();
+      expect(unregister).toHaveBeenCalledTimes(registered);
+    });
+
+    it("shows Jira chips in the collapsed summary and plain keys for unlinked ones", async () => {
+      renderPanel({
+        feat: {
+          jira_impl_key: "PQ-2",
+          jira: [
+            { role: "design", key: "PQ-1", summary: "Progettazione", status: "In corso", category: "indeterminate", url: "https://jira.test/browse/PQ-1", verified: true },
+          ],
+        },
+      });
+      await userEvent.click(screen.getByRole("button", { name: "Metadati" }));
+      const summary = screen.getByTestId("meta-summary");
+      expect(within(summary).getByTestId("jira-chip-PQ-1")).toHaveTextContent("In corso");
+      expect(within(summary).getByText("PQ-2")).toBeInTheDocument();
+      expect(within(summary).queryByTestId("jira-chip-PQ-2")).not.toBeInTheDocument();
+    });
+
+    it("puts the product and the estimates in the same row of columns", () => {
+      renderPanel();
+      const row = screen.getByLabelText("Epic/Story prodotto").closest("div.grid");
+      expect(row).not.toBeNull();
+      expect(screen.getByLabelText("Stima progettazione (giorni)").closest("div.grid")).toBe(row);
+      expect(screen.getByLabelText("Stima implementazione (giorni)").closest("div.grid")).toBe(row);
+    });
+
+    it("keeps long field labels on one line", () => {
+      renderPanel();
+      expect(screen.getByText("Epic QA (sovrascrive quella dell'Ambito)")).toHaveClass("truncate");
+    });
+
+    it("remembers the collapsed state", async () => {
+      const first = renderPanel();
+      await userEvent.click(screen.getByRole("button", { name: "Metadati" }));
+      first.unmount();
+
+      renderPanel();
+      expect(screen.getByRole("button", { name: "Metadati" })).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("flags a missing title even when collapsed", async () => {
+      renderPanel();
+      const title = screen.getByLabelText("Titolo");
+      fireEvent.change(title, { target: { value: "   " } });
+      await userEvent.click(screen.getByRole("button", { name: "Metadati" }));
+      expect(within(screen.getByTestId("meta-summary")).getByText(TITLE_REQUIRED)).toBeInTheDocument();
     });
   });
 });

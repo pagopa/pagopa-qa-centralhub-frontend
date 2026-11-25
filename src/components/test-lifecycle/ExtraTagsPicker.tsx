@@ -25,10 +25,13 @@ export function ExtraTagsPicker({
           return (
             <label
               key={tag}
-              className="inline-flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-[12px] cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40"
+              data-active={active ? "true" : "false"}
+              className="inline-flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-[12px] cursor-pointer transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40"
               style={{
                 borderColor: active ? "var(--accent)" : "var(--border)",
-                color: active ? "var(--accent)" : "var(--text-muted)",
+                background: active ? "var(--accent-soft)" : undefined,
+                color: active ? "var(--text)" : "var(--text-dim)",
+                fontWeight: active ? 500 : undefined,
               }}
             >
               <input

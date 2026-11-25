@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ExternalLink } from "lucide-react";
-import { INPUT_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ExternalLink } from "lucide-react";
+import { CARD_CLASS, INPUT_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
 import { useUpdateTlFeature } from "@/hooks/useTestLifecycle";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useUsers } from "@/hooks/useUsers";
+import { useStoredFlag } from "@/lib/stored-flag";
+import { PersonChip } from "./PersonChip";
 import {
   JIRA_CATEGORY_COLOR,
   JIRA_CATEGORY_LABEL,
@@ -55,8 +57,8 @@ function diffRevision(saved: RevisionDraft, next: RevisionDraft): RevisionPatch 
 
 function Field({ label, children, title }: { label: string; children: ReactNode; title?: string }) {
   return (
-    <label title={title} className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted min-w-0">
-      {label}
+    <label title={title} className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-dim min-w-0">
+      <span className="truncate">{label}</span>
       {children}
     </label>
   );
@@ -65,7 +67,11 @@ function Field({ label, children, title }: { label: string; children: ReactNode;
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
-      <h3 className="font-mono text-[11px] uppercase font-medium text-text-muted" style={{ letterSpacing: ".08em" }}>
+      <h3
+        className="flex items-center gap-2 font-mono text-[11px] uppercase font-medium text-text-dim"
+        style={{ letterSpacing: ".08em" }}
+      >
+        <span aria-hidden="true" className="size-[7px] rounded-[2px]" style={{ background: "var(--area-violet)" }} />
         {title}
       </h3>
       {children}
@@ -142,6 +148,8 @@ export function FeatureMetaPanel({
     jira_qa_epic_key: feature.jira_qa_epic_key ?? "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useStoredFlag("qa-hub-tl-meta-open", true);
+  const contentId = useId();
 
   const activeUsers = users?.items.filter((u) => u.is_active) ?? [];
 
@@ -195,10 +203,14 @@ export function FeatureMetaPanel({
   ) => {
     const value = feature[key] ?? "";
     if (!editable) {
-      const name = users?.items.find((u) => u.id === value)?.name ?? (value ? "—" : "Nessuno");
+      const known = users?.items.find((u) => u.id === value)?.name;
       return (
         <Field label={label}>
-          <span className="text-[14px] text-text">{name}</span>
+          {known ? (
+            <PersonChip name={known} />
+          ) : (
+            <span className="text-[14px] text-text">{value ? "—" : "Nessuno"}</span>
+          )}
         </Field>
       );
     }
@@ -258,9 +270,45 @@ export function FeatureMetaPanel({
   // An empty title is never sent (the backend requires one): flag it until fixed.
   const titleMissing = !readOnly && !rev.title.trim();
 
+  const nameOf = (id: string | null) => users?.items.find((u) => u.id === id)?.name ?? null;
+  const designOwner = nameOf(feature.design_owner_id);
+  const reviewer = nameOf(feature.reviewer_id);
+  const jiraKeys = [feature.jira_design_key, feature.jira_impl_key].filter((k): k is string => Boolean(k));
+
   return (
-    <section className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4">
-      <h2 className="text-sm font-semibold text-text">Metadati</h2>
+    <section className={`flex flex-col gap-3 p-4 ${CARD_CLASS}`}>
+      <div className="flex min-w-0 items-center gap-4">
+        <h2 className="shrink-0 text-sm font-semibold text-text">
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={contentId}
+            onClick={() => setOpen(!open)}
+            className="-mx-1 flex items-center gap-2 rounded-[var(--radius-sm)] px-1 hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            <ChevronDown size={16} aria-hidden="true" className={`transition-transform ${open ? "" : "-rotate-90"}`} />
+            Metadati
+          </button>
+        </h2>
+        {!open && (
+          <div data-testid="meta-summary" className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+            <span className="max-w-[32ch] truncate font-medium text-text">{rev.title.trim() || "—"}</span>
+            {designOwner && <PersonChip name={designOwner} label="Owner design" />}
+            {reviewer && <PersonChip name={reviewer} label="Reviewer" />}
+            {jiraKeys.map((key) => {
+              const link = feature.jira.find((l) => l.key === key.trim().toUpperCase());
+              return link ? (
+                <JiraChip key={key} link={link} />
+              ) : (
+                <span key={key} className="font-mono text-[12px] text-text-dim">{key}</span>
+              );
+            })}
+            {titleMissing && <span className="text-[12px] text-danger">{TITLE_REQUIRED}</span>}
+          </div>
+        )}
+      </div>
+
+      <div id={contentId} hidden={!open} className="flex flex-col gap-3">
 
       <Section title="Generale">
       <div className="flex flex-col gap-1">
@@ -303,7 +351,7 @@ export function FeatureMetaPanel({
       </Section>
 
       <Section title="Jira">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         {text(
           "Jira progettazione",
           jira.jira_design_key,
@@ -339,7 +387,7 @@ export function FeatureMetaPanel({
 
       <Section title="Prodotto e stime">
 
-      <div className="grid gap-3 sm:grid-cols-2 items-end">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
         {rev.reverse_engineering ? (
           <Field label="Epic/Story prodotto">
             <span className="text-[14px] text-text-muted">Reverse engineering</span>
@@ -347,6 +395,8 @@ export function FeatureMetaPanel({
         ) : (
           text("Epic/Story prodotto", rev.product_issue_key, (v) => setRev({ ...rev, product_issue_key: v }), saveRevision, "ABC-123")
         )}
+        {text("Stima progettazione (giorni)", rev.design_estimate_days, (v) => setRev({ ...rev, design_estimate_days: v }), saveRevision)}
+        {text("Stima implementazione (giorni)", rev.impl_estimate_days, (v) => setRev({ ...rev, impl_estimate_days: v }), saveRevision)}
         <label className="flex items-center gap-2 text-[13px] text-text-dim h-9">
           <input
             type="checkbox"
@@ -376,11 +426,9 @@ export function FeatureMetaPanel({
         text("Requisiti", rev.requirements_url, (v) => setRev({ ...rev, requirements_url: v }), saveRevision, "https://…")
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {text("Stima progettazione (giorni)", rev.design_estimate_days, (v) => setRev({ ...rev, design_estimate_days: v }), saveRevision)}
-        {text("Stima implementazione (giorni)", rev.impl_estimate_days, (v) => setRev({ ...rev, impl_estimate_days: v }), saveRevision)}
-      </div>
       </Section>
+
+      </div>
 
       {(error || revisionError) && (
         <p role="alert" className="text-danger text-[13px]">

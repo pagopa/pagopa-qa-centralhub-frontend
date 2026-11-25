@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Copy, GripVertical, MessageSquare, MoveDown, MoveUp, Trash2 } from "lucide-react";
-import { INPUT_CLASS, ROW_ICON_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
+import { CARD_CLASS, INPUT_CLASS, ROW_ICON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { matchShortcut } from "@/lib/shortcuts";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useLiveValidation } from "@/hooks/useLiveValidation";
@@ -178,14 +179,22 @@ export function ScenarioCard({
     <article
       id={`scenario-${scenario.id}`}
       data-scenario-id={scenario.id}
-      className="flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface p-4 scroll-mt-4"
+      data-polarity={draft.polarity}
+      className={`relative flex flex-col transition-shadow hover:shadow-[var(--shadow-md)] scroll-mt-4 ${CARD_CLASS}`}
       onKeyDown={(e) => {
         if (readOnly || !onDuplicate || matchShortcut(e) !== "duplicate") return;
         e.preventDefault();
         void duplicate();
       }}
     >
-      <header className="flex items-center gap-2 flex-wrap">
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-1 rounded-l-[inherit]"
+        style={{ background: draft.polarity === "negativo" ? "var(--danger)" : "var(--success)" }}
+      />
+      <header
+        className={`flex flex-wrap items-center gap-2 bg-subtle py-2.5 pl-5 pr-4 ${collapsed ? "rounded-[inherit]" : "rounded-t-[inherit] border-b border-border"}`}
+      >
         {onToggleCollapsed && (
           <button
             type="button"
@@ -200,12 +209,19 @@ export function ScenarioCard({
         <span className="font-mono text-[12px] text-text-muted">#{scenario.number}</span>
         <span
           className="font-mono text-[12px] rounded-full px-2 py-0.5"
-          style={{ background: "var(--neutral-soft)", color: "var(--text-dim)" }}
+          style={{ background: "var(--area-violet-soft)", color: "var(--area-violet)" }}
           title="Tag identità (non modificabile)"
         >
           {scenario.tag}
         </span>
-        <span className="font-mono text-[12px] text-text-muted">@{draft.polarity}</span>
+        <span data-testid="scenario-polarity" className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">
+          <span
+            aria-hidden="true"
+            className="size-[7px] rounded-full"
+            style={{ background: draft.polarity === "negativo" ? "var(--danger)" : "var(--success)" }}
+          />
+          {draft.polarity === "negativo" ? "Negativo" : "Positivo"}
+        </span>
         {collapsed && <span className="text-[13px] text-text truncate min-w-0 flex-1">{draft.title}</span>}
         {errors.length > 0 && (
           <span
@@ -320,7 +336,7 @@ export function ScenarioCard({
       </header>
 
       {collapsed ? null : (
-        <>
+        <div className="flex flex-col gap-3 py-4 pl-5 pr-4">
       <label className="flex flex-col gap-1 text-xs text-text-dim">
         Titolo scenario
         <input
@@ -333,37 +349,34 @@ export function ScenarioCard({
       </label>
 
       <div className="flex gap-3 flex-wrap items-end">
-        <label className="flex flex-col gap-1 text-xs text-text-dim">
-          Tipo
-          <select
-            className={SELECT_CLASS}
-            value={draft.kind}
-            disabled={readOnly}
-            onChange={(e) => {
-              const kind = e.target.value as TlScenarioKind;
-              update(
-                { kind, examples: kind === "outline" ? (draft.examples ?? EMPTY_EXAMPLES) : draft.examples },
-                { validate: true, save: true },
-              );
-            }}
-          >
-            <option value="scenario">Scenario</option>
-            <option value="outline">Schema dello scenario</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-text-dim">
-          Polarità
-          <select
-            className={SELECT_CLASS}
-            value={draft.polarity}
-            disabled={readOnly}
-            onChange={(e) => update({ polarity: e.target.value as TlPolarity }, { save: true })}
-          >
-            <option value="positivo">Positivo</option>
-            <option value="negativo">Negativo</option>
-          </select>
-        </label>
-        <ExtraTagsPicker value={draft.extra_tags} readOnly={readOnly} onToggle={toggleTag} options={categoryTags.data} />
+        <SegmentedControl<TlScenarioKind>
+          label="Tipo"
+          value={draft.kind}
+          readOnly={readOnly}
+          disabled={stale}
+          options={[
+            { value: "scenario", label: "Scenario" },
+            { value: "outline", label: "Schema dello scenario" },
+          ]}
+          onChange={(kind) =>
+            update(
+              { kind, examples: kind === "outline" ? (draft.examples ?? EMPTY_EXAMPLES) : draft.examples },
+              { validate: true, save: true },
+            )
+          }
+        />
+        <SegmentedControl<TlPolarity>
+          label="Polarità"
+          value={draft.polarity}
+          readOnly={readOnly}
+          disabled={stale}
+          options={[
+            { value: "positivo", label: "Positivo" },
+            { value: "negativo", label: "Negativo" },
+          ]}
+          onChange={(polarity) => update({ polarity }, { save: true })}
+        />
+        <ExtraTagsPicker value={draft.extra_tags} readOnly={readOnly || stale} onToggle={toggleTag} options={categoryTags.data} />
       </div>
 
       <StepsEditor
@@ -424,7 +437,7 @@ export function ScenarioCard({
           </button>
         </footer>
       )}
-        </>
+        </div>
       )}
     </article>
   );

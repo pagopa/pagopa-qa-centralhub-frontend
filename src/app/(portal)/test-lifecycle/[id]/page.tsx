@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { BackgroundEditor } from "@/components/test-lifecycle/BackgroundEditor";
 import { FeatureHeader } from "@/components/test-lifecycle/FeatureHeader";
+import { LifecycleProgress } from "@/components/test-lifecycle/LifecycleProgress";
 import { GitPanel } from "@/components/test-lifecycle/GitPanel";
 import { ImportFromGitDialog } from "@/components/test-lifecycle/ImportFromGitDialog";
 import { JiraLinks } from "@/components/test-lifecycle/JiraLinks";
@@ -252,6 +253,7 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         pending={transition.isPending}
         error={transitionError}
       />
+      <LifecycleProgress feature={feature} />
       <MigrationInfo key={`migration-${feature.id}-${reloadKey}`} feature={feature} />
       <FeatureMetaPanel
         key={`${revision?.id}-${reloadKey}`}
@@ -271,9 +273,13 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         onApply={runRebase}
       />
       <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-        <TabsList className="max-w-full overflow-x-auto">
+        <TabsList variant="line" className="w-full max-w-full justify-start overflow-x-auto border-b border-border p-0 group-data-horizontal/tabs:!h-auto">
           {tabs.map((t) => (
-            <TabsTrigger key={t.value} value={t.value} className="data-active:text-accent">
+            <TabsTrigger
+              key={t.value}
+              value={t.value}
+              className="h-auto flex-none px-3 py-2 data-active:text-[color:var(--area-violet)] after:!bg-[color:var(--area-violet)] group-data-horizontal/tabs:after:!-bottom-px"
+            >
               <t.icon size={14} aria-hidden />
               {t.label}
               {t.count && t.count.value > 0 && (
