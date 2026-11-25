@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { Gate } from "@/lib/permissions";
 import { REVISION_STATUS_LABEL, TRANSITION_LABEL } from "@/lib/test-lifecycle";
 import type { TlSaveState } from "@/lib/test-lifecycle";
-import type { TlFeatureDetail, TlTransitionAction, TransitionCheck } from "@/types/test-lifecycle";
+import type { TlFeatureDetail, TlRevisionStatus, TlTransitionAction, TransitionCheck } from "@/types/test-lifecycle";
 import { FeatureStatusBadge } from "./FeatureStatusBadge";
 import { ReadinessChecklist } from "./ReadinessChecklist";
 import { SaveIndicator } from "./SaveIndicator";
@@ -18,6 +25,14 @@ const TRANSITION_PERMISSION: Record<TlTransitionAction, string> = {
   reopen: "edit:tl_feature",
   approve: "review:tl_feature",
   request_changes: "review:tl_feature",
+  withdraw_approval: "review:tl_feature",
+  withdraw: "edit:tl_feature",
+};
+
+/** Going back only makes sense in one revision status: outside it the button is not listed at all. */
+const ONLY_WHILE: Partial<Record<TlTransitionAction, TlRevisionStatus>> = {
+  withdraw_approval: "approved",
+  withdraw: "in_review",
 };
 
 /** The action whose blocking reasons are worth showing inline for the current revision status. */
@@ -87,6 +102,9 @@ export function FeatureHeader({
   error?: string | null;
 }) {
   const [noteOpen, setNoteOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  // The page-level error may predate the dialog: show it there only after a confirmation attempt.
+  const [withdrawAttempted, setWithdrawAttempted] = useState(false);
   const [note, setNote] = useState("");
   const revision = feature.working_revision ?? feature.published_revision;
   const primary = revision ? PRIMARY_ACTION[revision.status] : undefined;
@@ -99,7 +117,18 @@ export function FeatureHeader({
       setNoteOpen(true);
       return;
     }
+    if (action === "withdraw_approval") {
+      setWithdrawAttempted(false);
+      setWithdrawOpen(true);
+      return;
+    }
     void onTransition(action);
+  };
+
+  const confirmWithdrawApproval = async () => {
+    setWithdrawAttempted(true);
+    const ok = await onTransition("withdraw_approval");
+    if (ok !== false) setWithdrawOpen(false);
   };
 
   const confirmRequestChanges = async () => {
@@ -145,7 +174,12 @@ export function FeatureHeader({
               </button>
             </Gate>
           )}
-          {feature.transitions.map((check) => (
+          {feature.transitions
+            .filter((check) => {
+              const only = ONLY_WHILE[check.action];
+              return !only || revision?.status === only;
+            })
+            .map((check) => (
             <Gate key={check.action} action={TRANSITION_PERMISSION[check.action]}>
               <TransitionButton check={check} disabled={disabled || pending} onClick={() => run(check.action)} />
             </Gate>
@@ -167,6 +201,19 @@ export function FeatureHeader({
         </div>
       </div>
 
+      {feature.working_revision?.pr_state === "open" &&
+        (feature.working_revision.status === "draft" || feature.working_revision.status === "in_review") && (
+          // Only a withdrawn approval leaves a revision in draft/in review with its PR still open.
+          <p
+            role="note"
+            className="rounded-[var(--radius-sm)] px-3 py-2 text-[13px]"
+            style={{ background: "var(--warning-soft)", color: "var(--warning-ink)" }}
+          >
+            La PR #{feature.working_revision.pr_number} è ancora aperta con la versione approvata in precedenza: non
+            mergiarla finché la revisione non è di nuovo approvata.
+          </p>
+        )}
+
       {primaryCheck && (primaryCheck.action === "submit" || primaryCheck.action === "approve") && (
         <Gate action={TRANSITION_PERMISSION[primaryCheck.action]}>
           <ReadinessChecklist action={primaryCheck.action} reasons={shownReasons} />
@@ -178,6 +225,37 @@ export function FeatureHeader({
           {error}
         </p>
       )}
+
+      <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Riportare in review?</DialogTitle>
+            <DialogDescription>
+              L&apos;approvazione viene ritirata e la revisione torna in review.{" "}
+              {revision?.pr_number ? `La PR #${revision.pr_number}` : "L'eventuale PR"} su GitHub resta aperta con la
+              versione approvata in precedenza: non mergiarla finché la revisione non è di nuovo approvata.
+            </DialogDescription>
+          </DialogHeader>
+          {withdrawAttempted && error && (
+            <p role="alert" className="text-danger text-[13px]">
+              {error}
+            </p>
+          )}
+          <DialogFooter>
+            <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={() => setWithdrawOpen(false)}>
+              Annulla
+            </button>
+            <button
+              type="button"
+              className={PRIMARY_BUTTON_CLASS}
+              disabled={pending || disabled}
+              onClick={() => void confirmWithdrawApproval()}
+            >
+              Conferma
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
         <DialogContent className="sm:max-w-md">

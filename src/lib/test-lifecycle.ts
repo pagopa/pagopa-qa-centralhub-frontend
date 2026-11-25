@@ -95,6 +95,8 @@ export const TRANSITION_LABEL: Record<TlTransitionAction, string> = {
   approve: "Approva",
   request_changes: "Richiedi modifiche",
   reopen: "Riapri",
+  withdraw_approval: "Riporta in review",
+  withdraw: "Ritira in bozza",
 };
 
 function errorDetail(err: unknown): Record<string, unknown> | null {
@@ -234,6 +236,8 @@ const EVENT_LABEL: Record<string, string> = {
   "tl.revision.submitted": "Revisione inviata in review",
   "tl.revision.approved": "Revisione approvata",
   "tl.revision.changes_requested": "Modifiche richieste",
+  "tl.revision.approval_withdrawn": "Approvazione ritirata",
+  "tl.revision.withdrawn": "Revisione ritirata in bozza",
   "tl.comment.added": "Commento aggiunto",
   "tl.comment.resolved": "Commento risolto",
   "tl.comment.reopened": "Commento riaperto",

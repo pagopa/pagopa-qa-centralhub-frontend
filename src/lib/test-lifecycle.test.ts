@@ -152,6 +152,11 @@ describe("tlEventLabel", () => {
     expect(tlEventLabel("tl.unknown.thing")).toBe("tl.unknown.thing");
     expect(tlEventLabel(null)).toBe("Evento");
   });
+
+  it("labels the going-back events instead of showing the raw key", () => {
+    expect(tlEventLabel("tl.revision.approval_withdrawn")).toBe("Approvazione ritirata");
+    expect(tlEventLabel("tl.revision.withdrawn")).toBe("Revisione ritirata in bozza");
+  });
 });
 
 describe("git labels", () => {

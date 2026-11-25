@@ -83,10 +83,14 @@ export function LifecycleDiagram() {
         <Node x={785} y={gitY} label="Modifica su main" sub="push diretto" />
 
         {/* flusso principale */}
-        <line x1={170} y1={hubY + 23} x2={213} y2={hubY + 23} stroke="var(--text-muted)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
-        <Label x={192} y={hubY + 62}>Invia</Label>
-        <line x1={365} y1={hubY + 23} x2={408} y2={hubY + 23} stroke="var(--text-muted)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
-        <Label x={387} y={hubY + 62}>Approva</Label>
+        <line x1={170} y1={hubY + 14} x2={213} y2={hubY + 14} stroke="var(--text-muted)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
+        <line x1={213} y1={hubY + 32} x2={172} y2={hubY + 32} stroke="var(--warning)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
+        <Label x={175} y={hubY + 62} anchor="start">Invia →</Label>
+        <Label x={175} y={hubY + 77} anchor="start">← Ritira</Label>
+        <line x1={365} y1={hubY + 14} x2={408} y2={hubY + 14} stroke="var(--text-muted)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
+        <line x1={408} y1={hubY + 32} x2={367} y2={hubY + 32} stroke="var(--warning)" strokeWidth={1.5} markerEnd="url(#tl-arrow)" />
+        <Label x={387} y={hubY + 62}>Approva →</Label>
+        <Label x={387} y={hubY + 77}>← Riporta</Label>
 
         <line x1={485} y1={hubY + NODE_H} x2={485} y2={gitY - 2} stroke="var(--accent)" strokeWidth={1.5} strokeDasharray="5 4" markerEnd="url(#tl-arrow)" />
         <Label x={492} y={gitY - 40} anchor="start">PR automatica</Label>
