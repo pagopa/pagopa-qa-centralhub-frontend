@@ -18,6 +18,16 @@ describe("StepsEditor", () => {
     expect(scroller).not.toContainElement(screen.getByTestId("steps-line-1"));
   });
 
+  it("makes the textarea see-through with inline styles, so the global form-control colours cannot cover the highlight layer", () => {
+    // globals.css sets color/background on every textarea outside any @layer, which beats Tailwind
+    // utilities: only inline styles keep the coloured mirror visible.
+    render(<StepsEditor value={"Dato un utente"} />);
+    const textarea = screen.getByLabelText("Step");
+    expect(textarea.style.color).toBe("transparent");
+    expect(textarea.style.backgroundColor).toBe("transparent");
+    expect(textarea.style.caretColor).toBe("var(--text)");
+  });
+
   it("keeps one gutter line per text line", () => {
     render(<StepsEditor value={"a\nb\nc\nd"} />);
     expect(screen.getByTestId("steps-line-4")).toBeInTheDocument();

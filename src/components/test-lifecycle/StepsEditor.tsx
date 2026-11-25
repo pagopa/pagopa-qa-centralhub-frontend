@@ -137,8 +137,10 @@ export function StepsEditor({
               rows={rows}
               wrap="off"
               spellCheck={false}
-              className="relative block w-full resize-none bg-transparent py-2 px-2 text-transparent caret-[var(--text)] outline-none overflow-hidden whitespace-pre"
-              style={{ lineHeight: "20px" }}
+              className="relative block w-full resize-none py-2 px-2 outline-none overflow-hidden whitespace-pre"
+              // Inline on purpose: globals.css paints every textarea (unlayered, so it beats Tailwind
+              // utilities) and would cover the coloured mirror layer behind it.
+              style={{ lineHeight: "20px", color: "transparent", backgroundColor: "transparent", caretColor: "var(--text)" }}
             />
           </div>
         </div>
