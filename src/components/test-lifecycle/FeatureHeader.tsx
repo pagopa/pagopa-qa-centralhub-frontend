@@ -17,6 +17,7 @@ import type { TlSaveState } from "@/lib/test-lifecycle";
 import type { TlFeatureDetail, TlRevisionStatus, TlTransitionAction, TransitionCheck } from "@/types/test-lifecycle";
 import { FeatureStatusBadge } from "./FeatureStatusBadge";
 import { ReadinessChecklist } from "./ReadinessChecklist";
+import { ReopenDialog } from "./ReopenDialog";
 import { SaveIndicator } from "./SaveIndicator";
 
 /** Transitions driven by authors vs reviewers (the backend still checks reviewer identity). */
@@ -95,7 +96,11 @@ export function FeatureHeader({
   /** Opens the three-way rebase dialog (shown when the working draft is stale). */
   onRebase?: () => void;
   /** Resolves to false when the transition failed (the note dialog then stays open). */
-  onTransition: (action: TlTransitionAction, note?: string) => Promise<boolean | void> | void;
+  onTransition: (
+    action: TlTransitionAction,
+    note?: string,
+    branchName?: string,
+  ) => Promise<boolean | void> | void;
   /** True while the session loads: write actions stay disabled. */
   disabled?: boolean;
   pending?: boolean;
@@ -105,6 +110,8 @@ export function FeatureHeader({
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   // The page-level error may predate the dialog: show it there only after a confirmation attempt.
   const [withdrawAttempted, setWithdrawAttempted] = useState(false);
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenAttempted, setReopenAttempted] = useState(false);
   const [note, setNote] = useState("");
   const revision = feature.working_revision ?? feature.published_revision;
   const primary = revision ? PRIMARY_ACTION[revision.status] : undefined;
@@ -122,6 +129,11 @@ export function FeatureHeader({
       setWithdrawOpen(true);
       return;
     }
+    if (action === "reopen") {
+      setReopenAttempted(false);
+      setReopenOpen(true);
+      return;
+    }
     void onTransition(action);
   };
 
@@ -130,6 +142,15 @@ export function FeatureHeader({
     const ok = await onTransition("withdraw_approval");
     if (ok !== false) setWithdrawOpen(false);
   };
+
+  const confirmReopen = async (branchName: string | undefined) => {
+    setReopenAttempted(true);
+    const ok = await onTransition("reopen", undefined, branchName);
+    if (ok !== false) setReopenOpen(false);
+  };
+
+  // The next revision number, to propose the name of the branch the backend would generate.
+  const nextRevision = (feature.published_revision?.number ?? 0) + 1;
 
   const confirmRequestChanges = async () => {
     const text = note.trim();
@@ -225,6 +246,15 @@ export function FeatureHeader({
           {error}
         </p>
       )}
+
+      <ReopenDialog
+        open={reopenOpen}
+        defaultBranch={`qa-hub/${feature.code}-r${nextRevision}`}
+        busy={pending || disabled}
+        error={reopenAttempted ? error : null}
+        onConfirm={(name) => void confirmReopen(name)}
+        onClose={() => setReopenOpen(false)}
+      />
 
       <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
         <DialogContent className="sm:max-w-md">

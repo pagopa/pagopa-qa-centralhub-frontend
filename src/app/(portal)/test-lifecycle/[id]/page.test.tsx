@@ -44,9 +44,11 @@ vi.mock("@/hooks/useUsers", () => ({ useUsers: () => ({ data: { items: [] } }) }
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlCategoryTags: () => ({ data: undefined }),
   useTlTagCleanup: () => ({ data: undefined }),
+  useTlBranchSync: () => ({ data: undefined }),
+  usePushTlBranch: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  usePullTlBranch: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useApplyTlTagCleanup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useImportTlGit: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useRetryTlImportCleanup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlStepSuggestions: () => ({ data: [] }),
   useTlFeature: () => {
     // Re-renders when the test swaps the feature data, like a react-query refetch would.
@@ -98,7 +100,7 @@ const FEATURE = {
     description: null, background_steps: null, requirements_url: null, product_issue_key: null,
     reverse_engineering: false, design_estimate_days: null, impl_estimate_days: null,
     created_by: "a@x.it", approved_by: null, approved_at: null, created_at: "", updated_at: "",
-    scenarios: [sc("sc1", 1, "Primo"), sc("sc2", 2, "Secondo")], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, base_stale: false, merged_commit_sha: null,
+    scenarios: [sc("sc1", 1, "Primo"), sc("sc2", 2, "Secondo")], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, work_branch: null, base_stale: false, merged_commit_sha: null,
   },
   published_revision: null,
   git_path: null,
@@ -145,6 +147,32 @@ describe("FeatureDetailPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ricarica" }));
     expect(mocks.refetch).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByText(STALE_LOCK_MESSAGE)).not.toBeInTheDocument());
+  });
+
+  it("offers Salva tutti on the scenarios of an editable draft", () => {
+    render(<FeatureDetailPage />);
+    expect(screen.getByRole("button", { name: "Salva tutti" })).toBeInTheDocument();
+  });
+
+  it("reopens through the popup passing the branch name the person chose", async () => {
+    mocks.transition.mockResolvedValue({});
+    mocks.featureData = {
+      ...FEATURE,
+      status: "implemented",
+      working_revision: null,
+      published_revision: { ...FEATURE.working_revision!, id: "r9", number: 2, status: "merged" },
+      transitions: FEATURE.transitions.map((t) => (t.action === "reopen" ? { ...t, allowed: true, reasons: [] } : t)),
+    } as TlFeatureDetail;
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getByRole("button", { name: "Riapri" }));
+    const dialog = await screen.findByRole("dialog");
+    const field = within(dialog).getByLabelText("Nome del branch");
+    await userEvent.clear(field);
+    await userEvent.type(field, "feature/pos-fix");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Riapri" }));
+    expect(mocks.transition).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "reopen", revisionId: "r9", branchName: "feature/pos-fix" }),
+    );
   });
 
   it("keeps unsaved scenario text when switching tabs", async () => {

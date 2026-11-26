@@ -1,5 +1,6 @@
 import { ApiError } from "@/lib/api";
 import type {
+  TlBranchSyncState,
   TlFeatureStatus,
   TlJiraCategory,
   TlNrtStatus,
@@ -187,6 +188,37 @@ export function defaultTestType(repoFolder: string | null | undefined): TestType
   const parts = (repoFolder ?? "").trim().replace(/^\/+|\/+$/g, "").split("/");
   const type = parts[0] === "src" ? parts[1] : undefined;
   return (TEST_TYPES as readonly string[]).includes(type ?? "") ? (type as TestType) : null;
+}
+
+// ── Working branch sync ─────────────────────────────────────────────────────────
+
+export const BRANCH_SYNC_STATES = [
+  "no_branch",
+  "branch_missing",
+  "file_missing",
+  "in_sync",
+  "hub_ahead",
+  "repo_ahead",
+  "diverged",
+  "unreachable",
+  "not_configured",
+] as const satisfies readonly TlBranchSyncState[];
+
+export const BRANCH_SYNC_LABEL: Record<TlBranchSyncState, string> = {
+  no_branch: "Nessun branch di lavoro",
+  branch_missing: "Branch da creare",
+  file_missing: "File non ancora sul branch",
+  in_sync: "Allineato al repo",
+  hub_ahead: "Non ancora sul repo",
+  repo_ahead: "Il repo è cambiato",
+  diverged: "Hub e repo sono cambiati",
+  unreachable: "Repo non raggiungibile",
+  not_configured: "Git non configurato",
+};
+
+/** The repository changed since the last sync: the person must accept it or overwrite it. */
+export function needsDecision(state: TlBranchSyncState): boolean {
+  return state === "repo_ahead" || state === "diverged";
 }
 
 export const STALE_LOCK_MESSAGE =

@@ -154,15 +154,15 @@ function Design() {
             { place: "GitHub", title: "Il file è su un branch", example: <Mono>PQ-827-fdr-e2e-test-design / …/FEAT_011_FdR3_….feature</Mono> },
             { place: "QA Hub", title: "Importa da Git nella bozza", example: <>Contesto e 3 scenari; tag <Mono>@fdr3_011_01</Mono> → <Mono>@FDR3_011_01</Mono> (il vecchio resta come alias)</> },
             { place: "QA Hub", title: "Review e approvazione", example: "Come per ogni feature" },
-            { place: "GitHub", title: "PR dell'hub verso main", example: <>Stesso percorso del file importato, con <Mono># qa-hub:</Mono></> },
-            { place: "GitHub", title: "PR di pulizia verso il branch", example: "Toglie il file dal branch di partenza, così le due PR non vanno in conflitto" },
+            { place: "GitHub", title: "Branch di lavoro dell'hub", example: <>Nasce subito dall&apos;import: <Mono>qa-hub/FEAT_011_FdR3-r1</Mono>, con il file nello stesso percorso</> },
+            { place: "GitHub", title: "PR dell'hub verso main", example: <>Si apre all&apos;approvazione, dal branch di lavoro; il branch di partenza non viene toccato</> },
           ]}
         />
         <ul className="list-disc pl-5 flex flex-col gap-1">
           <li>Il titolo della feature resta quello dell&apos;hub; Contesto, descrizione e scenari arrivano dal file.</li>
           <li>Se la bozza ha già scenari, l&apos;hub chiede conferma e li sostituisce.</li>
           <li>I tag degli scenari restano tutti, anche quelli liberi; vengono elencati come &quot;non importati&quot; solo quelli che l&apos;hub non può salvare (nomi non validi) e i tag di feature fuori catalogo. Un <Code>@integration</Code>, <Code>@e2e</Code> o <Code>@api</Code> in testa al file diventa il test type.</li>
-          <li>Se il file veniva da <Code>main</Code> non serve la PR di pulizia. Se non è stato possibile crearla, nel tab Git c&apos;è &quot;Riprova&quot;.</li>
+          <li>Con l&apos;import l&apos;hub apre il <strong>branch di lavoro</strong> della bozza con il file nello stesso percorso. Il file originale resta dov&apos;è e il branch di partenza non viene mai modificato. Se GitHub non risponde, il branch viene creato al primo <strong>Salva tutti</strong>.</li>
         </ul>
       </Section>
       <Section title="3. Review">
@@ -225,7 +225,9 @@ function GitTab() {
       <Section title="6. Riaprire e riallineare">
         <Steps
           items={[
-            <>Per cambiare una feature già implementata clicca <strong>Riapri</strong>: nasce una nuova bozza copiata dalla versione pubblicata; la feature resta Implementata finché la nuova revisione non arriva su <Code>main</Code>.</>,
+            <>Per cambiare una feature già implementata clicca <strong>Riapri</strong>: un popup avvisa che viene aperto un feature branch sul repository e propone il nome del branch (<Code>qa-hub/&lt;codice&gt;-r&lt;N&gt;</Code>), che puoi cambiare; se esiste già, viene riutilizzato. Nasce una nuova bozza copiata dalla versione pubblicata; la feature resta Implementata finché la nuova revisione non arriva su <Code>main</Code>.</>,
+            <>Mentre la bozza ha un branch di lavoro, <strong>Salva tutti</strong> salva ogni scenario con modifiche e scrive il feature file sul branch con un solo commit; il badge &quot;Non ancora sul repo&quot; ricorda cosa manca. Anche <strong>Invia in review</strong> scrive il file sul branch. Le feature nate nell&apos;hub restano solo nell&apos;hub fino all&apos;approvazione.</>,
+            <>Se qualcuno modifica il file sul branch con un editor esterno, quando apri la feature l&apos;hub te lo dice e chiede: <strong>Accetta la versione del repo</strong> (scenari e anteprima diventano quelli del repo) oppure <strong>Sovrascrivi il repo con l&apos;hub</strong>. Finché il repo è cambiato non si può inviare in review.</>,
             <>Ogni modifica ha il suo task Jira: la nuova revisione parte senza task di progettazione, che si crea con <strong>Crea task</strong> accanto al campo oppure si inserisce se l&apos;hai già aperto (basta anche l&apos;URL). L&apos;Epic QA resta quella di prima, ma puoi cambiarla. Nel tab <strong>Jira</strong> trovi lo storico di task ed Epic, revisione per revisione.</>,
             <>Se nel frattempo qualcuno modifica il file su GitHub, la bozza viene segnata <strong>Base superata</strong> e non si può inviare in review.</>,
             <>Clicca <strong>Riallinea</strong>: per ogni elemento vedi tre colonne (Base, Git, Bozza). Le modifiche fatte da una sola parte si applicano da sole; dove hanno cambiato entrambi scegli <strong>Usa Git</strong> o <strong>Mantieni bozza</strong>.</>,

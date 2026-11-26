@@ -31,6 +31,7 @@ import { FeatureMetaPanel } from "@/components/test-lifecycle/FeatureMetaPanel";
 import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
 import { ReviewPanel } from "@/components/test-lifecycle/ReviewPanel";
+import { BranchSyncBar } from "@/components/test-lifecycle/BranchSyncBar";
 import { ScenarioCard, type ScenarioCopy } from "@/components/test-lifecycle/ScenarioCard";
 import { TagCleanupNotice } from "@/components/test-lifecycle/TagCleanupNotice";
 import { ScenarioIndex } from "@/components/test-lifecycle/ScenarioIndex";
@@ -133,14 +134,18 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
     await reload();
   };
 
-  const runTransition = async (action: TlTransitionAction, note?: string): Promise<boolean> => {
+  const runTransition = async (
+    action: TlTransitionAction,
+    note?: string,
+    branchName?: string,
+  ): Promise<boolean> => {
     if (!revision) return false;
     setTransitionError(null);
     try {
       // Pending edits are saved first and the transition is queued after every write,
       // so it never races a save (and the backend checks run on the latest content).
       await writer.afterPendingWrites(() =>
-        transition.mutateAsync({ featureId: feature.id, revisionId: revision.id, action, note }),
+        transition.mutateAsync({ featureId: feature.id, revisionId: revision.id, action, note, branchName }),
       );
       return true;
     } catch (err) {
@@ -432,6 +437,13 @@ function ScenariosTab({
           disabled={writer.stale}
         />
       )}
+      <BranchSyncBar
+        featureId={featureId}
+        revision={revision}
+        editable={editable}
+        writer={writer}
+        onChanged={onImported}
+      />
       <TagCleanupNotice
         featureId={featureId}
         editable={editable}

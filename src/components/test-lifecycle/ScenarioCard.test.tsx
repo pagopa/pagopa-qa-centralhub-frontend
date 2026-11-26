@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
@@ -40,6 +40,21 @@ function renderCard(props: Partial<Parameters<typeof ScenarioCard>[0]> = {}) {
 describe("ScenarioCard", () => {
   beforeEach(() => mocks.validate.mockReset());
   afterEach(() => vi.useRealTimers());
+
+  it("shows 'Modifiche non salvate' while the text differs from the saved one", async () => {
+    const { onSave } = renderCard();
+    expect(screen.queryByText("Modifiche non salvate")).toBeNull();
+    await userEvent.type(screen.getByLabelText("Titolo scenario"), " bis");
+    expect(screen.getByText("Modifiche non salvate")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Salva" }));
+    expect(onSave).toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText("Modifiche non salvate")).toBeNull());
+  });
+
+  it("shows no unsaved badge when read-only", () => {
+    renderCard({ readOnly: true });
+    expect(screen.queryByText("Modifiche non salvate")).toBeNull();
+  });
 
   it("links the saved detail only when it is an http(s) URL", () => {
     renderCard({ readOnly: true, scenario: scenario({ detail_link: "https://docs.example.test/req#3" }) });
