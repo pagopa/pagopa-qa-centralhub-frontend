@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
@@ -6,10 +6,11 @@ import type { TlFeatureDetail, TlRevision } from "@/types/test-lifecycle";
 import { FeatureMetaPanel, TITLE_REQUIRED } from "./FeatureMetaPanel";
 import type { RegisterFlush } from "@/lib/test-lifecycle";
 
-const mocks = vi.hoisted(() => ({ mutate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ mutate: vi.fn(), createTask: vi.fn() }));
 
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useUpdateTlFeature: () => ({ mutate: mocks.mutate }),
+  useCreateTlJiraTask: () => ({ mutateAsync: mocks.createTask, isPending: false }),
 }));
 vi.mock("@/hooks/useUsers", () => ({
   useUsers: () => ({
@@ -42,7 +43,7 @@ function feature(rev: TlRevision, overrides: Partial<TlFeatureDetail> = {}): TlF
     jira_design_key: "PQ-1", jira_impl_key: null, created_by: "anna@x.it",
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",
     working_revision: rev, published_revision: null, transitions: [], git_path: null, open_issues: 0,
-    jira: [], jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
+    jira: [], jira_history: [], jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
     ...overrides,
   };
 }
@@ -69,6 +70,7 @@ const optionNames = (select: HTMLElement) =>
 describe("FeatureMetaPanel", () => {
   beforeEach(() => {
     mocks.mutate.mockReset();
+    mocks.createTask.mockReset();
     const storage = new Map<string, string>();
     vi.stubGlobal("localStorage", {
       getItem: (key: string) => storage.get(key) ?? null,
@@ -158,6 +160,83 @@ describe("FeatureMetaPanel", () => {
     fireEvent.change(epic, { target: { value: "PQ-777" } });
     fireEvent.blur(epic);
     expect(mocks.mutate).toHaveBeenCalledWith({ id: "f1", jira_qa_epic_key: "PQ-777" }, expect.anything());
+  });
+
+  describe("Jira URLs and the design task", () => {
+    const URL_PQ = "https://pagopa.atlassian.net/browse/PQ-578?focusedCommentId=1";
+
+    it.each([
+      ["Jira progettazione", "jira_design_key", "PQ-578"],
+      ["Jira implementazione", "jira_impl_key", "PQ-578"],
+      ["Epic QA (sovrascrive quella dell'Ambito)", "jira_qa_epic_key", "PQ-578"],
+    ])("saves the bare key when a Jira URL is pasted in %s", (label, field, key) => {
+      renderPanel({ feat: { jira_design_key: null } });
+      const input = screen.getByLabelText(label);
+      fireEvent.change(input, { target: { value: URL_PQ } });
+      expect(input).toHaveValue(key);
+      fireEvent.blur(input);
+      expect(mocks.mutate).toHaveBeenCalledWith({ id: "f1", [field]: key }, expect.anything());
+    });
+
+    it("saves the bare key when a Jira URL is pasted in the product Epic/Story", async () => {
+      const { onSaveRevision } = renderPanel();
+      const input = screen.getByLabelText("Epic/Story prodotto");
+      fireEvent.change(input, { target: { value: "https://pagopa.atlassian.net/browse/abc-9" } });
+      expect(input).toHaveValue("ABC-9");
+      fireEvent.blur(input);
+      await waitFor(() =>
+        expect(onSaveRevision).toHaveBeenCalledWith(expect.objectContaining({ product_issue_key: "ABC-9" })),
+      );
+    });
+
+    it("keeps text that is not a Jira key or URL untouched", () => {
+      renderPanel({ feat: { jira_design_key: null } });
+      const input = screen.getByLabelText("Jira progettazione");
+      fireEvent.change(input, { target: { value: "boh" } });
+      expect(input).toHaveValue("boh");
+    });
+
+    it("offers to create the design task on a draft without a key", async () => {
+      mocks.createTask.mockResolvedValue({});
+      renderPanel({ feat: { jira_design_key: null } });
+      await userEvent.click(screen.getByRole("button", { name: "Crea task" }));
+      expect(mocks.createTask).toHaveBeenCalledWith({ featureId: "f1", kind: "design" });
+    });
+
+    it("shows the key of a task created meanwhile and never wipes it on blur", () => {
+      const rev = revision();
+      const props = { revision: rev, readOnly: false, onSaveRevision: vi.fn().mockResolvedValue(rev) };
+      const { rerender } = render(<FeatureMetaPanel {...props} feature={feature(rev, { jira_design_key: null })} />);
+      rerender(<FeatureMetaPanel {...props} feature={feature(rev, { jira_design_key: "PQ-20" })} />);
+      const input = screen.getByLabelText("Jira progettazione");
+      expect(input).toHaveValue("PQ-20");
+      fireEvent.blur(input);
+      expect(mocks.mutate).not.toHaveBeenCalled();
+    });
+
+    it("hides the create button when a key is set, when read-only, or past draft", () => {
+      const { unmount } = renderPanel();
+      expect(screen.queryByRole("button", { name: "Crea task" })).toBeNull();
+      unmount();
+      const second = renderPanel({ readOnly: true, feat: { jira_design_key: null } });
+      expect(screen.queryByRole("button", { name: "Crea task" })).toBeNull();
+      second.unmount();
+      renderPanel({ rev: revision({ status: "in_review" }), feat: { jira_design_key: null } });
+      expect(screen.queryByRole("button", { name: "Crea task" })).toBeNull();
+    });
+
+    it("hints that a reopened draft needs its own design task", () => {
+      renderPanel({ rev: revision({ number: 2 }), feat: { jira_design_key: null } });
+      expect(screen.getByText("Questa revisione richiede un nuovo task di progettazione")).toBeInTheDocument();
+    });
+
+    it("shows no hint on a first draft or once the key is set", () => {
+      const { unmount } = renderPanel({ feat: { jira_design_key: null } });
+      expect(screen.queryByText("Questa revisione richiede un nuovo task di progettazione")).toBeNull();
+      unmount();
+      renderPanel({ rev: revision({ number: 2 }) });
+      expect(screen.queryByText("Questa revisione richiede un nuovo task di progettazione")).toBeNull();
+    });
   });
 
   it("shows the not-an-epic error from the backend", () => {

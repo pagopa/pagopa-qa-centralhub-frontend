@@ -61,6 +61,7 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useAddTlScenario: () => ({ mutateAsync: mocks.addScenario }),
   useRemoveTlScenario: () => ({ mutateAsync: mocks.removeScenario }),
   useUpdateTlFeature: () => ({ mutate: vi.fn() }),
+  useCreateTlJiraTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useValidateSteps: () => ({ mutate: mocks.validate }),
   useTlComments: () => ({
     data: mocks.comments ?? [{ id: "c1", revision_id: "r1", scenario_id: "sc1", scenario_tag: "@FDR3_001_01", author: "a", body: "x", resolved: false, created_at: "2026-11-20T10:00:00Z" }],
@@ -100,7 +101,7 @@ const FEATURE = {
   published_revision: null,
   git_path: null,
   open_issues: 0,
-  jira: [], jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
+  jira: [], jira_history: [], jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
   transitions: [
     { action: "submit", allowed: true, reasons: [] },
     { action: "approve", allowed: false, reasons: ["Non in review"] },

@@ -4,33 +4,13 @@ import { useState } from "react";
 import { SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCreateTlJiraTask, useRefreshTlJira } from "@/hooks/useTestLifecycle";
-import { apiErrorMessage, JIRA_CATEGORY_COLOR, JIRA_CATEGORY_LABEL, safeHttpUrl } from "@/lib/test-lifecycle";
-import type { TlFeatureDetail, TlJiraLink, TlJiraRole, TlJiraTaskKind } from "@/types/test-lifecycle";
-
-const ROLES: { role: TlJiraRole; label: string; empty: string }[] = [
-  { role: "design", label: "Progettazione", empty: "Nessun task" },
-  { role: "impl", label: "Implementazione", empty: "Nessun task" },
-  { role: "qa_epic", label: "Epic QA", empty: "Nessuna Epic" },
-  { role: "product", label: "Prodotto", empty: "Nessuna Epic/Story" },
-];
-
-function StatusBadge({ link }: { link: TlJiraLink }) {
-  const style = link.verified && link.category ? JIRA_CATEGORY_COLOR[link.category] : JIRA_CATEGORY_COLOR.unverified;
-  const label = link.verified && link.category ? JIRA_CATEGORY_LABEL[link.category] : "Non verificata";
-  return (
-    <span
-      className="inline-flex items-center font-mono rounded-full whitespace-nowrap"
-      style={{ fontSize: 11, padding: "2px 8px", color: style.color, background: style.bg }}
-      title={link.verified ? (link.status ?? undefined) : "Stato non letto da Jira"}
-    >
-      {label}
-    </span>
-  );
-}
+import { apiErrorMessage, safeHttpUrl } from "@/lib/test-lifecycle";
+import type { TlFeatureDetail, TlJiraTaskKind } from "@/types/test-lifecycle";
+import { JiraHistory } from "./JiraHistory";
 
 /**
- * Task Jira collegati alla feature: progettazione, implementazione, Epic QA effettiva ed
- * Epic/Story di prodotto, con lo stato letto da Jira e le azioni di creazione/aggiornamento.
+ * Jira of the feature: the history of design/implementation tasks and epics per revision, the
+ * product Epic/Story of the current revision, and the create/refresh actions.
  */
 export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDetail; disabled?: boolean }) {
   const { can } = usePermissions();
@@ -45,7 +25,8 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
   const canCreateDesign = canEdit && working?.status === "draft" && !feature.jira_design_key;
   const canRetryImpl =
     canEdit && published?.status === "approved" && !feature.jira_impl_key && !!feature.jira_error;
-  const byRole = new Map(feature.jira.map((l) => [l.role, l]));
+  const product = feature.jira.find((l) => l.role === "product") ?? null;
+  const productHref = safeHttpUrl(product?.url);
 
   const run = async (fn: () => Promise<unknown>, fallback: string) => {
     setError(null);
@@ -62,32 +43,20 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
 
   return (
     <div className="flex flex-col gap-4">
-      <ul className="flex flex-col divide-y divide-border rounded-[var(--radius-sm)] border border-border">
-        {ROLES.map(({ role, label, empty }) => {
-          const link = byRole.get(role);
-          const href = safeHttpUrl(link?.url);
-          return (
-            <li key={role} data-testid={`jira-${role}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-[13px]">
-              <span className="w-32 shrink-0 text-text-muted">{label}</span>
-              {link ? (
-                <>
-                  {href ? (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="font-mono text-[var(--accent)] hover:underline">
-                      {link.key}
-                    </a>
-                  ) : (
-                    <span className="font-mono text-text">{link.key}</span>
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-text">{link.summary ?? ""}</span>
-                  <StatusBadge link={link} />
-                </>
-              ) : (
-                <span className="text-text-muted">{empty}</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <JiraHistory rows={feature.jira_history} />
+      {product && (
+        <p className="text-[13px] text-text-muted">
+          Epic/Story prodotto:{" "}
+          {productHref ? (
+            <a href={productHref} target="_blank" rel="noopener noreferrer" className="font-mono text-[var(--accent)] hover:underline">
+              {product.key}
+            </a>
+          ) : (
+            <span className="font-mono text-text">{product.key}</span>
+          )}
+          {product.summary ? <span className="text-text"> — {product.summary}</span> : null}
+        </p>
+      )}
 
       {feature.jira_error && (
         <p role="alert" className="text-[13px]" style={{ color: "var(--danger)" }}>{feature.jira_error}</p>
@@ -110,7 +79,7 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
             Riprova task Implementazione
           </button>
         )}
-        {feature.jira.length > 0 && (
+        {(feature.jira.length > 0 || feature.jira_history.length > 0) && (
           <button
             type="button"
             className={SECONDARY_BUTTON_CLASS}
