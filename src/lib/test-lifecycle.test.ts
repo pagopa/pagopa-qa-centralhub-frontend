@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/api";
 import {
+  addCustomTag,
   apiErrorCode,
   apiErrorReasons,
+  defaultTestType,
   FEATURE_STATUS_LABEL,
   isStaleLockError,
   lineDiff,
+  removeTag,
+  RESERVED_TAGS,
+  setStatusTag,
+  STATUS_TAGS,
+  TEST_TYPES,
   tlEventLabel,
+  toggleFlaky,
   transitionBlockReasons,
   TRANSITION_LABEL,
 } from "@/lib/test-lifecycle";
@@ -168,5 +176,75 @@ describe("git labels", () => {
     expect(lib.PR_STATE_LABEL.merged).toBe("Integrata");
     expect(lib.tlEventLabel("tl.pr.created")).toBe("PR aperta");
     expect(lib.tlEventLabel("tl.revision.rebased")).toBe("Bozza riallineata");
+  });
+});
+
+
+describe("tag vocabulary", () => {
+  it("mirrors the backend standard", () => {
+    expect(TEST_TYPES).toEqual(["integration", "e2e", "api"]);
+    expect(STATUS_TAGS).toEqual(["runnable", "skip", "broken"]);
+    for (const reserved of ["runnable", "skip", "broken", "flaky", "positive", "negative", "positivo", "negativo", "integration", "e2e", "api"]) {
+      expect(RESERVED_TAGS).toContain(reserved);
+    }
+  });
+});
+
+describe("setStatusTag", () => {
+  it("replaces the status and keeps every other tag in place", () => {
+    expect(setStatusTag(["smoke", "runnable", "checkout"], "skip")).toEqual(["smoke", "skip", "checkout"]);
+  });
+  it("adds the status when there is none and collapses several into one", () => {
+    expect(setStatusTag(["smoke"], "broken")).toEqual(["smoke", "broken"]);
+    expect(setStatusTag(["runnable", "skip", "x"], "broken")).toEqual(["broken", "x"]);
+  });
+});
+
+describe("toggleFlaky / removeTag", () => {
+  it("toggling twice is the identity", () => {
+    const start = ["runnable", "smoke"];
+    expect(toggleFlaky(toggleFlaky(start))).toEqual(start);
+    expect(toggleFlaky(start)).toEqual(["runnable", "smoke", "flaky"]);
+  });
+  it("removes only that tag", () => {
+    expect(removeTag(["runnable", "smoke", "checkout"], "smoke")).toEqual(["runnable", "checkout"]);
+  });
+});
+
+describe("addCustomTag", () => {
+  it("adds after the others and keeps them all", () => {
+    expect(addCustomTag(["runnable", "smoke", "checkout"], "  @happy_path ")).toEqual({
+      tags: ["runnable", "smoke", "checkout", "happy_path"],
+    });
+  });
+  it("ignores a duplicate", () => {
+    expect(addCustomTag(["runnable", "smoke"], "smoke")).toEqual({ tags: ["runnable", "smoke"] });
+  });
+  it.each(["runnable", "skip", "flaky", "positive", "positivo", "e2e", "api"])(
+    "rejects the reserved name %s with a message",
+    (name) => {
+      const out = addCustomTag(["runnable"], name);
+      expect(out.tags).toEqual(["runnable"]);
+      expect(out.error).toMatch(/riservato/i);
+    },
+  );
+  it.each(["9bad", "has space", "a.b", "", "x".repeat(51)])("rejects the malformed %j", (raw) => {
+    const out = addCustomTag(["runnable"], raw);
+    expect(out.tags).toEqual(["runnable"]);
+    expect(out.error).toBeTruthy();
+  });
+});
+
+describe("defaultTestType", () => {
+  it("is implied by a src/<type> folder", () => {
+    expect(defaultTestType("src/integration/fdr")).toBe("integration");
+    expect(defaultTestType("/src/e2e/")).toBe("e2e");
+    expect(defaultTestType("src/api")).toBe("api");
+  });
+  it("is null otherwise", () => {
+    expect(defaultTestType("docs")).toBeNull();
+    expect(defaultTestType("src/integrationx")).toBeNull();
+    expect(defaultTestType(null)).toBeNull();
+    expect(defaultTestType("")).toBeNull();
   });
 });

@@ -66,13 +66,13 @@ const isTab = (value: string): value is TabValue => TABS.some((t) => t.value ===
 
 const HUB_FILE = `# language: it
 # qa-hub: FEAT_011_FdR3
-@FDR3_011
+@FDR3_011 @integration
 Funzionalità: Recupero FdR pubblicati per organizzazione
 
   Contesto:
     Dato che i sistemi sono operativi
 
-  @FDR3_011_01 @runnable @positivo
+  @FDR3_011_01 @runnable @positive
   Scenario: Recupero di tutti i FdR pubblicati
     Quando l'organizzazione invia la richiesta di recupero
     Allora l'organizzazione riceve il codice di stato HTTP 200`;
@@ -130,7 +130,7 @@ function Design() {
           items={[
             <>Clicca <strong>Nuova feature</strong>, scegli l&apos;ambito e il titolo. Il codice (<Code>FEAT_001_FdR3</Code>) lo assegna l&apos;hub.</>,
             <>Compila i metadati: reviewer, Epic/Story di prodotto oppure &quot;reverse engineering&quot;, requisiti e stime. Il task Jira di progettazione lo crea l&apos;hub dal tab <strong>Jira</strong>.</>,
-            <>Scrivi il <strong>Contesto</strong> (solo step <Code>Dato</Code>/<Code>E</Code>) e aggiungi gli <strong>scenari</strong>. Tag e numero dello scenario li gestisce l&apos;hub; tu scrivi titolo, tipo, polarità e step.</>,
+            <>Scrivi il <strong>Contesto</strong> (solo step <Code>Dato</Code>/<Code>E</Code>) e aggiungi gli <strong>scenari</strong>. Tag e numero dello scenario li gestisce l&apos;hub; tu scrivi titolo, tipo, polarità e step e scegli i tag: il <strong>test type</strong> del file (<Code>@integration</Code>, <Code>@e2e</Code> o <Code>@api</Code>) e, per ogni scenario, <strong>uno</strong> stato tra <Code>@runnable</Code>, <Code>@skip</Code> e <Code>@broken</Code>. <Code>@flaky</Code> e i tag liberi sono facoltativi. Senza test type e stato la feature non parte in review.</>,
             <>Gli step si scrivono in Gherkin italiano (<Code>Dato</Code>, <Code>Quando</Code>, <Code>Allora</Code>, <Code>E</Code>, <Code>Ma</Code>). Gli errori compaiono mentre scrivi, riga per riga, e l&apos;editor suggerisce le frasi già usate nel repository (↑/↓ e Invio).</>,
             <>Per uno <strong>Schema dello scenario</strong> scegli il tipo e compila la tabella Esempi: ogni <Code>&lt;segnaposto&gt;</Code> negli step deve avere la sua colonna.</>,
             <>Il tab <strong>Anteprima file</strong> mostra il feature file esattamente come finirà su GitHub. Quando i motivi di blocco sotto <strong>Invia in review</strong> sono spariti, invia.</>,
@@ -139,7 +139,7 @@ function Design() {
         <FileSample title="Esempio: il file che l'hub genera (intestazione e tag li scrive l'hub)">{HUB_FILE}</FileSample>
         <p>
           <Code># qa-hub:</Code> lega il file alla feature, <Code>@FDR3_011_01</Code> è il tag identità dello scenario
-          (non cambia mai), <Code>@runnable</Code> è un tag di categoria usato dalle run, <Code>@positivo</Code> è la polarità.
+          (non cambia mai), <Code>@integration</Code> è il test type del file, <Code>@runnable</Code> è lo stato dello scenario usato dalle run, <Code>@positive</Code> è la polarità.
         </p>
       </Section>
       <Section title="Importa da Git">
@@ -161,7 +161,7 @@ function Design() {
         <ul className="list-disc pl-5 flex flex-col gap-1">
           <li>Il titolo della feature resta quello dell&apos;hub; Contesto, descrizione e scenari arrivano dal file.</li>
           <li>Se la bozza ha già scenari, l&apos;hub chiede conferma e li sostituisce.</li>
-          <li>I tag di categoria (<Code>@runnable</Code>…) restano; i tag sconosciuti vengono elencati come &quot;non importati&quot;.</li>
+          <li>I tag degli scenari restano tutti, anche quelli liberi; vengono elencati come &quot;non importati&quot; solo quelli che l&apos;hub non può salvare (nomi non validi) e i tag di feature fuori catalogo. Un <Code>@integration</Code>, <Code>@e2e</Code> o <Code>@api</Code> in testa al file diventa il test type.</li>
           <li>Se il file veniva da <Code>main</Code> non serve la PR di pulizia. Se non è stato possibile crearla, nel tab Git c&apos;è &quot;Riprova&quot;.</li>
         </ul>
       </Section>
@@ -344,8 +344,8 @@ function MigrationTab() {
       <Section title="Il pannello &quot;Tag trovati nei feature file&quot;">
         <p>
           Elenca i tag dei feature file che non identificano feature o scenari (per esempio <Code>@regression</Code>,{" "}
-          <Code>@checkout</Code>, <Code>@eBollo</Code>), con quante volte compaiono. I tag identità e <Code>@positivo</Code> /{" "}
-          <Code>@negativo</Code> non ci sono: l&apos;hub li gestisce da solo.
+          <Code>@checkout</Code>, <Code>@eBollo</Code>), con quante volte compaiono. I tag identità e <Code>@positive</Code> /{" "}
+          <Code>@negative</Code> non ci sono: l&apos;hub li gestisce da solo.
         </p>
         <ul className="list-disc pl-5 flex flex-col gap-1">
           <li><strong>Spuntato = mantieni</strong> (scelta di partenza): il tag resta sugli scenari migrati e nel file riscritto, e diventa selezionabile su tutti gli scenari. Se nel file era sulla feature intera, viene copiato su ogni scenario.</li>

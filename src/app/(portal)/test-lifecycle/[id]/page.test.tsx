@@ -43,6 +43,8 @@ vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: () => t
 vi.mock("@/hooks/useUsers", () => ({ useUsers: () => ({ data: { items: [] } }) }));
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlCategoryTags: () => ({ data: undefined }),
+  useTlTagCleanup: () => ({ data: undefined }),
+  useApplyTlTagCleanup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useImportTlGit: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRetryTlImportCleanup: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlStepSuggestions: () => ({ data: [] }),
@@ -89,7 +91,7 @@ function sc(id: string, n: number, title: string): TlScenario {
 
 const FEATURE = {
   id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3",
-  design_owner_id: null, reviewer_id: null, impl_owner_id: null, jira_design_key: null,
+  design_owner_id: null, reviewer_id: null, impl_owner_id: null, test_type: null, jira_design_key: null,
   jira_impl_key: null, created_by: "a@x.it", created_at: "", updated_at: "",
   working_revision: {
     id: "r1", number: 1, status: "draft", lock_version: 3, title: "Pagamento avviso",

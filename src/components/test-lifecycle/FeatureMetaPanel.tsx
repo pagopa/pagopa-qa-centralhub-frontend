@@ -13,10 +13,11 @@ import {
   JIRA_CATEGORY_COLOR,
   JIRA_CATEGORY_LABEL,
   safeHttpUrl,
+  TEST_TYPES,
   writeErrorMessage,
   type RegisterFlush,
 } from "@/lib/test-lifecycle";
-import type { TlFeatureDetail, TlFeatureUpdate, TlJiraLink, TlRevision, TlRevisionUpdate } from "@/types/test-lifecycle";
+import type { TlFeatureDetail, TlFeatureUpdate, TlJiraLink, TlRevision, TlRevisionUpdate, TlTestType } from "@/types/test-lifecycle";
 
 type RevisionPatch = Omit<TlRevisionUpdate, "lock_version">;
 
@@ -371,6 +372,25 @@ export function FeatureMetaPanel({
           </p>
         )}
       </div>
+
+      <Field label="Test type">
+        {readOnly ? (
+          <span className="font-mono text-[13px] text-text">
+            {feature.test_type ? `@${feature.test_type}` : "Non impostato"}
+          </span>
+        ) : (
+          <select
+            className={SELECT_CLASS}
+            value={feature.test_type ?? ""}
+            onChange={(e) => saveFeature({ test_type: (e.target.value || null) as TlTestType | null })}
+          >
+            <option value="">Nessuno</option>
+            {TEST_TYPES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        )}
+      </Field>
 
       <Field label="Descrizione">
         <textarea

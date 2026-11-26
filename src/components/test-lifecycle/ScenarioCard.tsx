@@ -8,7 +8,6 @@ import { matchShortcut } from "@/lib/shortcuts";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useLiveValidation } from "@/hooks/useLiveValidation";
 import {
-  ALLOWED_EXTRA_TAGS,
   isStaleLockError,
   safeHttpUrl,
   StaleDraftError,
@@ -24,7 +23,7 @@ import type {
 } from "@/types/test-lifecycle";
 import { EMPTY_EXAMPLES, ExamplesGrid } from "./ExamplesGrid";
 import { useTlCategoryTags } from "@/hooks/useTestLifecycle";
-import { ExtraTagsPicker } from "./ExtraTagsPicker";
+import { ScenarioTagsEditor } from "./ScenarioTagsEditor";
 import { StepsEditor } from "./StepsEditor";
 
 export type ScenarioPatch = Omit<TlScenarioUpdate, "lock_version" | "position">;
@@ -145,12 +144,6 @@ export function ScenarioCard({
   };
 
   const categoryTags = useTlCategoryTags();
-  const toggleTag = (tag: string) => {
-    const tags = draft.extra_tags.includes(tag)
-      ? draft.extra_tags.filter((t) => t !== tag)
-      : ALLOWED_EXTRA_TAGS.filter((t) => t === tag || draft.extra_tags.includes(t));
-    update({ extra_tags: tags }, { save: true });
-  };
 
   const duplicate = async () => {
     if (!onDuplicate || duplicating) return;
@@ -376,7 +369,12 @@ export function ScenarioCard({
           ]}
           onChange={(polarity) => update({ polarity }, { save: true })}
         />
-        <ExtraTagsPicker value={draft.extra_tags} readOnly={readOnly || stale} onToggle={toggleTag} options={categoryTags.data} />
+        <ScenarioTagsEditor
+          value={draft.extra_tags}
+          readOnly={readOnly || stale}
+          suggestions={categoryTags.data ?? []}
+          onChange={(extra_tags) => update({ extra_tags }, { save: true })}
+        />
       </div>
 
       <StepsEditor

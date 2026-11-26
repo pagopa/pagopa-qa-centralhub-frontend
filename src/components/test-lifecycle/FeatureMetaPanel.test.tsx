@@ -39,7 +39,7 @@ function revision(overrides: Partial<TlRevision> = {}): TlRevision {
 function feature(rev: TlRevision, overrides: Partial<TlFeatureDetail> = {}): TlFeatureDetail {
   return {
     id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3",
-    design_owner_id: "u1", reviewer_id: "u2", impl_owner_id: null,
+    design_owner_id: "u1", reviewer_id: "u2", impl_owner_id: null, test_type: null,
     jira_design_key: "PQ-1", jira_impl_key: null, created_by: "anna@x.it",
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",
     working_revision: rev, published_revision: null, transitions: [], git_path: null, open_issues: 0,
@@ -96,6 +96,28 @@ describe("FeatureMetaPanel", () => {
     });
     expect(option).toBeDisabled();
     expect(screen.getByLabelText("Owner implementazione")).toHaveValue("u3");
+  });
+
+  it("lets a draft pick the test type of the file", async () => {
+    renderPanel({ feat: { test_type: "integration" } });
+    const select = screen.getByLabelText("Test type");
+    expect(optionNames(select)).toEqual(["Nessuno", "integration", "e2e", "api"]);
+    expect(select).toHaveValue("integration");
+    await userEvent.selectOptions(select, "api");
+    expect(mocks.mutate).toHaveBeenCalledWith({ id: "f1", test_type: "api" }, expect.anything());
+    await userEvent.selectOptions(select, "");
+    expect(mocks.mutate).toHaveBeenLastCalledWith({ id: "f1", test_type: null }, expect.anything());
+  });
+
+  it("shows the test type as text when the revision is not editable", () => {
+    renderPanel({ rev: revision({ status: "approved" }), readOnly: true, feat: { test_type: "e2e" } });
+    expect(screen.queryByRole("combobox", { name: "Test type" })).not.toBeInTheDocument();
+    expect(screen.getByText("@e2e")).toBeInTheDocument();
+  });
+
+  it("says when the file has no test type yet", () => {
+    renderPanel({ rev: revision({ status: "approved" }), readOnly: true });
+    expect(screen.getByText("Non impostato")).toBeInTheDocument();
   });
 
   it("links the saved requirements only when they are an http(s) URL", () => {

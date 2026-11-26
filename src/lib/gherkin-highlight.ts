@@ -1,4 +1,13 @@
-export type HighlightKind = "keyword" | "tag" | "comment" | "text";
+export type HighlightKind = "keyword" | "tag" | "comment" | "table" | "text";
+
+/** Token colours shared by the steps editor and the file preview. */
+export const HIGHLIGHT_COLOR: Record<HighlightKind, string> = {
+  keyword: "var(--accent)",
+  tag: "var(--info)",
+  comment: "var(--text-muted)",
+  table: "var(--text-dim)",
+  text: "var(--text)",
+};
 
 export interface HighlightSpan {
   text: string;
@@ -25,6 +34,18 @@ const KEYWORDS = [
   "Background",
 ].sort((a, b) => b.length - a.length);
 
+/** Section keywords of a whole file: matched with their colon, longest first. */
+const SECTIONS = [
+  "Schema dello scenario:",
+  "Esigenza di Business:",
+  "Funzionalità:",
+  "Abilità:",
+  "Scenario:",
+  "Contesto:",
+  "Esempi:",
+  "Regola:",
+].sort((a, b) => b.length - a.length);
+
 const TAG = /@\S+/g;
 
 function splitTags(text: string): HighlightSpan[] {
@@ -46,11 +67,19 @@ export function highlightLine(line: string): HighlightSpan[] {
   const indent = line.length - line.trimStart().length;
   const body = line.slice(indent);
   if (body.startsWith("#")) return [{ text: line, kind: "comment" }];
+  if (body.startsWith("|")) {
+    return indent > 0
+      ? [{ text: line.slice(0, indent), kind: "text" }, { text: body, kind: "table" }]
+      : [{ text: body, kind: "table" }];
+  }
 
   const spans: HighlightSpan[] = [];
   let rest = body;
   if (indent > 0) spans.push({ text: line.slice(0, indent), kind: "text" });
-  const keyword = KEYWORDS.find((k) => body.startsWith(k) && (body.length === k.length || /\s/.test(body[k.length])));
+  const section = SECTIONS.find((k) => body.startsWith(k));
+  const keyword =
+    section ??
+    KEYWORDS.find((k) => body.startsWith(k) && (body.length === k.length || /\s/.test(body[k.length])));
   if (keyword) {
     spans.push({ text: keyword, kind: "keyword" });
     rest = body.slice(keyword.length);

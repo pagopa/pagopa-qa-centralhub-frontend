@@ -181,6 +181,12 @@ describe("ScenarioCard", () => {
       expect(screen.getByRole("group", { name: "Polarità" })).toHaveTextContent("Negativo");
     });
 
+    it("adding a tag keeps the custom tags the scenario already has and saves them all", async () => {
+      const { onSave } = renderCard({ scenario: scenario({ extra_tags: ["runnable", "smoke", "checkout"] }) });
+      await userEvent.type(screen.getByLabelText("Nuovo tag"), "regression{Enter}");
+      expect(onSave).toHaveBeenCalledWith({ extra_tags: ["runnable", "smoke", "checkout", "regression"] });
+    });
+
     it("disables the extra tags too when the draft is stale", () => {
       renderCard({ stale: true });
       const boxes = screen.getAllByRole("checkbox");

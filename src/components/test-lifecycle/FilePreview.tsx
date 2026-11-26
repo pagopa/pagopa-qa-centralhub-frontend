@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { useTlPreview } from "@/hooks/useTestLifecycle";
+import { HIGHLIGHT_COLOR, highlightLine } from "@/lib/gherkin-highlight";
 
 /** "Anteprima file" tab: the generated .feature file, read-only, with a copy button. */
 export function FilePreview({ featureId, revisionId }: { featureId: string; revisionId: string | undefined }) {
@@ -43,7 +44,16 @@ export function FilePreview({ featureId, revisionId }: { featureId: string; revi
         aria-label="Anteprima file"
         className="overflow-auto rounded-[var(--radius-sm)] border border-border bg-surface p-3 font-mono text-[12.5px] leading-5 text-text whitespace-pre"
       >
-        {data.file}
+        {data.file.split("\n").map((line, i, all) => (
+          <Fragment key={i}>
+            {highlightLine(line).map((span, j) => (
+              <span key={j} data-kind={span.kind} style={{ color: HIGHLIGHT_COLOR[span.kind] }}>
+                {span.text}
+              </span>
+            ))}
+            {i < all.length - 1 ? "\n" : ""}
+          </Fragment>
+        ))}
       </pre>
     </div>
   );

@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/formStyles";
 import { useCreateTlFeature, useTlScopes } from "@/hooks/useTestLifecycle";
 import { useUsers } from "@/hooks/useUsers";
-import { apiErrorMessage, apiErrorReasons } from "@/lib/test-lifecycle";
+import { apiErrorMessage, apiErrorReasons, defaultTestType, TEST_TYPES } from "@/lib/test-lifecycle";
+import type { TlTestType } from "@/types/test-lifecycle";
 
 /** Remounts the form on every open / default-scope change so state is re-seeded from props. */
 export function CreateFeatureDialog(props: {
@@ -49,6 +50,8 @@ function CreateFeatureForm({
   const [scopeId, setScopeId] = useState(defaultScopeId ?? "");
   const [title, setTitle] = useState("");
   const [pickedOwner, setPickedOwner] = useState<string | null>(null);
+  // null = not chosen yet: follows the folder of the selected scope
+  const [pickedType, setPickedType] = useState<TlTestType | "" | null>(null);
 
   // Only active users can own a feature (the backend rejects the others).
   const activeUsers = users?.items.filter((u) => u.is_active) ?? [];
@@ -59,13 +62,21 @@ function CreateFeatureForm({
   // Precompiled with the current user until the user picks another one.
   const ownerId = pickedOwner ?? currentUserId;
 
+  const scopeFolder = scopes?.find((s) => s.id === scopeId)?.repo_folder;
+  const testType = pickedType ?? defaultTestType(scopeFolder) ?? "";
+
   const sessionReady = sessionStatus !== "loading" && !!sessionEmail;
   const canSubmit = sessionReady && !!scopeId && !!title.trim() && !createFeature.isPending;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
     createFeature.mutate(
-      { scope_id: scopeId, title: title.trim(), design_owner_id: ownerId || null },
+      {
+        scope_id: scopeId,
+        title: title.trim(),
+        design_owner_id: ownerId || null,
+        test_type: testType || null,
+      },
       {
         onSuccess: (feature) => {
           setTitle("");
@@ -117,6 +128,19 @@ function CreateFeatureForm({
               <option value="">Nessuno</option>
               {activeUsers.map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-text-dim">
+            Test type
+            <select
+              className={SELECT_CLASS}
+              value={testType}
+              onChange={(e) => setPickedType(e.target.value as TlTestType | "")}
+            >
+              <option value="">Nessuno</option>
+              {TEST_TYPES.map((t) => (
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </label>
