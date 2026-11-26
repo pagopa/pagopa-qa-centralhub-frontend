@@ -1,12 +1,15 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
+import { RETURN_TO_HEADER, safeCallbackUrl } from "@/lib/doc-link";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) {
-    redirect("/login");
+    const returnTo = safeCallbackUrl((await headers()).get(RETURN_TO_HEADER));
+    redirect(returnTo === "/" ? "/login" : `/login?callbackUrl=${encodeURIComponent(returnTo)}`);
   }
 
   return (

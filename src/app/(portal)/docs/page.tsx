@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Check,
   ExternalLink,
+  Link2,
   FileText,
   Globe,
   BookOpen,
@@ -20,6 +23,7 @@ import { useDocItems, useCreateDocItem, useUpdateDocItem, useDeleteDocItem } fro
 import type { DocItem, DocIcon, DocType } from "@/types/index";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import { videoSource } from "@/lib/video";
+import { DOC_ITEM_PARAM, docShareUrl } from "@/lib/doc-link";
 
 const ICONS: Record<DocIcon, React.ElementType> = {
   confluence: BookOpen,
@@ -71,8 +75,18 @@ function faviconUrl(url: string) {
 
 
 export default function DocsPage() {
+  return (
+    <Suspense fallback={<p className="text-text-muted text-[13px]">Caricamento…</p>}>
+      <DocsContent />
+    </Suspense>
+  );
+}
+
+function DocsContent() {
+  const router = useRouter();
+  const itemParam = useSearchParams().get(DOC_ITEM_PARAM);
   const { data: items = [], isLoading } = useDocItems();
-  const [viewer, setViewer] = useState<DocItem | null>(null);
+  const [clickedViewer, setClickedViewer] = useState<DocItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<DocItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocItem | null>(null);
@@ -85,6 +99,22 @@ export default function DocsPage() {
     acc[cat] = items.filter((i) => i.category === cat).sort((a, b) => a.position - b.position);
     return acc;
   }, {});
+
+  // A shared link (/docs?item=<id>) behaves as if the item had been picked in the section:
+  // embedded items and videos open in the portal, external links are scrolled to and highlighted
+  // (a new tab opened without a click would be blocked by the browser).
+  const linkedItem = itemParam ? items.find((i) => i.id === itemParam) ?? null : null;
+  const linkedOpensViewer =
+    linkedItem !== null &&
+    (linkedItem.type === "embedded" || videoSource(normalizeLegacyOpenApiUrl(linkedItem.url)) !== null);
+  const viewer = clickedViewer ?? (linkedOpensViewer ? linkedItem : null);
+  const highlightedId = linkedItem && !linkedOpensViewer ? linkedItem.id : null;
+  const linkedMissing = !isLoading && itemParam !== null && linkedItem === null;
+
+  const closeViewer = () => {
+    setClickedViewer(null);
+    if (itemParam) router.replace("/docs", { scroll: false });
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -118,6 +148,12 @@ export default function DocsPage() {
           </button>
         </div>
 
+        {linkedMissing && (
+          <p role="alert" className="text-[13px] text-danger">
+            Il contenuto richiesto dal link non esiste più.
+          </p>
+        )}
+
         {/* Empty state */}
         {items.length === 0 && (
           <div className="rounded-[var(--radius)] border border-dashed border-border p-12 flex flex-col items-center gap-3 text-center">
@@ -145,7 +181,8 @@ export default function DocsPage() {
                 <TileCard
                   key={item.id}
                   item={item}
-                  onOpen={setViewer}
+                  onOpen={setClickedViewer}
+                  highlighted={item.id === highlightedId}
                   onEdit={openEdit}
                   onDelete={setDeleteTarget}
                 />
@@ -157,9 +194,9 @@ export default function DocsPage() {
 
       {viewer &&
         (videoSource(normalizeLegacyOpenApiUrl(viewer.url)) ? (
-          <VideoModal item={viewer} onClose={() => setViewer(null)} />
+          <VideoModal item={viewer} onClose={closeViewer} />
         ) : (
-          <EmbedModal item={viewer} onClose={() => setViewer(null)} />
+          <EmbedModal item={viewer} onClose={closeViewer} />
         ))}
 
       {formOpen && (
@@ -187,8 +224,10 @@ function TileCard({
   onOpen,
   onEdit,
   onDelete,
+  highlighted = false,
 }: {
   item: DocItem;
+  highlighted?: boolean;
   onOpen: (i: DocItem) => void;
   onEdit: (i: DocItem) => void;
   onDelete: (i: DocItem) => void;
@@ -200,23 +239,54 @@ function TileCard({
   const isEmbedded = item.type === "embedded" || video !== null;
   const favicon = faviconUrl(targetUrl);
 
+  const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (highlighted) cardRef.current?.scrollIntoView?.({ block: "center" });
+  }, [highlighted]);
+
   const handleClick = () => {
     if (isEmbedded) onOpen(item);
     else window.open(targetUrl, "_blank", "noopener");
   };
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(docShareUrl(window.location.origin, item.id));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard not available (insecure context or permission denied): nothing to do */
+    }
+  };
+
   return (
-    <div className="group relative rounded-[var(--radius)] border border-border bg-surface flex flex-col h-full overflow-hidden">
-      {/* Action buttons — visible on hover */}
-      <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div
+      ref={cardRef}
+      className="group relative rounded-[var(--radius)] border bg-surface flex flex-col h-full overflow-hidden"
+      style={{ borderColor: highlighted ? "var(--accent)" : "var(--border)", boxShadow: highlighted ? "0 0 0 1px var(--accent)" : undefined }}
+    >
+      {/* Action buttons — visible on hover or keyboard focus */}
+      <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <button
+          onClick={copyLink}
+          aria-label={copied ? "Link copiato" : "Copia link"}
+          title={copied ? "Link copiato" : "Copia link"}
+          className="grid place-items-center w-6 h-6 rounded-[var(--radius-sm)] bg-surface border border-border text-text-muted hover:text-text hover:bg-hover transition-colors"
+        >
+          {copied ? <Check size={11} style={{ color: "var(--accent)" }} /> : <Link2 size={11} />}
+        </button>
         <button
           onClick={() => onEdit(item)}
+          aria-label="Modifica"
           className="grid place-items-center w-6 h-6 rounded-[var(--radius-sm)] bg-surface border border-border text-text-muted hover:text-text hover:bg-hover transition-colors"
         >
           <Pencil size={11} />
         </button>
         <button
           onClick={() => onDelete(item)}
+          aria-label="Elimina"
           className="grid place-items-center w-6 h-6 rounded-[var(--radius-sm)] bg-surface border border-border text-text-muted hover:text-danger hover:bg-hover transition-colors"
         >
           <Trash2 size={11} />
