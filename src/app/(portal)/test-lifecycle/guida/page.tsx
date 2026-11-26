@@ -226,6 +226,7 @@ function GitTab() {
         <Steps
           items={[
             <>Per cambiare una feature già implementata clicca <strong>Riapri</strong>: nasce una nuova bozza copiata dalla versione pubblicata; la feature resta Implementata finché la nuova revisione non arriva su <Code>main</Code>.</>,
+            <>Ogni modifica ha il suo task Jira: la nuova revisione parte senza task di progettazione, che si crea con <strong>Crea task</strong> accanto al campo oppure si inserisce se l&apos;hai già aperto (basta anche l&apos;URL). L&apos;Epic QA resta quella di prima, ma puoi cambiarla. Nel tab <strong>Jira</strong> trovi lo storico di task ed Epic, revisione per revisione.</>,
             <>Se nel frattempo qualcuno modifica il file su GitHub, la bozza viene segnata <strong>Base superata</strong> e non si può inviare in review.</>,
             <>Clicca <strong>Riallinea</strong>: per ogni elemento vedi tre colonne (Base, Git, Bozza). Le modifiche fatte da una sola parte si applicano da sole; dove hanno cambiato entrambi scegli <strong>Usa Git</strong> o <strong>Mantieni bozza</strong>.</>,
             <>Dopo il riallineamento si invia e si approva come sempre; l&apos;hub aggiorna la stessa PR.</>,

@@ -3,10 +3,11 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { CARD_CLASS, INPUT_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
-import { useUpdateTlFeature } from "@/hooks/useTestLifecycle";
+import { useCreateTlJiraTask, useUpdateTlFeature } from "@/hooks/useTestLifecycle";
 import { useDraftSave } from "@/hooks/useDraftSave";
 import { useUsers } from "@/hooks/useUsers";
 import { useStoredFlag } from "@/lib/stored-flag";
+import { parseJiraIssueKey } from "@/utils/jiraIssue";
 import { PersonChip } from "./PersonChip";
 import {
   JIRA_CATEGORY_COLOR,
@@ -130,6 +131,7 @@ export function FeatureMetaPanel({
 }) {
   const { data: users } = useUsers();
   const updateFeature = useUpdateTlFeature();
+  const createTask = useCreateTlJiraTask();
   const {
     draft: rev,
     setDraft: setRev,
@@ -188,6 +190,16 @@ export function FeatureMetaPanel({
     return registerFlush(flush, () => Object.keys(pendingJiraRef.current()).length > 0);
   }, [registerFlush, readOnly, feature.id]);
 
+  // A design task created while the panel is mounted (button here or Jira tab): show its key, so the
+  // empty local value is never read as an unsaved "clear" and sent on blur or Ctrl+S.
+  const [seenDesignKey, setSeenDesignKey] = useState(feature.jira_design_key);
+  if (seenDesignKey !== feature.jira_design_key) {
+    setSeenDesignKey(feature.jira_design_key);
+    if (jira.jira_design_key === "" && feature.jira_design_key) {
+      setJira({ ...jira, jira_design_key: feature.jira_design_key });
+    }
+  }
+
   const saveFeature = (patch: TlFeatureUpdate, allowed = !readOnly) => {
     if (!allowed) return;
     setError(null);
@@ -244,8 +256,9 @@ export function FeatureMetaPanel({
     onChange: (v: string) => void,
     onBlur: () => void,
     placeholder?: string,
-    opts: { title?: string; jiraKey?: boolean } = {},
+    opts: { title?: string; jiraKey?: boolean; normalizeKey?: boolean; extra?: ReactNode } = {},
   ) => {
+    const extra = opts.extra;
     const link = opts.jiraKey ? feature.jira.find((l) => l.key === value.trim().toUpperCase()) : undefined;
     return (
       <div className="flex flex-col gap-1.5 min-w-0">
@@ -255,10 +268,15 @@ export function FeatureMetaPanel({
             value={value}
             readOnly={readOnly}
             placeholder={readOnly ? undefined : placeholder}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              // A pasted Jira URL (or a lower-case key) becomes the bare upper-case key.
+              const raw = e.target.value;
+              onChange(opts.jiraKey || opts.normalizeKey ? (parseJiraIssueKey(raw) ?? raw) : raw);
+            }}
             onBlur={onBlur}
           />
         </Field>
+        {extra}
         {link && <JiraChip link={link} />}
       </div>
     );
@@ -269,6 +287,29 @@ export function FeatureMetaPanel({
   const requirementsUrl = safeHttpUrl(savedRequirementsUrl);
   // An empty title is never sent (the backend requires one): flag it until fixed.
   const titleMissing = !readOnly && !rev.title.trim();
+
+  // A change to an implemented feature needs its own design task: create it on request or type one.
+  const needsDesignTask = !readOnly && revision?.status === "draft" && !feature.jira_design_key && !jira.jira_design_key.trim();
+  const designHint = needsDesignTask ? (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        className="text-[13px] text-[var(--accent)] hover:underline disabled:opacity-60"
+        disabled={createTask.isPending}
+        onClick={() => {
+          setError(null);
+          createTask
+            .mutateAsync({ featureId: feature.id, kind: "design" })
+            .catch((err: unknown) => setError(writeErrorMessage(err)));
+        }}
+      >
+        Crea task
+      </button>
+      {(revision?.number ?? 1) > 1 && (
+        <span className="text-[12px] text-text-dim">Questa revisione richiede un nuovo task di progettazione</span>
+      )}
+    </div>
+  ) : null;
 
   const nameOf = (id: string | null) => users?.items.find((u) => u.id === id)?.name ?? null;
   const designOwner = nameOf(feature.design_owner_id);
@@ -360,7 +401,7 @@ export function FeatureMetaPanel({
             if (orNull(jira.jira_design_key) !== feature.jira_design_key) saveFeature({ jira_design_key: orNull(jira.jira_design_key) });
           },
           "PQ-123",
-          { jiraKey: true },
+          { jiraKey: true, extra: designHint },
         )}
         {text(
           "Jira implementazione",
@@ -393,7 +434,7 @@ export function FeatureMetaPanel({
             <span className="text-[14px] text-text-muted">Reverse engineering</span>
           </Field>
         ) : (
-          text("Epic/Story prodotto", rev.product_issue_key, (v) => setRev({ ...rev, product_issue_key: v }), saveRevision, "ABC-123")
+          text("Epic/Story prodotto", rev.product_issue_key, (v) => setRev({ ...rev, product_issue_key: v }), saveRevision, "ABC-123", { normalizeKey: true })
         )}
         {text("Stima progettazione (giorni)", rev.design_estimate_days, (v) => setRev({ ...rev, design_estimate_days: v }), saveRevision)}
         {text("Stima implementazione (giorni)", rev.impl_estimate_days, (v) => setRev({ ...rev, impl_estimate_days: v }), saveRevision)}

@@ -27,7 +27,7 @@ function link(o: Partial<TlJiraLink>): TlJiraLink {
 
 function feature(o: Partial<TlFeatureDetail> = {}, revStatus = "draft"): TlFeatureDetail {
   return {
-    id: "f1", status: "draft", jira_design_key: null, jira_impl_key: null, jira: [],
+    id: "f1", status: "draft", jira_design_key: null, jira_impl_key: null, jira: [], jira_history: [],
     jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
     working_revision: { id: "r1", status: revStatus } as TlRevision, published_revision: null,
     ...o,
@@ -41,26 +41,28 @@ describe("JiraLinks", () => {
     mocks.perms = new Set(["edit:tl_feature"]);
   });
 
-  it("shows each role with status badge and links only http(s) urls", () => {
+  it("shows the history per revision and the product Epic/Story, linking only http(s) urls", () => {
     render(
       <JiraLinks
         feature={feature({
-          jira: [
-            link({ role: "design", key: "PQ-1" }),
-            link({ role: "qa_epic", key: "PQ-495", category: "done", url: "javascript:alert(1)" }),
-            link({ role: "product", key: "ABC-1", verified: false, summary: null, category: null }),
+          jira: [link({ role: "product", key: "ABC-1", url: "javascript:alert(1)", summary: "Storia" })],
+          jira_history: [
+            {
+              revision_number: 1, revision_status: "draft", is_current: true,
+              design: link({ role: "design", key: "PQ-1" }),
+              impl: null,
+              qa_epic: link({ role: "qa_epic", key: "PQ-495", category: "done" }),
+            },
           ],
         })}
       />,
     );
-    expect(screen.getByRole("link", { name: "PQ-1" })).toHaveAttribute("href", "https://jira.test/browse/PQ-1");
-    expect(screen.queryByRole("link", { name: "PQ-495" })).toBeNull();
-    expect(screen.getByText("PQ-495")).toBeInTheDocument();
-    const design = screen.getByTestId("jira-design");
-    expect(within(design).getByText("In corso")).toBeInTheDocument();
-    expect(within(screen.getByTestId("jira-qa_epic")).getByText("Fatto")).toBeInTheDocument();
-    expect(within(screen.getByTestId("jira-product")).getByText("Non verificata")).toBeInTheDocument();
-    expect(within(screen.getByTestId("jira-impl")).getByText("Nessun task")).toBeInTheDocument();
+    const row = screen.getByTestId("jira-history-row-1");
+    expect(within(row).getByRole("link", { name: "PQ-1" })).toHaveAttribute("href", "https://jira.test/browse/PQ-1");
+    expect(within(row).getByText("In corso")).toBeInTheDocument();
+    expect(within(row).getByText("Fatto")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "ABC-1" })).toBeNull();
+    expect(screen.getByText("ABC-1")).toBeInTheDocument();
   });
 
   it("offers the design task only on a draft without key, with permission", async () => {

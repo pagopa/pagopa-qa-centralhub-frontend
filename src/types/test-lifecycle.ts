@@ -165,6 +165,7 @@ export interface TlFeatureDetail {
   git_path: string | null;
   open_issues: number;
   jira: TlJiraLink[];
+  jira_history: TlJiraHistoryRow[];
   jira_error: string | null;
   jira_qa_epic_key: string | null;
   jira_qa_epic_effective: string | null;
@@ -219,6 +220,16 @@ export interface TlJiraLink {
   category: TlJiraCategory | null;
   url: string | null;
   verified: boolean;
+}
+
+/** Jira tasks and epic used by one revision of a feature (newest revision first). */
+export interface TlJiraHistoryRow {
+  revision_number: number;
+  revision_status: TlRevisionStatus;
+  is_current: boolean;
+  design: TlJiraLink | null;
+  impl: TlJiraLink | null;
+  qa_epic: TlJiraLink | null;
 }
 
 export interface TlFeatureFilters {
