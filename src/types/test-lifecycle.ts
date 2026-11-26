@@ -5,6 +5,7 @@ export type TlFeatureStatus = "draft" | "in_review" | "designed" | "implemented"
 export type TlRevisionStatus = "draft" | "in_review" | "approved" | "merged" | "superseded";
 export type TlScenarioKind = "scenario" | "outline";
 export type TlPolarity = "positivo" | "negativo";
+export type TlTestType = "integration" | "e2e" | "api";
 export type TlTransitionAction =
   | "submit"
   | "approve"
@@ -138,6 +139,7 @@ export interface TlFeatureListItem {
   design_owner_id: string | null;
   reviewer_id: string | null;
   impl_owner_id: string | null;
+  test_type: TlTestType | null;
   scenario_count: number;
   updated_at: string;
   /** False when the feature is published on Git or has an open PR. */
@@ -154,6 +156,7 @@ export interface TlFeatureDetail {
   design_owner_id: string | null;
   reviewer_id: string | null;
   impl_owner_id: string | null;
+  test_type: TlTestType | null;
   jira_design_key: string | null;
   jira_impl_key: string | null;
   created_by: string;
@@ -242,9 +245,11 @@ export interface TlFeatureCreate {
   scope_id: string;
   title: string;
   design_owner_id?: string | null;
+  test_type?: TlTestType | null;
 }
 
 export interface TlFeatureUpdate {
+  test_type?: TlTestType | null;
   design_owner_id?: string | null;
   reviewer_id?: string | null;
   impl_owner_id?: string | null;
@@ -622,3 +627,16 @@ export interface TlDeleteResult {
 }
 
 export type TlDeleteKind = "feature" | "scope";
+
+/** A scenario that carries test-type tags (they belong to the file). */
+export interface TlTagCleanupRow {
+  scenario_tag: string;
+  tags: string[];
+}
+
+export interface TlTagCleanup {
+  rows: TlTagCleanupRow[];
+  proposed_test_type: TlTestType | null;
+  /** Why the cleanup cannot be applied (disagreeing types); null when it can. */
+  conflict: string | null;
+}

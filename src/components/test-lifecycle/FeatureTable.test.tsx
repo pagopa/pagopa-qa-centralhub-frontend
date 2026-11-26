@@ -25,12 +25,12 @@ const FEATURES: TlFeatureListItem[] = [
   {
     id: "f1", code: "FEAT_001_FdR3", number: 1, title: "Pagamento avviso", status: "draft",
     scope_id: "s1", scope_code: "FdR3", design_owner_id: "u1", reviewer_id: null,
-    impl_owner_id: null, scenario_count: 2, updated_at: "2026-11-01T10:00:00Z", deletable: true,
+    impl_owner_id: null, test_type: null, scenario_count: 2, updated_at: "2026-11-01T10:00:00Z", deletable: true,
   },
   {
     id: "f2", code: "FEAT_002_FdR3", number: 2, title: "Rendicontazione", status: "designed",
     scope_id: "s1", scope_code: "FdR3", design_owner_id: null, reviewer_id: null,
-    impl_owner_id: null, scenario_count: 5, updated_at: "2026-11-02T10:00:00Z", deletable: true,
+    impl_owner_id: null, test_type: null, scenario_count: 5, updated_at: "2026-11-02T10:00:00Z", deletable: true,
   },
 ];
 

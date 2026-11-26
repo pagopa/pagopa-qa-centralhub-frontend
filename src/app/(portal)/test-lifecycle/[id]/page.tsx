@@ -32,6 +32,7 @@ import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
 import { ReviewPanel } from "@/components/test-lifecycle/ReviewPanel";
 import { ScenarioCard, type ScenarioCopy } from "@/components/test-lifecycle/ScenarioCard";
+import { TagCleanupNotice } from "@/components/test-lifecycle/TagCleanupNotice";
 import { ScenarioIndex } from "@/components/test-lifecycle/ScenarioIndex";
 import { StaleLockBanner } from "@/components/test-lifecycle/StaleLockBanner";
 import { TlDeleteDialog } from "@/components/test-lifecycle/TlDeleteDialog";
@@ -431,6 +432,12 @@ function ScenariosTab({
           disabled={writer.stale}
         />
       )}
+      <TagCleanupNotice
+        featureId={featureId}
+        editable={editable}
+        afterPendingWrites={writer.afterPendingWrites}
+        onApplied={onImported}
+      />
       <BackgroundEditor
         revision={revision}
         readOnly={!editable}

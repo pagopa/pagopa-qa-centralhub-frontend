@@ -140,8 +140,54 @@ export function transitionBlockReasons(
   return check && !check.allowed ? check.reasons : [];
 }
 
-/** Mirror of the backend ALLOWED_EXTRA_TAGS (app/services/test_lifecycle/gherkin.py). */
-export const ALLOWED_EXTRA_TAGS = ["runnable", "e2e", "ui", "skip"] as const;
+// ── Tag standard (mirror of backend app/services/test_lifecycle/tags.py) ────────
+
+export const TEST_TYPES = ["integration", "e2e", "api"] as const;
+export type TestType = (typeof TEST_TYPES)[number];
+export const STATUS_TAGS = ["runnable", "skip", "broken"] as const;
+export type StatusTag = (typeof STATUS_TAGS)[number];
+export const FLAKY_TAG = "flaky";
+const POLARITY_TAG_NAMES = ["positive", "negative", "positivo", "negativo"] as const;
+/** Names with a dedicated control: never accepted as custom tags. */
+export const RESERVED_TAGS: readonly string[] = [...STATUS_TAGS, FLAKY_TAG, ...POLARITY_TAG_NAMES, ...TEST_TYPES];
+
+const CUSTOM_TAG_RE = /^[A-Za-z][A-Za-z0-9_-]{0,49}$/;
+
+/** Replaces the status in place (first status position), drops other status tags, appends if none. */
+export function setStatusTag(tags: string[], status: StatusTag): string[] {
+  const isStatus = (t: string) => (STATUS_TAGS as readonly string[]).includes(t);
+  const first = tags.findIndex(isStatus);
+  if (first === -1) return [...tags, status];
+  return tags.flatMap((t, i) => (i === first ? [status] : isStatus(t) ? [] : [t]));
+}
+
+export function toggleFlaky(tags: string[]): string[] {
+  return tags.includes(FLAKY_TAG) ? tags.filter((t) => t !== FLAKY_TAG) : [...tags, FLAKY_TAG];
+}
+
+export function removeTag(tags: string[], tag: string): string[] {
+  return tags.filter((t) => t !== tag);
+}
+
+/** Adds a custom tag after the existing ones; `error` (Italian) explains a refusal and leaves the tags as they were. */
+export function addCustomTag(tags: string[], raw: string): { tags: string[]; error?: string } {
+  const name = raw.trim().replace(/^@+/, "");
+  if (!name) return { tags, error: "Scrivi il nome del tag" };
+  if (RESERVED_TAGS.includes(name)) {
+    return { tags, error: `@${name} è un tag riservato: usa il controllo dedicato` };
+  }
+  if (!CUSTOM_TAG_RE.test(name)) {
+    return { tags, error: "Tag non valido: lettere, numeri, _ e -, iniziando con una lettera (max 50)" };
+  }
+  return tags.includes(name) ? { tags } : { tags: [...tags, name] };
+}
+
+/** Test type implied by a scope's repository folder (`src/<type>/…`), if any. */
+export function defaultTestType(repoFolder: string | null | undefined): TestType | null {
+  const parts = (repoFolder ?? "").trim().replace(/^\/+|\/+$/g, "").split("/");
+  const type = parts[0] === "src" ? parts[1] : undefined;
+  return (TEST_TYPES as readonly string[]).includes(type ?? "") ? (type as TestType) : null;
+}
 
 export const STALE_LOCK_MESSAGE =
   "La bozza è stata modificata da un altro utente. Ricarica per vedere le modifiche.";

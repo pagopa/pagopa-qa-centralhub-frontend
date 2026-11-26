@@ -34,6 +34,7 @@ import type {
   TlRebaseView,
   TlStepKeyword,
   TlStepSuggestion,
+  TlTagCleanup,
   TlPreview,
   TlRevision,
   TlRevisionUpdate,
@@ -537,6 +538,32 @@ export function useTlCategoryTags() {
     queryKey: ["tl", "category-tags"],
     queryFn: () => apiClient<string[]>(`${BASE}/category-tags`),
     staleTime: 300_000,
+  });
+}
+
+export function useTlTagCleanup(featureId: string | undefined) {
+  return useQuery<TlTagCleanup>({
+    queryKey: ["tl", "tag-cleanup", featureId],
+    queryFn: () => apiClient<TlTagCleanup>(`${BASE}/features/${featureId}/tag-cleanup`),
+    enabled: !!featureId,
+  });
+}
+
+export function useApplyTlTagCleanup() {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: (featureId: string) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/tag-cleanup`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: (_d, featureId) =>
+      Promise.all([
+        invalidate(featureId),
+        qc.invalidateQueries({ queryKey: ["tl", "tag-cleanup", featureId] }),
+      ]),
   });
 }
 

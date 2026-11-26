@@ -1,17 +1,10 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
-import { highlightLine, type HighlightKind } from "@/lib/gherkin-highlight";
+import { HIGHLIGHT_COLOR, highlightLine } from "@/lib/gherkin-highlight";
 import { applySuggestion, currentStepQuery } from "@/lib/step-autocomplete";
 import type { TlLineError } from "@/types/test-lifecycle";
 import { StepSuggestions, type StepSuggestionsHandle } from "./StepSuggestions";
-
-const KIND_COLOR: Record<HighlightKind, string> = {
-  keyword: "var(--accent)",
-  tag: "var(--info)",
-  comment: "var(--text-muted)",
-  text: "var(--text)",
-};
 
 /**
  * Monospace steps editor with a line-number gutter. Lines reported in `errors`
@@ -108,7 +101,7 @@ export function StepsEditor({
                   style={{ height: 20, background: errorLines.has(i + 1) ? "var(--danger-soft)" : undefined }}
                 >
                   {highlightLine(line).map((span, j) => (
-                    <span key={j} data-kind={span.kind} style={{ color: KIND_COLOR[span.kind] }}>
+                    <span key={j} data-kind={span.kind} style={{ color: HIGHLIGHT_COLOR[span.kind] }}>
                       {span.text}
                     </span>
                   ))}
