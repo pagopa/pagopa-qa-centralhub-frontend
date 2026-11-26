@@ -3,10 +3,12 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { safeCallbackUrl } from "@/lib/doc-link";
 
 function LoginCard() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
 
   return (
     <div
@@ -30,7 +32,7 @@ function LoginCard() {
       )}
 
       <button
-        onClick={() => signIn("google", { callbackUrl: "/" })}
+        onClick={() => signIn("google", { callbackUrl })}
         className="w-full rounded-[var(--radius-sm)] bg-accent text-accent-fg text-[13px] px-4 py-2 hover:opacity-90 transition-opacity"
       >
         Accedi con Google
