@@ -58,6 +58,24 @@ describe("test lifecycle guide", () => {
     }
   });
 
+  it("explains the working branch on import and no longer a cleanup PR", async () => {
+    render(<Page />);
+    await userEvent.click(screen.getByRole("tab", { name: "Progettazione" }));
+    const section = screen.getByRole("heading", { level: 2, name: "Importa da Git" }).closest("section") ?? document.body;
+    expect(section).toHaveTextContent(/branch di lavoro/i);
+    expect(document.body).not.toHaveTextContent(/PR di pulizia/i);
+  });
+
+  it("explains Salva tutti, the choice when the repository changed and the Riapri popup", async () => {
+    render(<Page />);
+    await userEvent.click(screen.getByRole("tab", { name: "Git" }));
+    const section = screen.getByRole("heading", { level: 2, name: "6. Riaprire e riallineare" }).closest("section") ?? document.body;
+    expect(section).toHaveTextContent("Salva tutti");
+    expect(section).toHaveTextContent(/Accetta la versione del repo/);
+    expect(section).toHaveTextContent(/Sovrascrivi il repo/);
+    expect(section).toHaveTextContent(/nome del branch/i);
+  });
+
   it("explains the NRT link with an example flow and updates the address", async () => {
     render(<Page />);
     await userEvent.click(screen.getByRole("tab", { name: "NRT" }));

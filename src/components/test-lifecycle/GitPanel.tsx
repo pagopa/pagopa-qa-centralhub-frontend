@@ -5,11 +5,11 @@ import { SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
   usePublishTlRevision,
-  useRetryTlImportCleanup,
+  useTlBranchSync,
   useTlIssues,
   useUpdateTlIssue,
 } from "@/hooks/useTestLifecycle";
-import { apiErrorMessage, PR_STATE_LABEL, safeHttpUrl } from "@/lib/test-lifecycle";
+import { apiErrorMessage, BRANCH_SYNC_LABEL, PR_STATE_LABEL, safeHttpUrl } from "@/lib/test-lifecycle";
 import type { TlFeatureDetail } from "@/types/test-lifecycle";
 import { IssueList } from "./IssueList";
 
@@ -22,14 +22,19 @@ export function GitPanel({ feature, disabled = false }: { feature: TlFeatureDeta
   const publish = usePublishTlRevision();
   const issues = useTlIssues({ feature_id: feature.id });
   const updateIssue = useUpdateTlIssue();
-  const retryCleanup = useRetryTlImportCleanup();
   const source = feature.import_source;
   const sourceUrl = safeHttpUrl(source?.url);
-  const cleanupUrl = safeHttpUrl(source?.cleanup.pr_url);
   const [error, setError] = useState<string | null>(null);
 
   const revision = feature.working_revision ?? feature.published_revision;
   const prUrl = safeHttpUrl(revision?.pr_url);
+  // The state is only meaningful while the revision can still change on its branch: a merged one
+  // keeps its branch name, but the branch may be gone and "Branch da creare" would be wrong.
+  const syncing =
+    !!revision?.work_branch &&
+    (revision.status === "draft" || revision.status === "in_review" || revision.status === "approved");
+  const sync = useTlBranchSync(feature.id, revision?.id, syncing);
+  const compareUrl = safeHttpUrl(sync.data?.compare_url);
   const canRetry =
     !!revision &&
     revision.status === "approved" &&
@@ -53,6 +58,22 @@ export function GitPanel({ feature, disabled = false }: { feature: TlFeatureDeta
       <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-[13px]">
         <dt className="text-text-muted">File</dt>
         <dd className="font-mono break-all text-text">{feature.git_path ?? "Non ancora creato"}</dd>
+        <dt className="text-text-muted">Branch di lavoro</dt>
+        <dd className="flex flex-wrap items-center gap-2 text-text">
+          {revision?.work_branch ? (
+            <>
+              <span className="font-mono break-all">{revision.work_branch}</span>
+              {sync.data && <span className="text-text-muted">{BRANCH_SYNC_LABEL[sync.data.state]}</span>}
+              {compareUrl && (
+                <a href={compareUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
+                  Confronta su GitHub
+                </a>
+              )}
+            </>
+          ) : (
+            <span className="text-text-muted">{BRANCH_SYNC_LABEL.no_branch}</span>
+          )}
+        </dd>
         <dt className="text-text-muted">Pull request</dt>
         <dd className="text-text">
           {revision?.pr_number ? (
@@ -91,37 +112,6 @@ export function GitPanel({ feature, disabled = false }: { feature: TlFeatureDeta
             )}{" "}
             · <span className="font-mono break-all">{source.path}</span>
           </span>
-          <span className="text-text-muted">
-            {source.cleanup.state === "pending" && "PR di pulizia: verrà aperta all'approvazione."}
-            {source.cleanup.state === "not_needed" && `PR di pulizia non necessaria${source.cleanup.note ? `: ${source.cleanup.note}` : "."}`}
-            {source.cleanup.state === "open" && (
-              <>
-                PR di pulizia sul branch di partenza:{" "}
-                {cleanupUrl ? (
-                  <a href={cleanupUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
-                    #{source.cleanup.pr_number}
-                  </a>
-                ) : (
-                  <span>#{source.cleanup.pr_number}</span>
-                )}
-              </>
-            )}
-          </span>
-          {source.cleanup.state === "error" && (
-            <>
-              <p role="alert" style={{ color: "var(--danger)" }}>PR di pulizia non creata: {source.cleanup.error}</p>
-              {(can("edit:tl_feature") || can("manage:tl_git")) && (
-                <button
-                  type="button"
-                  className={`${SECONDARY_BUTTON_CLASS} w-fit`}
-                  disabled={disabled || retryCleanup.isPending}
-                  onClick={() => void retryCleanup.mutateAsync({ featureId: feature.id }).catch(() => undefined)}
-                >
-                  Riprova PR di pulizia
-                </button>
-              )}
-            </>
-          )}
         </div>
       )}
 

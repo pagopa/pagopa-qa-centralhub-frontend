@@ -2,6 +2,7 @@ import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import type {
+  TlBranchSync,
   TlComment,
   TlDeleteKind,
   TlDeletePreview,
@@ -65,6 +66,7 @@ function useInvalidateFeature() {
       qc.invalidateQueries({ queryKey: ["tl", "preview", featureId] }),
       qc.invalidateQueries({ queryKey: ["tl", "issues"] }),
       qc.invalidateQueries({ queryKey: ["tl", "rebase", featureId] }),
+      qc.invalidateQueries({ queryKey: ["tl", "branch-sync", featureId] }),
     ]);
 }
 
@@ -239,15 +241,23 @@ export function useTlTransition() {
       revisionId,
       action,
       note,
+      branchName,
     }: {
       featureId: string;
       revisionId: string;
       action: TlTransitionAction;
       note?: string | null;
+      /** Only for `reopen`: name of the working branch; the backend generates one by default. */
+      branchName?: string | null;
     }) =>
       apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/revisions/${revisionId}/transitions`, {
         method: "POST",
-        body: JSON.stringify({ action, actor_email: actor, ...(note ? { note } : {}) }),
+        body: JSON.stringify({
+          action,
+          actor_email: actor,
+          ...(note ? { note } : {}),
+          ...(branchName ? { branch_name: branchName } : {}),
+        }),
       }),
     onSuccess: (_d, vars) => invalidate(vars.featureId),
   });
@@ -687,12 +697,48 @@ export function useImportTlGit() {
   });
 }
 
-export function useRetryTlImportCleanup() {
+export function useTlBranchSync(
+  featureId: string | undefined,
+  revisionId: string | undefined,
+  enabled: boolean,
+) {
+  return useQuery<TlBranchSync>({
+    queryKey: ["tl", "branch-sync", featureId, revisionId],
+    queryFn: () =>
+      apiClient<TlBranchSync>(`${BASE}/features/${featureId}/revisions/${revisionId}/git-sync`),
+    enabled: enabled && !!featureId && !!revisionId,
+  });
+}
+
+/** "Salva tutti" towards the repository: one commit of the feature file on the working branch. */
+export function usePushTlBranch() {
   const actor = useActorEmail();
   const invalidate = useInvalidateFeature();
   return useMutation({
-    mutationFn: ({ featureId }: { featureId: string }) =>
-      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/import-cleanup`, {
+    mutationFn: ({
+      featureId,
+      revisionId,
+      overwrite = false,
+    }: {
+      featureId: string;
+      revisionId: string;
+      overwrite?: boolean;
+    }) =>
+      apiClient<TlBranchSync>(`${BASE}/features/${featureId}/revisions/${revisionId}/git-sync/push`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor, overwrite }),
+      }),
+    onSuccess: (_d, vars) => invalidate(vars.featureId),
+  });
+}
+
+/** "Accetta dal repo": replaces the draft content with the file on the working branch. */
+export function usePullTlBranch() {
+  const actor = useActorEmail();
+  const invalidate = useInvalidateFeature();
+  return useMutation({
+    mutationFn: ({ featureId, revisionId }: { featureId: string; revisionId: string }) =>
+      apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/revisions/${revisionId}/git-sync/pull`, {
         method: "POST",
         body: JSON.stringify({ actor_email: actor }),
       }),

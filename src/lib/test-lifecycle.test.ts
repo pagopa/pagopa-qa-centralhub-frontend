@@ -3,11 +3,14 @@ import { ApiError } from "@/lib/api";
 import {
   addCustomTag,
   apiErrorCode,
+  BRANCH_SYNC_LABEL,
+  BRANCH_SYNC_STATES,
   apiErrorReasons,
   defaultTestType,
   FEATURE_STATUS_LABEL,
   isStaleLockError,
   lineDiff,
+  needsDecision,
   removeTag,
   RESERVED_TAGS,
   setStatusTag,
@@ -246,5 +249,35 @@ describe("defaultTestType", () => {
     expect(defaultTestType("src/integrationx")).toBeNull();
     expect(defaultTestType(null)).toBeNull();
     expect(defaultTestType("")).toBeNull();
+  });
+});
+
+
+describe("branch sync helpers", () => {
+  it("lists the nine states the backend can report", () => {
+    expect([...BRANCH_SYNC_STATES].sort()).toEqual(
+      [
+        "branch_missing",
+        "diverged",
+        "file_missing",
+        "hub_ahead",
+        "in_sync",
+        "no_branch",
+        "not_configured",
+        "repo_ahead",
+        "unreachable",
+      ].sort(),
+    );
+  });
+
+  it("gives every state an Italian label", () => {
+    for (const state of BRANCH_SYNC_STATES) expect(BRANCH_SYNC_LABEL[state]).toMatch(/\S/);
+    expect(Object.keys(BRANCH_SYNC_LABEL).sort()).toEqual([...BRANCH_SYNC_STATES].sort());
+  });
+
+  it("asks for a decision only when the repository changed", () => {
+    for (const state of BRANCH_SYNC_STATES) {
+      expect(needsDecision(state)).toBe(state === "repo_ahead" || state === "diverged");
+    }
   });
 });

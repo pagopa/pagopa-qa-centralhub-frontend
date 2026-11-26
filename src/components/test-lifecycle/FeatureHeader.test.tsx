@@ -23,7 +23,7 @@ const FEATURE = {
     description: null, background_steps: null, requirements_url: null, product_issue_key: null,
     reverse_engineering: false, design_estimate_days: null, impl_estimate_days: null,
     created_by: "a@x.it", approved_by: null, approved_at: null, created_at: "", updated_at: "",
-    scenarios: [], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, base_stale: false, merged_commit_sha: null,
+    scenarios: [], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, work_branch: null, base_stale: false, merged_commit_sha: null,
   },
   published_revision: null,
   git_path: null,
@@ -69,6 +69,52 @@ describe("FeatureHeader", () => {
     await userEvent.type(screen.getByLabelText("Nota per l'autore"), "Manca il caso negativo");
     await userEvent.click(confirm);
     expect(onTransition).toHaveBeenCalledWith("request_changes", "Manca il caso negativo");
+  });
+
+  describe("Riapri", () => {
+    const published = { ...FEATURE.working_revision!, id: "r9", number: 3, status: "merged" as TlRevisionStatus };
+    const implemented = {
+      ...FEATURE,
+      status: "implemented",
+      working_revision: null,
+      published_revision: published,
+    } as TlFeatureDetail;
+
+    it("opens a popup with the proposed branch instead of reopening at once", async () => {
+      const onTransition = vi.fn().mockResolvedValue(undefined);
+      render(<FeatureHeader feature={implemented} onTransition={onTransition} />);
+      await userEvent.click(screen.getByRole("button", { name: "Riapri" }));
+      expect(onTransition).not.toHaveBeenCalled();
+      expect(await screen.findByLabelText("Nome del branch")).toHaveValue("qa-hub/FEAT_001_FdR3-r4");
+    });
+
+    it("reopens with no branch name when the proposal is kept", async () => {
+      const onTransition = vi.fn().mockResolvedValue(undefined);
+      render(<FeatureHeader feature={implemented} onTransition={onTransition} />);
+      await userEvent.click(screen.getByRole("button", { name: "Riapri" }));
+      await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Riapri" }));
+      expect(onTransition).toHaveBeenCalledWith("reopen", undefined, undefined);
+    });
+
+    it("reopens with the branch name the person typed", async () => {
+      const onTransition = vi.fn().mockResolvedValue(undefined);
+      render(<FeatureHeader feature={implemented} onTransition={onTransition} />);
+      await userEvent.click(screen.getByRole("button", { name: "Riapri" }));
+      const field = await screen.findByLabelText("Nome del branch");
+      await userEvent.clear(field);
+      await userEvent.type(field, "feature/pos-fix");
+      await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Riapri" }));
+      expect(onTransition).toHaveBeenCalledWith("reopen", undefined, "feature/pos-fix");
+    });
+
+    it("keeps the popup open with the error when the reopen fails", async () => {
+      const onTransition = vi.fn().mockResolvedValue(false);
+      render(<FeatureHeader feature={implemented} onTransition={onTransition} error="Nome del branch non valido" />);
+      await userEvent.click(screen.getByRole("button", { name: "Riapri" }));
+      await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Riapri" }));
+      expect(await screen.findByLabelText("Nome del branch")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("Nome del branch non valido");
+    });
   });
 
   it("disables every transition while the session loads", () => {

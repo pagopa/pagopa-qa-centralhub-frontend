@@ -34,6 +34,8 @@ export function useDraftSave<D, P extends object>({
   const draftRef = useRef(draft);
   const savingRef = useRef(false);
   const saved = useRef(initial);
+  // the saved draft as state too, so `dirty` is a pure function of what is rendered
+  const [savedState, setSavedState] = useState<D>(initial);
   const chain = useRef<Promise<boolean>>(Promise.resolve(true));
   const latest = useRef({ diff, persist, onSaved, disabled });
   useEffect(() => {
@@ -57,6 +59,7 @@ export function useDraftSave<D, P extends object>({
     try {
       const result = await p(patch);
       saved.current = next;
+      setSavedState(next);
       done?.(result);
       return true;
     } catch (err) {
@@ -86,5 +89,8 @@ export function useDraftSave<D, P extends object>({
     return registerFlush(() => saveRef.current(), isDirty);
   }, [registerFlush]);
 
-  return { draft, setDraft, save, saving, error, setError };
+  /** The draft differs from the last saved one (also while that save is in flight). */
+  const dirty = Object.keys(diff(savedState, draft)).length > 0;
+
+  return { draft, setDraft, save, saving, error, setError, dirty };
 }

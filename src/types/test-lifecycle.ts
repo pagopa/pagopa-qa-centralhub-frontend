@@ -117,6 +117,8 @@ export interface TlRevision {
   pr_url: string | null;
   pr_state: TlPrState | null;
   pr_error: string | null;
+  /** Working branch in the central repository (import, reopen, approval); null for a hub-only draft. */
+  work_branch: string | null;
   base_stale: boolean;
   merged_commit_sha: string | null;
 }
@@ -193,7 +195,8 @@ export interface TlImportSource {
   path: string;
   blob_sha: string;
   imported_at: string;
-  cleanup: TlImportCleanup;
+  /** Only present on features imported before the cleanup PR was removed. */
+  cleanup?: TlImportCleanup;
 }
 
 export interface TlImportGitResult {
@@ -639,4 +642,26 @@ export interface TlTagCleanup {
   proposed_test_type: TlTestType | null;
   /** Why the cleanup cannot be applied (disagreeing types); null when it can. */
   conflict: string | null;
+}
+
+/** Comparison of a draft with its working branch (backend `GET .../git-sync`). */
+export type TlBranchSyncState =
+  | "no_branch"
+  | "branch_missing"
+  | "file_missing"
+  | "in_sync"
+  | "hub_ahead"
+  | "repo_ahead"
+  | "diverged"
+  | "unreachable"
+  | "not_configured";
+
+export interface TlBranchSync {
+  branch: string | null;
+  state: TlBranchSyncState;
+  /** The hub content is not on the repository yet. */
+  hub_unsynced: boolean;
+  /** The file on the branch changed since the last sync. */
+  repo_changed: boolean;
+  compare_url: string | null;
 }

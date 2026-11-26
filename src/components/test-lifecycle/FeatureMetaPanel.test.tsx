@@ -31,7 +31,7 @@ function revision(overrides: Partial<TlRevision> = {}): TlRevision {
     reverse_engineering: false, design_estimate_days: null, impl_estimate_days: null,
     created_by: "anna@x.it", approved_by: null, approved_at: null,
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",
-    scenarios: [], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, base_stale: false, merged_commit_sha: null,
+    scenarios: [], background_errors: [], origin: "hub", pr_number: null, pr_url: null, pr_state: null, pr_error: null, work_branch: null, base_stale: false, merged_commit_sha: null,
     ...overrides,
   };
 }

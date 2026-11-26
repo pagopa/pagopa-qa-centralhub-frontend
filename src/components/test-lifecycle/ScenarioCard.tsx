@@ -123,7 +123,7 @@ export function ScenarioCard({
   const { errors, setErrors, validationError, schedule } = useLiveValidation(scenario.errors);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
-  const { draft, setDraft, save, saving, error: saveError, setError: setSaveError } = useDraftSave<Draft, ScenarioPatch>({
+  const { draft, setDraft, save, saving, error: saveError, setError: setSaveError, dirty } = useDraftSave<Draft, ScenarioPatch>({
     initial: toDraft(scenario),
     diff,
     persist: onSave,
@@ -433,6 +433,11 @@ export function ScenarioCard({
           <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={saving || stale} onClick={() => void save()}>
             Salva
           </button>
+          {dirty && (
+            <span className="text-[12px]" style={{ color: "var(--warning, var(--text-dim))" }}>
+              Modifiche non salvate
+            </span>
+          )}
         </footer>
       )}
         </div>
