@@ -8,6 +8,7 @@ import { useDraftSave } from "@/hooks/useDraftSave";
 import { useUsers } from "@/hooks/useUsers";
 import { useStoredFlag } from "@/lib/stored-flag";
 import { parseJiraIssueKey } from "@/utils/jiraIssue";
+import { GenerateSynopsisButton } from "./GenerateSynopsisButton";
 import { PersonChip } from "./PersonChip";
 import {
   JIRA_CATEGORY_COLOR,
@@ -152,6 +153,8 @@ export function FeatureMetaPanel({
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useStoredFlag("qa-hub-tl-meta-open", true);
   const contentId = useId();
+  const descriptionId = useId();
+  const [synopsisError, setSynopsisError] = useState<string | null>(null);
 
   const activeUsers = users?.items.filter((u) => u.is_active) ?? [];
 
@@ -372,15 +375,35 @@ export function FeatureMetaPanel({
         )}
       </div>
 
-      <Field label="Descrizione">
+      <div className="flex min-w-0 flex-col gap-1 font-mono text-[11px] uppercase text-text-dim">
+        <div className="flex items-center gap-1.5">
+          <label htmlFor={descriptionId} className="truncate">Descrizione</label>
+          {!readOnly && !stale && revision && (
+            <GenerateSynopsisButton
+              featureId={feature.id}
+              revisionId={revision.id}
+              hasText={rev.description.trim() !== ""}
+              onGenerated={(synopsis) => {
+                // Same path as typing and leaving the field: update the draft, then save it.
+                setRev({ ...rev, description: synopsis });
+                saveRevision();
+              }}
+              onError={setSynopsisError}
+            />
+          )}
+        </div>
         <textarea
-          className="min-h-20 rounded-[var(--radius-sm)] border border-border-strong bg-surface p-2 text-[14px] text-text outline-none focus:border-accent"
+          id={descriptionId}
+          className="min-h-20 rounded-[var(--radius-sm)] border border-border-strong bg-surface p-2 text-[14px] normal-case text-text outline-none focus:border-accent"
           value={rev.description}
           readOnly={readOnly}
           onChange={(e) => setRev({ ...rev, description: e.target.value })}
           onBlur={saveRevision}
         />
-      </Field>
+        {synopsisError && (
+          <p role="alert" className="text-[12px] normal-case text-danger">{synopsisError}</p>
+        )}
+      </div>
       </Section>
 
       <Section title="Persone">

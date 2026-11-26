@@ -35,6 +35,7 @@ import type {
   TlStepKeyword,
   TlStepSuggestion,
   TlPreview,
+  TlSynopsis,
   TlRevision,
   TlRevisionUpdate,
   TlScenario,
@@ -329,6 +330,16 @@ export function useTlPreview(featureId: string | undefined, revId: string | unde
     queryKey: ["tl", "preview", featureId, revId],
     queryFn: () => apiClient<TlPreview>(`${BASE}/features/${featureId}/revisions/${revId}/preview`),
     enabled: !!featureId && !!revId,
+  });
+}
+
+/** Sinossi generata dal backend (Gemini) dal testo dell'anteprima file; non salva nulla. */
+export function useGenerateTlSynopsis() {
+  return useMutation({
+    mutationFn: ({ featureId, revisionId }: { featureId: string; revisionId: string }) =>
+      apiClient<TlSynopsis>(`${BASE}/features/${featureId}/revisions/${revisionId}/synopsis`, {
+        method: "POST",
+      }),
   });
 }
 

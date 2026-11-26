@@ -331,6 +331,12 @@ export interface TlPreview {
   errors: TlPreviewError[];
 }
 
+export interface TlSynopsis {
+  synopsis: string;
+  max_words: number;
+  model: string;
+}
+
 export interface GherkinError {
   line: number;
   message: string;

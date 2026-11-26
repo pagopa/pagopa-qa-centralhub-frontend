@@ -6,11 +6,12 @@ import type { TlFeatureDetail, TlRevision } from "@/types/test-lifecycle";
 import { FeatureMetaPanel, TITLE_REQUIRED } from "./FeatureMetaPanel";
 import type { RegisterFlush } from "@/lib/test-lifecycle";
 
-const mocks = vi.hoisted(() => ({ mutate: vi.fn(), createTask: vi.fn() }));
+const mocks = vi.hoisted(() => ({ mutate: vi.fn(), createTask: vi.fn(), generate: vi.fn() }));
 
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useUpdateTlFeature: () => ({ mutate: mocks.mutate }),
   useCreateTlJiraTask: () => ({ mutateAsync: mocks.createTask, isPending: false }),
+  useGenerateTlSynopsis: () => ({ mutate: mocks.generate, isPending: false }),
 }));
 vi.mock("@/hooks/useUsers", () => ({
   useUsers: () => ({
@@ -79,6 +80,48 @@ describe("FeatureMetaPanel", () => {
     });
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  describe("Genera con AI", () => {
+    beforeEach(() => {
+      mocks.generate.mockReset();
+    });
+
+    it("fills the description with the generated synopsis and saves it", async () => {
+      mocks.generate.mockImplementation((...a: unknown[]) => {
+        (a[1] as { onSuccess: (o: unknown) => void }).onSuccess({ synopsis: "Verifica il pagamento.", max_words: 30, model: "m" });
+      });
+      const { onSaveRevision } = renderPanel();
+      fireEvent.click(screen.getByRole("button", { name: "Genera con AI" }));
+      expect(mocks.generate.mock.calls[0][0]).toEqual({ featureId: "f1", revisionId: "r1" });
+      expect(screen.getByLabelText("Descrizione")).toHaveValue("Verifica il pagamento.");
+      await waitFor(() => expect(onSaveRevision).toHaveBeenCalledWith({ description: "Verifica il pagamento." }));
+    });
+
+    it("asks before overwriting an existing description", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      renderPanel({ rev: revision({ description: "Scritta a mano" }) });
+      fireEvent.click(screen.getByRole("button", { name: "Genera con AI" }));
+      expect(confirm).toHaveBeenCalled();
+      expect(mocks.generate).not.toHaveBeenCalled();
+      expect(screen.getByLabelText("Descrizione")).toHaveValue("Scritta a mano");
+      confirm.mockRestore();
+    });
+
+    it("shows the error and keeps the description", async () => {
+      mocks.generate.mockImplementation((_vars: unknown, opts: { onError: (e: unknown) => void }) =>
+        opts.onError(new ApiError(503, { detail: { code: "synopsis_unavailable", message: "Generazione non configurata" } })),
+      );
+      renderPanel({ rev: revision({ description: null }) });
+      fireEvent.click(screen.getByRole("button", { name: "Genera con AI" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Generazione non configurata");
+      expect(screen.getByLabelText("Descrizione")).toHaveValue("");
+    });
+
+    it("is not offered when the panel is read-only", () => {
+      renderPanel({ readOnly: true });
+      expect(screen.queryByRole("button", { name: "Genera con AI" })).not.toBeInTheDocument();
+    });
+  });
 
   it("lists only active users in the pickers and never the owner as reviewer", () => {
     renderPanel();

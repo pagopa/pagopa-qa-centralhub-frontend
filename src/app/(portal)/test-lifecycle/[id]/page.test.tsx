@@ -78,6 +78,7 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlRebase: () => ({ data: mocks.rebaseView, isLoading: false, isError: false }),
   useTlVersion: () => ({ data: undefined, isLoading: false, isError: false }),
   useTlPreview: () => ({ data: { file: "# qa-hub: FEAT_001_FdR3", errors: [] }, isLoading: false }),
+  useGenerateTlSynopsis: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 function sc(id: string, n: number, title: string): TlScenario {
