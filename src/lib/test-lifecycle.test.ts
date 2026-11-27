@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/api";
 import {
   addCustomTag,
+  apiErrorBlocked,
   apiErrorCode,
   BRANCH_SYNC_LABEL,
   BRANCH_SYNC_STATES,
@@ -279,5 +280,31 @@ describe("branch sync helpers", () => {
     for (const state of BRANCH_SYNC_STATES) {
       expect(needsDecision(state)).toBe(state === "repo_ahead" || state === "diverged");
     }
+  });
+});
+
+
+describe("apiErrorBlocked", () => {
+  const blocked = [
+    { feature_id: "f1", code: "FEAT_001_FdR3", reasons: ["Ha una PR aperta"] },
+    { feature_id: "f2", code: "FEAT_002_FdR3", reasons: ["Il file è già su main"] },
+  ];
+
+  it.each(["adapt_blocked", "scope_code_blocked"])("returns the blocking features of %s", (code) => {
+    expect(apiErrorBlocked(new ApiError(409, { detail: { code, blocked } }))).toEqual(blocked);
+  });
+
+  it("is empty for any other error", () => {
+    expect(apiErrorBlocked(new ApiError(409, { detail: { code: "stale_lock", blocked } }))).toEqual([]);
+    expect(apiErrorBlocked(new ApiError(500, null))).toEqual([]);
+    expect(apiErrorBlocked(new Error("x"))).toEqual([]);
+    expect(apiErrorBlocked(undefined)).toEqual([]);
+  });
+
+  it("ignores malformed entries", () => {
+    const err = new ApiError(409, {
+      detail: { code: "adapt_blocked", blocked: [{ feature_id: "f1" }, "x", { feature_id: "f2", code: "C", reasons: ["r"] }] },
+    });
+    expect(apiErrorBlocked(err)).toEqual([{ feature_id: "f2", code: "C", reasons: ["r"] }]);
   });
 });

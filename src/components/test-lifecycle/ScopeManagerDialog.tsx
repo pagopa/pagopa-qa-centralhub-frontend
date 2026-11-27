@@ -15,15 +15,13 @@ import {
   ROW_ICON_CLASS,
   SECONDARY_BUTTON_CLASS,
 } from "@/components/ui/formStyles";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCreateTlScope, useTlScopes, useUpdateTlScope } from "@/hooks/useTestLifecycle";
-import { apiErrorCode, apiErrorMessage } from "@/lib/test-lifecycle";
+import { apiErrorBlocked, apiErrorCode, apiErrorMessage } from "@/lib/test-lifecycle";
 import { QaEpicPicker } from "./QaEpicPicker";
 import type { TlScope } from "@/types/test-lifecycle";
 
 const CODE_PATTERN = /^[A-Za-z][A-Za-z0-9]{1,19}$/;
 const NOT_DELETABLE_HINT = "Ambito con feature pubblicate o PR aperte: non eliminabile";
-const LOCKED_REASON = "Il codice non può cambiare: esistono già feature in questo ambito";
 
 interface FormState {
   code: string;
@@ -78,9 +76,10 @@ export function ScopeManagerDialog({
 
   const mutation = editing === "new" ? createScope : updateScope;
   const isPending = mutation.isPending;
-  const codeLocked = editing !== null && editing !== "new" && editing.feature_count > 0;
+  const hasFeatures = editing !== null && editing !== "new" && editing.feature_count > 0;
   const codeValid = CODE_PATTERN.test(form.code.trim());
-  const canSubmit = !!form.name.trim() && (codeLocked || codeValid) && !isPending;
+  const canSubmit = !!form.name.trim() && codeValid && !isPending;
+  const blocked = apiErrorBlocked(mutation.error);
 
   const startEdit = (target: TlScope | "new") => {
     createScope.reset();
@@ -111,7 +110,7 @@ export function ScopeManagerDialog({
       updateScope.mutate(
         {
           id: editing.id,
-          ...(codeLocked || form.code.trim() === editing.code ? {} : { code: form.code.trim() }),
+          ...(form.code.trim() === editing.code ? {} : { code: form.code.trim() }),
           ...common,
         },
         done,
@@ -135,7 +134,6 @@ export function ScopeManagerDialog({
       className={`${INPUT_CLASS} w-full`}
       value={form.code}
       onChange={set("code")}
-      disabled={codeLocked}
       placeholder="Es. FdR3"
     />
   );
@@ -155,8 +153,8 @@ export function ScopeManagerDialog({
             {scopes?.length === 0 && <p className="text-text-muted text-[13px]">Nessun ambito definito</p>}
             {scopes?.map((s) => (
               <div key={s.id} className="flex items-center gap-2 text-[13px]">
-                <span className="font-mono font-semibold w-24 shrink-0">{s.code}</span>
-                <span className="flex-1 text-text-dim truncate">{s.name}</span>
+                <span className="flex-1 font-semibold truncate">{s.name}</span>
+                <span className="font-mono text-text-dim text-[12px] shrink-0">{s.code}</span>
                 <span className="font-mono text-text-muted text-[12px]">{s.feature_count} feature</span>
                 <button
                   type="button"
@@ -186,16 +184,15 @@ export function ScopeManagerDialog({
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
               <label htmlFor="tl-scope-code">Codice</label>
-              {codeLocked ? (
-                <Tooltip>
-                  <TooltipTrigger render={<span className="block" tabIndex={0} />}>{codeInput}</TooltipTrigger>
-                  <TooltipContent>{LOCKED_REASON}</TooltipContent>
-                </Tooltip>
-              ) : (
-                codeInput
-              )}
-              {!codeLocked && form.code && !codeValid && (
+              {codeInput}
+              {form.code && !codeValid && (
                 <span className="text-danger">2-20 caratteri alfanumerici, il primo è una lettera</span>
+              )}
+              {hasFeatures && (
+                <span className="normal-case font-sans text-[12px] text-text-dim">
+                  Cambiando il codice cambiano anche codici e tag delle feature dell&apos;ambito, se si
+                  possono adeguare; altrimenti la modifica è bloccata.
+                </span>
               )}
             </div>
             <label className="flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted">
@@ -226,6 +223,18 @@ export function ScopeManagerDialog({
             </label>
             {errorText && (
               <p role="alert" className="text-danger text-[13px]">{errorText}</p>
+            )}
+            {blocked.length > 0 && (
+              <ul
+                aria-label="Feature che impediscono la modifica"
+                className="flex flex-col gap-1 rounded-[var(--radius-sm)] border border-border bg-subtle p-2 text-[12px]"
+              >
+                {blocked.map((b) => (
+                  <li key={b.feature_id}>
+                    <span className="font-mono font-semibold">{b.code}</span>: {b.reasons.join(" ")}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}

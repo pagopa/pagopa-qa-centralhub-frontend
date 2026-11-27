@@ -48,10 +48,43 @@ beforeEach(() => {
 });
 
 describe("ScopeManagerDialog", () => {
-  it("disables the code field when the scope has features", async () => {
+  it("keeps the code editable even when the scope has features, and says what it does", async () => {
     render(<ScopeManagerDialog open onOpenChange={() => {}} />);
     await userEvent.click(screen.getByRole("button", { name: "Modifica ambito FdR3" }));
-    expect(screen.getByLabelText("Codice")).toBeDisabled();
+    expect(screen.getByLabelText("Codice")).toBeEnabled();
+    expect(screen.getByText(/cambiano anche codici e tag delle feature/i)).toBeInTheDocument();
+  });
+
+  it("sends the new code of a scope that has features", async () => {
+    render(<ScopeManagerDialog open onOpenChange={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: "Modifica ambito FdR3" }));
+    const code = screen.getByLabelText("Codice");
+    await userEvent.clear(code);
+    await userEvent.type(code, "WISP");
+    await userEvent.click(screen.getByRole("button", { name: "Salva" }));
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s1", code: "WISP" }),
+      expect.anything(),
+    );
+  });
+
+  it("lists the features that block a code change and stays open", async () => {
+    mocks.updateError = new ApiError(409, {
+      detail: {
+        code: "scope_code_blocked",
+        message: "Il codice non si può cambiare",
+        blocked: [
+          { feature_id: "f1", code: "FEAT_001_FdR3", reasons: ["Il file è già su main con i codici e i tag dell'hub"] },
+          { feature_id: "f2", code: "FEAT_002_FdR3", reasons: ["Ha una PR aperta"] },
+        ],
+      },
+    });
+    render(<ScopeManagerDialog open onOpenChange={() => {}} initialEditScope={SCOPES[0]} />);
+    const list = screen.getByRole("list", { name: "Feature che impediscono la modifica" });
+    expect(list).toHaveTextContent("FEAT_001_FdR3");
+    expect(list).toHaveTextContent("Il file è già su main");
+    expect(list).toHaveTextContent("FEAT_002_FdR3");
+    expect(screen.getByLabelText("Codice")).toBeInTheDocument();
   });
 
   it("keeps the code editable for a scope without features", async () => {

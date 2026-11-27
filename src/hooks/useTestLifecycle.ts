@@ -25,6 +25,8 @@ import type {
   TlJiraLink,
   TlJiraTaskKind,
   TlMigrationDecision,
+  TlMoveRequest,
+  TlMoveResult,
   TlMigrationItem,
   TlMigrationItemFilters,
   TlMigrationOverrides,
@@ -93,7 +95,13 @@ export function useUpdateTlScope() {
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & TlScopeUpdate) =>
       apiClient<TlScope>(`${BASE}/scopes/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tl", "scopes"] }),
+    onSuccess: () =>
+      // a new code changes the code and tags of the scope's features too
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ["tl", "scopes"] }),
+        qc.invalidateQueries({ queryKey: ["tl", "features"] }),
+        qc.invalidateQueries({ queryKey: ["tl", "feature"] }),
+      ]),
   });
 }
 
@@ -135,6 +143,27 @@ export function useCreateTlFeature() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tl", "features"] });
       qc.invalidateQueries({ queryKey: ["tl", "scopes"] });
+    },
+  });
+}
+
+export function useMoveTlFeatures() {
+  const qc = useQueryClient();
+  const actor = useActorEmail();
+  return useMutation({
+    mutationFn: ({ featureIds, targetScopeId }: TlMoveRequest) =>
+      apiClient<TlMoveResult>(`${BASE}/features/move`, {
+        method: "POST",
+        body: JSON.stringify({
+          feature_ids: featureIds,
+          target_scope_id: targetScopeId,
+          actor_email: actor,
+        }),
+      }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["tl", "features"] });
+      qc.invalidateQueries({ queryKey: ["tl", "scopes"] });
+      for (const id of vars.featureIds) qc.invalidateQueries({ queryKey: ["tl", "feature", id] });
     },
   });
 }

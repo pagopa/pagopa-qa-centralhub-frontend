@@ -1,5 +1,6 @@
 import { ApiError } from "@/lib/api";
 import type {
+  TlBlockedFeature,
   TlBranchSyncState,
   TlFeatureStatus,
   TlJiraCategory,
@@ -107,6 +108,20 @@ function errorDetail(err: unknown): Record<string, unknown> | null {
   return detail && typeof detail === "object" && !Array.isArray(detail)
     ? (detail as Record<string, unknown>)
     : null;
+}
+
+/** The features that block an adaptation (`adapt_blocked` / `scope_code_blocked`), else empty. */
+export function apiErrorBlocked(err: unknown): TlBlockedFeature[] {
+  const detail = errorDetail(err);
+  if (detail?.code !== "adapt_blocked" && detail?.code !== "scope_code_blocked") return [];
+  const list = Array.isArray(detail.blocked) ? detail.blocked : [];
+  return list.flatMap((b): TlBlockedFeature[] => {
+    if (!b || typeof b !== "object") return [];
+    const { feature_id, code, reasons } = b as Record<string, unknown>;
+    return typeof feature_id === "string" && typeof code === "string" && Array.isArray(reasons)
+      ? [{ feature_id, code, reasons: reasons.filter((r): r is string => typeof r === "string") }]
+      : [];
+  });
 }
 
 /** The backend error `detail.code` of an ApiError, or null. */
@@ -310,6 +325,7 @@ export function lineDiff(a: string, b: string): DiffLine[] {
 
 const EVENT_LABEL: Record<string, string> = {
   "tl.feature.created": "Feature creata",
+  "tl.feature.moved": "Feature spostata in un altro ambito",
   "tl.feature.updated": "Feature aggiornata",
   "tl.revision.submitted": "Revisione inviata in review",
   "tl.revision.approved": "Revisione approvata",

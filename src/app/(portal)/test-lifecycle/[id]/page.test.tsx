@@ -44,6 +44,8 @@ vi.mock("@/hooks/useUsers", () => ({ useUsers: () => ({ data: { items: [] } }) }
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlCategoryTags: () => ({ data: undefined }),
   useTlTagCleanup: () => ({ data: undefined }),
+  useTlScopes: () => ({ data: [{ id: "s1", code: "FdR3", name: "Fondo" }, { id: "s2", code: "WISP", name: "Dismissione WISP" }] }),
+  useMoveTlFeatures: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlBranchSync: () => ({ data: undefined }),
   usePushTlBranch: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePullTlBranch: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -92,7 +94,7 @@ function sc(id: string, n: number, title: string): TlScenario {
 }
 
 const FEATURE = {
-  id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3",
+  id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3", scope_name: null,
   design_owner_id: null, reviewer_id: null, impl_owner_id: null, test_type: null, jira_design_key: null,
   jira_impl_key: null, created_by: "a@x.it", created_at: "", updated_at: "",
   working_revision: {
@@ -173,6 +175,14 @@ describe("FeatureDetailPage", () => {
     expect(mocks.transition).toHaveBeenCalledWith(
       expect.objectContaining({ action: "reopen", revisionId: "r9", branchName: "feature/pos-fix" }),
     );
+  });
+
+  it("moves the feature from the header through the move dialog", async () => {
+    render(<FeatureDetailPage />);
+    await userEvent.click(screen.getByRole("button", { name: "Sposta" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("FEAT_001_FdR3");
+    expect(within(dialog).getByLabelText("Ambito di arrivo")).toBeInTheDocument();
   });
 
   it("keeps unsaved scenario text when switching tabs", async () => {

@@ -105,7 +105,7 @@ function CreateFeatureForm({
             <select className={SELECT_CLASS} value={scopeId} onChange={(e) => setScopeId(e.target.value)}>
               <option value="">Seleziona un ambito…</option>
               {scopes?.map((s) => (
-                <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
+                <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
               ))}
             </select>
           </label>

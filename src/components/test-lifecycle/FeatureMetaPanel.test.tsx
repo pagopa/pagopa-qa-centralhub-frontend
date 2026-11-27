@@ -38,7 +38,7 @@ function revision(overrides: Partial<TlRevision> = {}): TlRevision {
 
 function feature(rev: TlRevision, overrides: Partial<TlFeatureDetail> = {}): TlFeatureDetail {
   return {
-    id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3",
+    id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3", scope_name: null,
     design_owner_id: "u1", reviewer_id: "u2", impl_owner_id: null, test_type: null,
     jira_design_key: "PQ-1", jira_impl_key: null, created_by: "anna@x.it",
     created_at: "2026-11-01T10:00:00Z", updated_at: "2026-11-01T10:00:00Z",

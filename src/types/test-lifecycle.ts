@@ -45,6 +45,8 @@ export interface TlScope {
   nrt_pass_rate?: number | null;
   /** False when a feature of the scope is published on Git or has an open PR. */
   deletable: boolean;
+  /** Set on a code rename when the migration pull requests could not be refreshed. */
+  alignment_error?: string | null;
 }
 
 export interface TlScopeCreate {
@@ -138,6 +140,7 @@ export interface TlFeatureListItem {
   status: TlFeatureStatus;
   scope_id: string;
   scope_code: string;
+  scope_name: string | null;
   design_owner_id: string | null;
   reviewer_id: string | null;
   impl_owner_id: string | null;
@@ -155,6 +158,7 @@ export interface TlFeatureDetail {
   status: TlFeatureStatus;
   scope_id: string;
   scope_code: string;
+  scope_name: string | null;
   design_owner_id: string | null;
   reviewer_id: string | null;
   impl_owner_id: string | null;
@@ -363,7 +367,9 @@ export type TlErrorCode =
   | "not_reviewer"
   | "revision_not_commentable"
   | "scope_code_conflict"
-  | "scope_code_locked"
+  | "scope_code_blocked"
+  | "adapt_blocked"
+  | "migration_in_progress"
   | "git_not_configured"
   | "github_error"
   | "pr_not_allowed"
@@ -664,4 +670,30 @@ export interface TlBranchSync {
   /** The file on the branch changed since the last sync. */
   repo_changed: boolean;
   compare_url: string | null;
+}
+
+/** A feature that cannot be adapted to another scope (`adapt_blocked`, `scope_code_blocked`). */
+export interface TlBlockedFeature {
+  feature_id: string;
+  code: string;
+  reasons: string[];
+}
+
+export interface TlMoveRequest {
+  featureIds: string[];
+  targetScopeId: string;
+}
+
+export interface TlMoveItem {
+  feature_id: string;
+  old_code: string;
+  new_code: string;
+  old_scope_code: string;
+  new_scope_code: string;
+}
+
+export interface TlMoveResult {
+  moved: TlMoveItem[];
+  skipped: string[];
+  alignment_error: string | null;
 }

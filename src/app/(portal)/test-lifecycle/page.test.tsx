@@ -35,6 +35,7 @@ vi.mock("@/hooks/useUsers", () => ({
 }));
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlFeatures: mocks.useTlFeatures,
+  useMoveTlFeatures: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTlScopes: () => ({
     data: [
       { id: "s1", code: "FdR3", name: "Fondo rischi", area: "Core", feature_count: 1, status_counts: {}, deletable: true },
@@ -61,7 +62,7 @@ describe("TestLifecyclePage", () => {
   it("card click sets the scope filter without clearing the status filter", async () => {
     render(<TestLifecyclePage />);
     await userEvent.selectOptions(screen.getByLabelText("Stato"), "draft");
-    await userEvent.click(screen.getByRole("button", { name: /^FdR3/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Fondo rischi/ }));
     expect(mocks.useTlFeatures).toHaveBeenLastCalledWith({
       status: "draft",
       scope_id: "s1",
@@ -72,7 +73,7 @@ describe("TestLifecyclePage", () => {
 
   it("dialog opened after selecting a scope pre-selects it", async () => {
     render(<TestLifecyclePage />);
-    await userEvent.click(screen.getByRole("button", { name: /^FdR3/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Fondo rischi/ }));
     await userEvent.click(screen.getByRole("button", { name: /Nuova feature/ }));
     const dialog = screen.getByRole("dialog");
     expect(dialog.querySelector("select")).toHaveValue("s1");
@@ -87,7 +88,7 @@ describe("TestLifecyclePage scope actions", () => {
 
   it("deleting the selected scope clears the scope filter", async () => {
     render(<TestLifecyclePage />);
-    await userEvent.click(screen.getByRole("button", { name: /^FdR3/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Fondo rischi/ }));
     expect(screen.getByLabelText("Ambito")).toHaveValue("s1");
     await userEvent.click(screen.getByRole("button", { name: "Elimina ambito FdR3" }));
     expect(screen.getByTestId("delete-dialog")).toHaveTextContent("scope:s1");

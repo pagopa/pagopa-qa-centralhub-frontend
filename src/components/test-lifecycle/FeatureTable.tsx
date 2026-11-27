@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Trash2 } from "lucide-react";
-import { ROW_ICON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
+import { ROW_ICON_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
 import { Gate } from "@/lib/permissions";
 import { useTlFeatures, useTlScopes } from "@/hooks/useTestLifecycle";
 import { useUsers } from "@/hooks/useUsers";
 import { FEATURE_STATUS_LABEL } from "@/lib/test-lifecycle";
 import type { TlFeatureFilters, TlFeatureStatus } from "@/types/test-lifecycle";
 import { FeatureStatusBadge } from "./FeatureStatusBadge";
+import { MoveFeaturesDialog } from "./MoveFeaturesDialog";
 import { TlDeleteDialog, type TlDeleteTarget } from "./TlDeleteDialog";
 
 const LABEL_CLASS = "flex flex-col gap-1 font-mono text-[11px] uppercase text-text-muted";
@@ -29,6 +30,17 @@ export function FeatureTable({
   const { data: scopes } = useTlScopes();
   const { data: users } = useUsers();
   const [deleteTarget, setDeleteTarget] = useState<TlDeleteTarget | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveOpen, setMoveOpen] = useState(false);
+  // Only what is on screen counts: a filter that hides a row also drops it from the selection.
+  const selectedFeatures = (features ?? []).filter((f) => selected.has(f.id));
+  const allSelected = !!features?.length && selectedFeatures.length === features.length;
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
 
   const userNames = useMemo(
     () => new Map((users?.items ?? []).map((u) => [u.id, u.name])),
@@ -54,7 +66,7 @@ export function FeatureTable({
           >
             <option value="">Tutti</option>
             {scopes?.map((s) => (
-              <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
+              <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
             ))}
           </select>
         </label>
@@ -94,10 +106,39 @@ export function FeatureTable({
         <div className="rounded-[var(--radius)] border border-border overflow-x-auto bg-surface">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3">
             <span className="font-mono text-[13px] text-text-muted">{features?.length ?? 0} feature</span>
+            <Gate action="edit:tl_feature">
+              <div className="flex items-center gap-3">
+                {selectedFeatures.length > 0 && (
+                  <span className="text-[13px] text-text-dim">
+                    {selectedFeatures.length} {selectedFeatures.length === 1 ? "selezionata" : "selezionate"}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className={SECONDARY_BUTTON_CLASS}
+                  disabled={selectedFeatures.length === 0}
+                  onClick={() => setMoveOpen(true)}
+                >
+                  Sposta in…
+                </button>
+              </div>
+            </Gate>
           </div>
           <table className="w-full min-w-[760px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border bg-subtle">
+                <Gate action="edit:tl_feature">
+                  <th className="px-3 py-2 w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="Seleziona tutte"
+                      checked={allSelected}
+                      onChange={() =>
+                        setSelected(allSelected ? new Set() : new Set((features ?? []).map((f) => f.id)))
+                      }
+                    />
+                  </th>
+                </Gate>
                 <th className={`text-left ${TH_CLASS}`}>Codice</th>
                 <th className={`text-left ${TH_CLASS}`}>Titolo</th>
                 <th className={`text-left ${TH_CLASS}`}>Stato</th>
@@ -109,13 +150,23 @@ export function FeatureTable({
             <tbody>
               {features?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center px-4 py-8 text-text-muted">
+                  <td colSpan={7} className="text-center px-4 py-8 text-text-muted">
                     Nessuna feature trovata
                   </td>
                 </tr>
               )}
               {features?.map((f) => (
                 <tr key={f.id} className="border-b border-border last:border-0 hover:bg-subtle transition-colors">
+                  <Gate action="edit:tl_feature">
+                    <td className="px-3 py-2 w-8">
+                      <input
+                        type="checkbox"
+                        aria-label={`Seleziona ${f.code}`}
+                        checked={selected.has(f.id)}
+                        onChange={() => toggle(f.id)}
+                      />
+                    </td>
+                  </Gate>
                   <td className="px-4 py-2 font-mono">
                     <Link href={`/test-lifecycle/${f.id}`} className="text-accent hover:underline">
                       {f.code}
@@ -163,6 +214,16 @@ export function FeatureTable({
       )}
 
       <TlDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} />
+      <MoveFeaturesDialog
+        open={moveOpen}
+        features={selectedFeatures.map((f) => ({ id: f.id, code: f.code }))}
+        currentScopeIds={[...new Set(selectedFeatures.map((f) => f.scope_id))]}
+        onClose={() => setMoveOpen(false)}
+        onMoved={() => {
+          setMoveOpen(false);
+          setSelected(new Set());
+        }}
+      />
     </div>
   );
 }

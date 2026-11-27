@@ -165,6 +165,20 @@ function Design() {
           <li>Con l&apos;import l&apos;hub apre il <strong>branch di lavoro</strong> della bozza con il file nello stesso percorso. Il file originale resta dov&apos;è e il branch di partenza non viene mai modificato. Se GitHub non risponde, il branch viene creato al primo <strong>Salva tutti</strong>.</li>
         </ul>
       </Section>
+      <Section title="Rinominare ambiti e spostare feature">
+        <p>
+          Gli ambiti si possono riorganizzare in qualsiasi momento. Il <strong>nome</strong> (il titolo che vedi sulle
+          card) si cambia sempre; il <strong>codice</strong> (es. <Code>WISP</Code>: lettere e numeri, senza spazi) si
+          cambia da <strong>Gestisci ambiti</strong> e ricade su tutte le feature dell&apos;ambito.
+        </p>
+        <ul className="list-disc pl-5 flex flex-col gap-1">
+          <li>Per spostare feature in un altro ambito selezionale nella tabella e clicca <strong>Sposta in…</strong>, oppure usa <strong>Sposta</strong> nella pagina della feature.</li>
+          <li>La feature prende il codice, il numero e i tag degli scenari dell&apos;ambito di arrivo (es. <Code>FEAT_012_WISP</Code>); i vecchi tag restano come alias, così lo storico NRT non si perde.</li>
+          <li>Si può spostare solo una feature che <strong>non è già su main</strong> con i codici e i tag dell&apos;hub, senza una PR aperta e senza un branch di lavoro già scritto. Per le altre lo spostamento è rifiutato, con l&apos;elenco; la rinomina del codice di un ambito è rifiutata, con l&apos;elenco, se anche una sola feature non si può adeguare.</li>
+          <li>Se la migrazione da Confluence ha una <strong>PR di allineamento</strong> aperta, l&apos;hub la aggiorna: quella dell&apos;ambito di arrivo riceve i file con i nuovi codici, quella dell&apos;ambito di partenza li perde e viene chiusa se non resta nulla.</li>
+          <li>Il file resta nel suo percorso sul repository e i task Jira già creati non cambiano; i nuovi task seguono l&apos;Epic QA dell&apos;ambito di arrivo.</li>
+        </ul>
+      </Section>
       <Section title="3. Review">
         <Steps
           items={[
