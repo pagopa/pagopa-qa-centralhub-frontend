@@ -95,7 +95,7 @@ function Overview() {
           <li><strong>In review</strong>: la bozza è bloccata, il reviewer la valuta.</li>
           <li><strong>Progettata</strong>: la revisione è approvata e la PR è aperta su GitHub.</li>
           <li><strong>Implementata</strong>: il feature file è su <Code>main</Code> e coerente con la progettazione.</li>
-          <li><strong>In esecuzione</strong>: almeno uno scenario è stato eseguito da una run NRT (vedi tab NRT).</li>
+          <li><strong>In esecuzione NRT</strong> non è una fase ma un <strong>badge</strong> accanto allo stato: compare quando almeno uno scenario è stato eseguito da una run NRT (vedi tab NRT) e resta anche se riapri la feature. Lo stato mostrato è sempre quello della modifica in corso: una feature riaperta torna <strong>Bozza</strong>, <strong>In review</strong> o <strong>Progettata</strong> con il badge accanto, e torna <strong>Implementata</strong> a modifica pubblicata.</li>
         </ul>
       </Section>
       <Section title="Chi fa cosa">
@@ -306,14 +306,14 @@ function NrtTab() {
           { place: "Run NRT", title: "La run esegue lo scenario", example: <>behave seleziona <Mono>@runnable</Mono>; Allure scrive l&apos;etichetta <Mono>tag = FDR3_011_01</Mono></> },
           { place: "QA Hub", title: "Arrivano i risultati", example: <>l&apos;esecuzione salvata ha i tag <Mono>[&quot;FDR3_011_01&quot;]</Mono></> },
           { place: "QA Hub", title: "Abbinamento", example: <>tag dello scenario (senza @) o un suo alias, es. il vecchio <Mono>fdr3_011_01</Mono></> },
-          { place: "QA Hub", title: "Risultato", example: "Tab NRT: UAT Passato · feature In esecuzione" },
+          { place: "QA Hub", title: "Risultato", example: "Tab NRT: UAT Passato · badge In esecuzione NRT" },
         ]}
       />
       <ul className="list-disc pl-5 flex flex-col gap-1">
         <li>Le run selezionano gli scenari con i tag di categoria (<Code>@runnable</Code>, <Code>@e2e</Code>, <Code>~@skip</Code>), non con i tag identità: per questo il tag identità può cambiare senza rompere le run, purché restino i tag di categoria.</li>
         <li>Gli <strong>alias</strong> sono i vecchi tag di uno scenario, salvati dalla migrazione o da &quot;Importa da Git&quot;: le esecuzioni fatte prima, con il vecchio tag, restano collegate.</li>
         <li>Il tab <strong>NRT</strong> della feature mostra, per ogni scenario, l&apos;ultimo esito per ambiente (con link al report Allure), il pass rate sulle ultime 10 run e il segnale <strong>Flaky</strong>. Uno Schema dello scenario conta come fallito se fallisce almeno un esempio.</li>
-        <li>Alla prima esecuzione di uno scenario, una feature <strong>Implementata</strong> diventa <strong>In esecuzione</strong> da sola (subito all&apos;arrivo dei risultati, più un controllo ogni 15 minuti) e non torna indietro.</li>
+        <li>Alla prima esecuzione di uno scenario, una feature <strong>Implementata</strong> riceve da sola il badge <strong>In esecuzione NRT</strong> (subito all&apos;arrivo dei risultati, più un controllo ogni 15 minuti) e non lo perde.</li>
         <li>Dal report di una run NRT, TAS o Quality Gate, la sezione <strong>Feature collegate</strong> porta alle feature eseguite; nella panoramica ogni ambito mostra il pass rate NRT dei suoi scenari.</li>
       </ul>
       <h3 className="text-[14px] font-semibold text-text">Quando il collegamento non c&apos;è</h3>
@@ -402,7 +402,7 @@ function Faq() {
           <dd>Se è uno dei file storici, con la <strong>Migrazione</strong>. Se è un file nuovo, magari su un branch, crea la feature e usa <strong>Importa da Git</strong> nel tab Scenari.</dd>
         </div>
         <div>
-          <dt className="font-medium text-text">Perché la mia feature non è &quot;In esecuzione&quot;?</dt>
+          <dt className="font-medium text-text">Perché la mia feature non ha il badge &quot;In esecuzione NRT&quot;?</dt>
           <dd>Serve che una run NRT abbia eseguito almeno uno scenario con il suo tag, e che la feature sia Implementata. Controlla nel tab NRT se compaiono esecuzioni.</dd>
         </div>
       </dl>

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ScopeOverview } from "./ScopeOverview";
 
 const DEFAULT_SCOPES = [
-  { id: "s1", code: "FdR3", name: "Fondo", area: null, feature_count: 2, status_counts: { running: 2 }, nrt_pass_rate: 0.8, deletable: true },
+  { id: "s1", code: "FdR3", name: "Fondo", area: null, feature_count: 2, status_counts: { implemented: 2 }, running_count: 2, nrt_pass_rate: 0.8, deletable: true },
   { id: "s2", code: "CUP", name: "Cup", area: null, feature_count: 1, status_counts: { draft: 1 }, nrt_pass_rate: null, deletable: false },
 ];
 const mocks = vi.hoisted(() => ({ can: vi.fn(), scopes: [] as unknown[] }));
@@ -25,6 +25,13 @@ beforeEach(() => {
 });
 
 describe("ScopeOverview", () => {
+  it("shows the statuses shown and the running features as a separate chip", () => {
+    render(<ScopeOverview />);
+    const card = screen.getByRole("button", { name: /^Fondo/ });
+    expect(within(card).getByText("Implementata 2")).toBeInTheDocument();
+    expect(within(card).getByText("In esecuzione NRT 2")).toBeInTheDocument();
+  });
+
   it("groups areas that differ only by case or surrounding spaces under one heading", () => {
     mocks.scopes = [
       { ...DEFAULT_SCOPES[0], area: "Core" },

@@ -35,12 +35,12 @@ vi.mock("@/hooks/useUsers", () => ({
 
 const FEATURES: TlFeatureListItem[] = [
   {
-    id: "f1", code: "FEAT_001_FdR3", number: 1, title: "Pagamento avviso", status: "draft",
+    id: "f1", code: "FEAT_001_FdR3", number: 1, title: "Pagamento avviso", status: "draft", display_status: "draft", is_running: false,
     scope_id: "s1", scope_code: "FdR3", scope_name: "Fondo rischi", design_owner_id: "u1", reviewer_id: null,
     impl_owner_id: null, test_type: null, scenario_count: 2, updated_at: "2026-11-01T10:00:00Z", deletable: true,
   },
   {
-    id: "f2", code: "FEAT_002_FdR3", number: 2, title: "Rendicontazione", status: "designed",
+    id: "f2", code: "FEAT_002_FdR3", number: 2, title: "Rendicontazione", status: "running", display_status: "draft", is_running: true,
     scope_id: "s1", scope_code: "FdR3", scope_name: "Fondo rischi", design_owner_id: null, reviewer_id: null,
     impl_owner_id: null, test_type: null, scenario_count: 5, updated_at: "2026-11-02T10:00:00Z", deletable: true,
   },
@@ -77,12 +77,22 @@ describe("FeatureTable", () => {
     expect(screen.queryByLabelText("Owner")).not.toBeInTheDocument();
   });
 
-  it("filters by status", async () => {
+  it("shows the status of the change in progress and always the NRT badge when it runs", () => {
     render(<Harness />);
-    await userEvent.selectOptions(screen.getByLabelText("Stato"), "designed");
-    expect(mocks.useTlFeatures).toHaveBeenLastCalledWith({ status: "designed" });
+    const running = screen.getByText("Rendicontazione").closest("tr")!;
+    expect(within(running).getByText("Bozza")).toBeInTheDocument();
+    expect(within(running).getByText("In esecuzione NRT")).toBeInTheDocument();
+    const other = screen.getByText("Pagamento avviso").closest("tr")!;
+    expect(within(other).queryByText("In esecuzione NRT")).toBeNull();
+  });
+
+  it("filters by status, running being the NRT badge", async () => {
+    render(<Harness />);
+    await userEvent.selectOptions(screen.getByLabelText("Stato"), "running");
+    expect(mocks.useTlFeatures).toHaveBeenLastCalledWith({ status: "running" });
     expect(screen.queryByText("Pagamento avviso")).not.toBeInTheDocument();
     expect(screen.getByText("Rendicontazione")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "In esecuzione NRT" })).toBeInTheDocument();
   });
 
   it("renders view and delete icons for each row", () => {

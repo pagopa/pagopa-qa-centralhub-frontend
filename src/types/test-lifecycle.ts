@@ -39,7 +39,9 @@ export interface TlScope {
   created_at: string;
   updated_at: string;
   feature_count: number;
+  /** Features by status shown (without `running`, which is `running_count`). */
   status_counts: Record<string, number>;
+  running_count: number;
   jira_qa_epic_key: string | null;
   jira_component: string | null;
   nrt_pass_rate?: number | null;
@@ -138,6 +140,10 @@ export interface TlFeatureListItem {
   number: number;
   title: string | null;
   status: TlFeatureStatus;
+  /** What the feature is shown as: the phase of the change in progress (else Implementata). */
+  display_status: TlFeatureStatus;
+  /** NRT executes the feature: shown as a badge, whatever the status shown. */
+  is_running: boolean;
   scope_id: string;
   scope_code: string;
   scope_name: string | null;
@@ -156,6 +162,8 @@ export interface TlFeatureDetail {
   code: string;
   number: number;
   status: TlFeatureStatus;
+  display_status: TlFeatureStatus;
+  is_running: boolean;
   scope_id: string;
   scope_code: string;
   scope_name: string | null;

@@ -28,12 +28,12 @@ const FEATURE_STEP: Record<TlFeatureStatus, number> = {
 /**
  * The four lifecycle steps with the current one taken from the revision being worked on
  * (the working revision, else the published one); without a revision the feature status decides.
- * A running feature reads "In esecuzione" as its last step.
+ * "In esecuzione NRT" is a badge, not a step: the last step is always Implementata.
  */
 export function progressSteps(feature: ProgressInput): ProgressStep[] {
   const revision = feature.working_revision ?? feature.published_revision;
   const current = revision ? REVISION_STEP[revision.status] : FEATURE_STEP[feature.status];
-  const labels = ["Bozza", "In review", "Progettata", feature.status === "running" ? "In esecuzione" : "Implementata"];
+  const labels = ["Bozza", "In review", "Progettata", "Implementata"];
   return labels.map((label, i) => ({
     label,
     state: i < current ? "done" : i === current ? "current" : "upcoming",

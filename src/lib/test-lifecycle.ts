@@ -18,7 +18,7 @@ export const FEATURE_STATUS_LABEL: Record<TlFeatureStatus, string> = {
   in_review: "In review",
   designed: "Progettata",
   implemented: "Implementata",
-  running: "In esecuzione",
+  running: "In esecuzione NRT",
 };
 
 export const FEATURE_STATUS_COLOR: Record<TlFeatureStatus, { color: string; bg: string }> = {

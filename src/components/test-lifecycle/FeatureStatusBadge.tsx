@@ -1,7 +1,7 @@
 import { FEATURE_STATUS_COLOR, FEATURE_STATUS_LABEL } from "@/lib/test-lifecycle";
 import type { TlFeatureStatus } from "@/types/test-lifecycle";
 
-export function FeatureStatusBadge({ status }: { status: TlFeatureStatus }) {
+function Pill({ status }: { status: TlFeatureStatus }) {
   const s = FEATURE_STATUS_COLOR[status];
   return (
     <span
@@ -10,6 +10,19 @@ export function FeatureStatusBadge({ status }: { status: TlFeatureStatus }) {
     >
       <span className="inline-block rounded-full shrink-0" style={{ width: 6, height: 6, background: s.color }} />
       {FEATURE_STATUS_LABEL[status]}
+    </span>
+  );
+}
+
+/**
+ * The status shown for a feature. "In esecuzione NRT" is not a phase: when NRT runs the feature it
+ * is an extra badge next to the status, whatever that status is.
+ */
+export function FeatureStatusBadge({ status, running = false }: { status: TlFeatureStatus; running?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 flex-wrap">
+      <Pill status={status} />
+      {running && <Pill status="running" />}
     </span>
   );
 }
