@@ -3,26 +3,37 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ScopeOverview } from "./ScopeOverview";
 
-const mocks = vi.hoisted(() => ({ can: vi.fn() }));
+const DEFAULT_SCOPES = [
+  { id: "s1", code: "FdR3", name: "Fondo", area: null, feature_count: 2, status_counts: { running: 2 }, nrt_pass_rate: 0.8, deletable: true },
+  { id: "s2", code: "CUP", name: "Cup", area: null, feature_count: 1, status_counts: { draft: 1 }, nrt_pass_rate: null, deletable: false },
+];
+const mocks = vi.hoisted(() => ({ can: vi.fn(), scopes: [] as unknown[] }));
 
 vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: mocks.can }) }));
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlScopes: () => ({
     isLoading: false,
     isError: false,
-    data: [
-      { id: "s1", code: "FdR3", name: "Fondo", area: null, feature_count: 2, status_counts: { running: 2 }, nrt_pass_rate: 0.8, deletable: true },
-      { id: "s2", code: "CUP", name: "Cup", area: null, feature_count: 1, status_counts: { draft: 1 }, nrt_pass_rate: null, deletable: false },
-    ],
+    data: mocks.scopes,
   }),
 }));
 
 beforeEach(() => {
+  mocks.scopes = DEFAULT_SCOPES;
   mocks.can.mockReset();
   mocks.can.mockReturnValue(true);
 });
 
 describe("ScopeOverview", () => {
+  it("groups areas that differ only by case or surrounding spaces under one heading", () => {
+    mocks.scopes = [
+      { ...DEFAULT_SCOPES[0], area: "Core" },
+      { ...DEFAULT_SCOPES[1], area: " CORE " },
+    ];
+    render(<ScopeOverview />);
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(1);
+  });
+
   it("shows the NRT pass rate only for scopes with executions", () => {
     render(<ScopeOverview />);
     expect(screen.getByText("NRT 80%")).toBeInTheDocument();

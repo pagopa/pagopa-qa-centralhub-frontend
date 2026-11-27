@@ -28,14 +28,20 @@ export function ScopeOverview({
   const canManage = can("manage:tl_scopes") && !!(onEditScope || onDeleteScope);
 
   const groups = useMemo(() => {
-    const byArea = new Map<string, TlScope[]>();
+    // areas that differ only by case or surrounding spaces are the same group (first label wins)
+    const byArea = new Map<string, { label: string; items: TlScope[] }>();
     for (const s of scopes ?? []) {
-      const area = s.area?.trim() || NO_AREA;
-      byArea.set(area, [...(byArea.get(area) ?? []), s]);
+      const label = s.area?.trim() || NO_AREA;
+      const key = label.toLowerCase();
+      const group = byArea.get(key) ?? { label, items: [] };
+      group.items.push(s);
+      byArea.set(key, group);
     }
-    return [...byArea.entries()].sort(([a], [b]) =>
-      a === NO_AREA ? 1 : b === NO_AREA ? -1 : a.localeCompare(b),
-    );
+    return [...byArea.values()]
+      .sort((a, b) =>
+        a.label === NO_AREA ? 1 : b.label === NO_AREA ? -1 : a.label.localeCompare(b.label),
+      )
+      .map((g) => [g.label, g.items] as const);
   }, [scopes]);
 
   if (isError) {
