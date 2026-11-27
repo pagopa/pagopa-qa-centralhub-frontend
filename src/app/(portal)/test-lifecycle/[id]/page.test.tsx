@@ -94,7 +94,7 @@ function sc(id: string, n: number, title: string): TlScenario {
 }
 
 const FEATURE = {
-  id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3", scope_name: null,
+  id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", display_status: "draft", is_running: false, scope_id: "s1", scope_code: "FdR3", scope_name: null,
   design_owner_id: null, reviewer_id: null, impl_owner_id: null, test_type: null, jira_design_key: null,
   jira_impl_key: null, created_by: "a@x.it", created_at: "", updated_at: "",
   working_revision: {

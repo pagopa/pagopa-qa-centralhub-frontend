@@ -168,7 +168,7 @@ export function FeatureHeader({
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-[13px] font-medium text-text-muted">{feature.code}</span>
-            <FeatureStatusBadge status={feature.status} />
+            <FeatureStatusBadge status={feature.display_status} running={feature.is_running} />
             {revision && (
               <span
                 className="font-mono rounded-full text-[11px] px-2 py-0.5"

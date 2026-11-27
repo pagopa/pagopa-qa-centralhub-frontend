@@ -75,7 +75,7 @@ export function LifecycleDiagram() {
         <Node x={20} y={hubY} label="Bozza" sub="QA Analyst progetta" />
         <Node x={215} y={hubY} label="In review" sub="Reviewer valuta" />
         <Node x={410} y={hubY} label="Progettata" sub="revisione approvata" />
-        <Node x={785} y={hubY} label="Implementata" sub="→ In esecuzione con NRT" accent />
+        <Node x={785} y={hubY} label="Implementata" sub="+ badge In esecuzione NRT" accent />
 
         {/* nodi GitHub */}
         <Node x={410} y={gitY} label="PR aperta" sub="creata dall'hub" />

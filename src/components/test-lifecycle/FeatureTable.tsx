@@ -173,7 +173,7 @@ export function FeatureTable({
                     </Link>
                   </td>
                   <td className="px-4 py-2">{f.title ?? <span className="text-text-muted">(senza titolo)</span>}</td>
-                  <td className="px-4 py-2"><FeatureStatusBadge status={f.status} /></td>
+                  <td className="px-4 py-2"><FeatureStatusBadge status={f.display_status} running={f.is_running} /></td>
                   <td className="px-4 py-2 text-text-dim">
                     {(f.design_owner_id && userNames.get(f.design_owner_id)) || "—"}
                   </td>

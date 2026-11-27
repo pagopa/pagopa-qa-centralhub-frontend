@@ -8,7 +8,7 @@ import { useTlScopes } from "@/hooks/useTestLifecycle";
 import { FEATURE_STATUS_COLOR, FEATURE_STATUS_LABEL, formatRate } from "@/lib/test-lifecycle";
 import type { TlFeatureStatus, TlScope } from "@/types/test-lifecycle";
 
-const STATUSES = Object.keys(FEATURE_STATUS_LABEL) as TlFeatureStatus[];
+const STATUSES = (Object.keys(FEATURE_STATUS_LABEL) as TlFeatureStatus[]).filter((s) => s !== "running");
 const NO_AREA = "Senza area";
 const NOT_DELETABLE_HINT = "Ambito con feature pubblicate o PR aperte: non eliminabile";
 
@@ -99,6 +99,19 @@ export function ScopeOverview({
                           {FEATURE_STATUS_LABEL[st]} {s.status_counts[st]}
                         </span>
                       ))}
+                      {(s.running_count ?? 0) > 0 && (
+                        <span
+                          className="font-mono rounded-full whitespace-nowrap"
+                          style={{
+                            fontSize: 11,
+                            padding: "2px 8px",
+                            color: FEATURE_STATUS_COLOR.running.color,
+                            background: FEATURE_STATUS_COLOR.running.bg,
+                          }}
+                        >
+                          {FEATURE_STATUS_LABEL.running} {s.running_count}
+                        </span>
+                      )}
                     </div>
                   </button>
                   {canManage && (

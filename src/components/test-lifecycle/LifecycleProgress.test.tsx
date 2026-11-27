@@ -45,9 +45,9 @@ describe("progressSteps", () => {
     expect(states(input("implemented", "draft", "merged"))).toEqual(["current", "upcoming", "upcoming", "upcoming"]);
   });
 
-  it("reads In esecuzione when the feature is running", () => {
+  it("keeps Implementata as the last step also when the feature is running (it is a badge)", () => {
     const steps = progressSteps(input("running", null, "merged"));
-    expect(steps[3]).toEqual({ label: "In esecuzione", state: "current" });
+    expect(steps[3]).toEqual({ label: "Implementata", state: "current" });
   });
 
   it("has Bozza current when the feature has no revision", () => {
