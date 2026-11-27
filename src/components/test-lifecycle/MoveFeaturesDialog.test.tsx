@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
 import { MoveFeaturesDialog } from "./MoveFeaturesDialog";
 
-const mocks = vi.hoisted(() => ({ move: vi.fn() }));
+const mocks = vi.hoisted(() => ({ move: vi.fn(), pending: false }));
 
 vi.mock("@/hooks/useTestLifecycle", () => ({
   useTlScopes: () => ({
@@ -14,7 +14,7 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
       { id: "s3", code: "FdR3", name: "Fondo rischi" },
     ],
   }),
-  useMoveTlFeatures: () => ({ mutateAsync: mocks.move, isPending: false }),
+  useMoveTlFeatures: () => ({ mutateAsync: mocks.move, isPending: mocks.pending }),
 }));
 
 const FEATURES = [
@@ -38,7 +38,10 @@ const RESULT = {
 };
 
 describe("MoveFeaturesDialog", () => {
-  beforeEach(() => mocks.move.mockReset().mockResolvedValue(RESULT));
+  beforeEach(() => {
+    mocks.move.mockReset().mockResolvedValue(RESULT);
+    mocks.pending = false;
+  });
 
   it("lists the scopes by name, without the one the features are already in", () => {
     setup();
@@ -58,6 +61,15 @@ describe("MoveFeaturesDialog", () => {
     expect(dialog).toHaveTextContent(/codice, numero e tag degli scenari/i);
     expect(dialog).toHaveTextContent(/Epic QA/);
     expect(dialog).toHaveTextContent(/task Jira già creati/i);
+  });
+
+  it("shows a spinner and 'Spostamento…' while the features are being moved", async () => {
+    mocks.pending = true;
+    setup();
+    await userEvent.selectOptions(screen.getByLabelText("Ambito di arrivo"), "s2");
+    const button = screen.getByRole("button", { name: "Spostamento…" });
+    expect(button).toBeDisabled();
+    expect(button.querySelector("svg.animate-spin")).not.toBeNull();
   });
 
   it("cannot be confirmed before a target scope is chosen", () => {

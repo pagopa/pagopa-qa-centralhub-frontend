@@ -15,6 +15,7 @@ import { Gate } from "@/lib/permissions";
 import { REVISION_STATUS_LABEL, TRANSITION_LABEL } from "@/lib/test-lifecycle";
 import type { TlSaveState } from "@/lib/test-lifecycle";
 import type { TlFeatureDetail, TlRevisionStatus, TlTransitionAction, TransitionCheck } from "@/types/test-lifecycle";
+import { Spinner } from "@/components/ui/Spinner";
 import { FeatureStatusBadge } from "./FeatureStatusBadge";
 import { ReadinessChecklist } from "./ReadinessChecklist";
 import { ReopenDialog } from "./ReopenDialog";
@@ -45,10 +46,13 @@ const PRIMARY_ACTION: Partial<Record<string, TlTransitionAction>> = {
 function TransitionButton({
   check,
   disabled,
+  busy = false,
   onClick,
 }: {
   check: TransitionCheck;
   disabled: boolean;
+  /** This is the transition being applied: a spinner shows next to the label. */
+  busy?: boolean;
   onClick: () => void;
 }) {
   const label = TRANSITION_LABEL[check.action];
@@ -62,8 +66,10 @@ function TransitionButton({
         className={check.action === "approve" || check.action === "submit" ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS}
         disabled={disabled || blocked}
         aria-describedby={blocked && check.reasons.length ? reasonsId : undefined}
+        aria-busy={busy || undefined}
         onClick={onClick}
       >
+        {busy && <Spinner />}
         {label}
       </button>
       {blocked && check.reasons.length > 0 && (
@@ -116,12 +122,15 @@ export function FeatureHeader({
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenAttempted, setReopenAttempted] = useState(false);
   const [note, setNote] = useState("");
+  // the transition the person asked for last: it is the one that shows the spinner while pending
+  const [lastAction, setLastAction] = useState<TlTransitionAction | null>(null);
   const revision = feature.working_revision ?? feature.published_revision;
   const primary = revision ? PRIMARY_ACTION[revision.status] : undefined;
   const primaryCheck = feature.transitions.find((t) => t.action === primary);
   const shownReasons = primaryCheck && !primaryCheck.allowed ? primaryCheck.reasons : [];
 
   const run = (action: TlTransitionAction) => {
+    setLastAction(action);
     if (action === "request_changes") {
       setNote("");
       setNoteOpen(true);
@@ -205,7 +214,12 @@ export function FeatureHeader({
             })
             .map((check) => (
             <Gate key={check.action} action={TRANSITION_PERMISSION[check.action]}>
-              <TransitionButton check={check} disabled={disabled || pending} onClick={() => run(check.action)} />
+              <TransitionButton
+                check={check}
+                disabled={disabled || pending}
+                busy={pending && lastAction === check.action}
+                onClick={() => run(check.action)}
+              />
             </Gate>
           ))}
           {onMove && (

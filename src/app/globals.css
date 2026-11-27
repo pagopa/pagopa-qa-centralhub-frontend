@@ -328,3 +328,13 @@ textarea::placeholder {
     transform-origin: 50% 10%;
   }
 }
+
+/* Indeterminate bar of the Test Lifecycle pending indicator */
+@keyframes tl-pending-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.tl-pending-bar { animation: tl-pending-slide 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-pending-bar { animation: none; width: 100%; opacity: 0.6; }
+}

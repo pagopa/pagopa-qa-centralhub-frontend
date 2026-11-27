@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@/components/ui/Spinner";
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import {
@@ -249,8 +250,9 @@ export function ScopeManagerDialog({
               <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={() => setEditing(null)}>
                 Indietro
               </button>
-              <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={!canSubmit} onClick={handleSubmit}>
-                Salva
+              <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={!canSubmit} aria-busy={isPending || undefined} onClick={handleSubmit}>
+                {isPending && <Spinner />}
+                {isPending ? "Salvataggio…" : "Salva"}
               </button>
             </>
           )}
