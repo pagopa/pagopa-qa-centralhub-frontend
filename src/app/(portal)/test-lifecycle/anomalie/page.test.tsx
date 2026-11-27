@@ -19,6 +19,9 @@ vi.mock("@/hooks/useTestLifecycle", () => ({
     };
   },
   useUpdateTlIssue: () => ({ mutateAsync: mocks.update, isPending: false }),
+  useTlScopes: () => ({ data: [] }),
+  useImportTlIssueFile: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRestoreTlIssueHeader: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock("@/hooks/usePermissions", () => ({ usePermissions: () => ({ can: () => true }) }));
 

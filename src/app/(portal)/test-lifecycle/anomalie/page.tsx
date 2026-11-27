@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
+import { ImportFileDialog } from "@/components/test-lifecycle/ImportFileDialog";
 import { IssueList } from "@/components/test-lifecycle/IssueList";
+import { RestoreHeaderDialog } from "@/components/test-lifecycle/RestoreHeaderDialog";
 import { SELECT_CLASS } from "@/components/ui/formStyles";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTlIssues, useUpdateTlIssue } from "@/hooks/useTestLifecycle";
 import { ISSUE_KIND_LABEL, ISSUE_STATUS_LABEL } from "@/lib/test-lifecycle";
-import type { TlIssueFilters, TlIssueKind, TlIssueStatus } from "@/types/test-lifecycle";
+import type { TlIssue, TlIssueFilters, TlIssueKind, TlIssueStatus } from "@/types/test-lifecycle";
 
 export default function TestLifecycleIssuesPage() {
   const { can } = usePermissions();
   const [filters, setFilters] = useState<TlIssueFilters>({ status: "open" });
   const issues = useTlIssues(filters);
   const update = useUpdateTlIssue();
+  const [importing, setImporting] = useState<TlIssue | null>(null);
+  const [restoring, setRestoring] = useState<TlIssue | null>(null);
 
   const setFilter = <K extends keyof TlIssueFilters>(key: K, value: TlIssueFilters[K] | "") =>
     setFilters((prev) => {
@@ -67,12 +71,16 @@ export default function TestLifecycleIssuesPage() {
           issues={issues.data ?? []}
           canManage={can("manage:tl_git")}
           showFeature
+          onImport={setImporting}
+          onRestoreHeader={setRestoring}
           pending={update.isPending}
           onUpdate={(issue, status) =>
             void update.mutateAsync({ issueId: issue.id, status, featureId: issue.feature_id })
           }
         />
       )}
+      <ImportFileDialog issue={importing} onClose={() => setImporting(null)} />
+      <RestoreHeaderDialog issue={restoring} onClose={() => setRestoring(null)} />
     </div>
   );
 }

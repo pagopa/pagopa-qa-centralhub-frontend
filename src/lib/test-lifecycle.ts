@@ -74,6 +74,8 @@ export const ISSUE_KIND_LABEL: Record<TlIssueKind, string> = {
   new_scenario_from_git: "Nuovo scenario da Git",
   file_deleted: "File eliminato",
   unknown_feature_code: "Codice feature sconosciuto",
+  unmanaged_file: "File non gestito",
+  missing_header: "Intestazione mancante",
   parse_error: "File non leggibile",
   pr_closed_unmerged: "PR chiusa senza merge",
   pr_creation_failed: "Creazione PR fallita",

@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
+import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { ISSUE_KIND_LABEL, ISSUE_STATUS_LABEL } from "@/lib/test-lifecycle";
 import type { TlIssue } from "@/types/test-lifecycle";
 
 function issueMessage(issue: TlIssue): string | null {
   const detail = issue.detail ?? {};
+  if (issue.kind === "missing_header") {
+    return "Il file ha perso l'intestazione # qa-hub: con cui l'hub lo riconosce: finché manca, le modifiche al file non entrano nell'hub.";
+  }
+  if (issue.kind === "unmanaged_file") {
+    const scope = typeof detail.scope_code === "string" ? ` Cartella dell'ambito ${detail.scope_code}.` : "";
+    return `Il file non ha l'intestazione # qa-hub: e nessuna feature lo gestisce.${scope}`;
+  }
   if (typeof detail.message === "string") return detail.message;
   const changes = detail.changes;
   if (Array.isArray(changes)) {
@@ -20,16 +27,24 @@ function issueMessage(issue: TlIssue): string | null {
   return null;
 }
 
+const IMPORTABLE: TlIssue["kind"][] = ["unmanaged_file", "unknown_feature_code"];
+
 export function IssueList({
   issues,
   canManage,
   onUpdate,
+  onImport,
+  onRestoreHeader,
   showFeature = false,
   pending = false,
 }: {
   issues: TlIssue[];
   canManage: boolean;
   onUpdate: (issue: TlIssue, status: "acknowledged" | "resolved") => void;
+  /** Offered on the file questions that can become a feature of the hub. */
+  onImport?: (issue: TlIssue) => void;
+  /** Offered on a managed file that lost its header. */
+  onRestoreHeader?: (issue: TlIssue) => void;
   showFeature?: boolean;
   pending?: boolean;
 }) {
@@ -60,6 +75,16 @@ export function IssueList({
               </div>
               {canManage && issue.status !== "resolved" && (
                 <div className="flex items-center gap-2">
+                  {onImport && IMPORTABLE.includes(issue.kind) && (
+                    <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={pending} onClick={() => onImport(issue)}>
+                      Importa nell&apos;hub
+                    </button>
+                  )}
+                  {onRestoreHeader && issue.kind === "missing_header" && (
+                    <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={pending} onClick={() => onRestoreHeader(issue)}>
+                      Ripristina intestazione
+                    </button>
+                  )}
                   {issue.status === "open" && (
                     <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={pending} onClick={() => onUpdate(issue, "acknowledged")}>
                       Presa visione

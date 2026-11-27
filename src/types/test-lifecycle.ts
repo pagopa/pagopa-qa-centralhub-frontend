@@ -20,6 +20,8 @@ export type TlIssueKind =
   | "new_scenario_from_git"
   | "file_deleted"
   | "unknown_feature_code"
+  | "unmanaged_file"
+  | "missing_header"
   | "parse_error"
   | "pr_closed_unmerged"
   | "pr_creation_failed"
@@ -411,6 +413,19 @@ export interface TlIssue {
   updated_at: string;
   feature_code: string | null;
   feature_title: string | null;
+}
+
+export interface TlAdoptResult {
+  feature_id: string;
+  code: string;
+  alignment_pending: boolean;
+  pr_url: string | null;
+  pr_error: string | null;
+}
+
+export interface TlRestoreHeaderResult {
+  pr_url: string | null;
+  pr_error: string | null;
 }
 
 export interface TlIssueFilters {

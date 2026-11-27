@@ -20,7 +20,9 @@ import type {
   TlGitSyncSummary,
   TlImportGitResult,
   TlHistoryItem,
+  TlAdoptResult,
   TlIssue,
+  TlRestoreHeaderResult,
   TlIssueFilters,
   TlJiraLink,
   TlJiraTaskKind,
@@ -451,6 +453,33 @@ export function useUpdateTlIssue() {
       vars.featureId
         ? invalidate(vars.featureId)
         : qc.invalidateQueries({ queryKey: ["tl", "issues"] }),
+  });
+}
+
+export function useImportTlIssueFile() {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ issueId, scopeCode }: { issueId: string; scopeCode?: string | null }) =>
+      apiClient<TlAdoptResult>(`${BASE}/issues/${issueId}/import`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor, scope_code: scopeCode ?? null }),
+      }),
+    // a feature was created and the question closed: the whole module reloads
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tl"] }),
+  });
+}
+
+export function useRestoreTlIssueHeader() {
+  const actor = useActorEmail();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ issueId }: { issueId: string }) =>
+      apiClient<TlRestoreHeaderResult>(`${BASE}/issues/${issueId}/restore-header`, {
+        method: "POST",
+        body: JSON.stringify({ actor_email: actor }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tl"] }),
   });
 }
 
