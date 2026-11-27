@@ -66,13 +66,16 @@ const isTab = (value: string): value is TabValue => TABS.some((t) => t.value ===
 
 const HUB_FILE = `# language: it
 # qa-hub: FEAT_011_FdR3
-@FDR3_011 @integration
+@FDR3_011
+@integration
 Funzionalità: Recupero FdR pubblicati per organizzazione
 
   Contesto:
     Dato che i sistemi sono operativi
 
-  @FDR3_011_01 @runnable @positive
+  @runnable
+  @positive
+  @FDR3_011_01
   Scenario: Recupero di tutti i FdR pubblicati
     Quando l'organizzazione invia la richiesta di recupero
     Allora l'organizzazione riceve il codice di stato HTTP 200`;
@@ -281,7 +284,7 @@ function JiraTab() {
       <ul className="list-disc pl-5 flex flex-col gap-1">
         <li><strong>Progettazione</strong> (&quot;Progettazione Scenari e casi di test&quot;): si crea dal tab Jira mentre la feature è in bozza; serve per inviare in review.</li>
         <li><strong>Implementazione</strong> (&quot;Implementazione suite di TA&quot;): la crea l&apos;hub all&apos;approvazione. Se Jira non risponde compare l&apos;errore e il pulsante <strong>Riprova task Implementazione</strong>.</li>
-        <li>Ogni task ha etichetta <Code>testing</Code>, sta sotto l&apos;Epic QA (dell&apos;ambito, o quella indicata nella feature), ha il componente dell&apos;ambito ed è collegato (&quot;relates to&quot;) all&apos;Epic/Story di prodotto.</li>
+        <li>Ogni task ha etichetta <Code>testing</Code>, sta sempre sotto un&apos;Epic QA (quella della feature o dell&apos;ambito: se mancano entrambe l&apos;Epic va indicata prima di creare il task, e viene salvata sulla feature), ha il componente dell&apos;ambito ed è collegato (&quot;relates to&quot;) all&apos;Epic/Story di prodotto.</li>
         <li>Se un task con lo stesso titolo esiste già, l&apos;hub lo ricollega invece di crearne un doppione. Le chiavi scritte a mano vengono verificate su Jira.</li>
       </ul>
     </Section>
@@ -299,7 +302,7 @@ function NrtTab() {
         title="Esempio: lo scenario 01 di FEAT_011_FdR3 eseguito in UAT"
         steps={[
           { place: "QA Hub", title: "Scenario con il suo tag", example: <Mono>@FDR3_011_01</Mono> },
-          { place: "GitHub", title: "Il tag è nel file su main", example: <>dopo il merge della PR: <Mono>@FDR3_011_01 @runnable</Mono></> },
+          { place: "GitHub", title: "Il tag è nel file su main", example: <>dopo il merge della PR: <Mono>@runnable</Mono>, <Mono>@positive</Mono> e <Mono>@FDR3_011_01</Mono>, ciascuno su una riga</> },
           { place: "Run NRT", title: "La run esegue lo scenario", example: <>behave seleziona <Mono>@runnable</Mono>; Allure scrive l&apos;etichetta <Mono>tag = FDR3_011_01</Mono></> },
           { place: "QA Hub", title: "Arrivano i risultati", example: <>l&apos;esecuzione salvata ha i tag <Mono>[&quot;FDR3_011_01&quot;]</Mono></> },
           { place: "QA Hub", title: "Abbinamento", example: <>tag dello scenario (senza @) o un suo alias, es. il vecchio <Mono>fdr3_011_01</Mono></> },

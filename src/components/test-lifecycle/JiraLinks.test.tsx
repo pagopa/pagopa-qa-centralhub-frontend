@@ -28,7 +28,7 @@ function link(o: Partial<TlJiraLink>): TlJiraLink {
 function feature(o: Partial<TlFeatureDetail> = {}, revStatus = "draft"): TlFeatureDetail {
   return {
     id: "f1", status: "draft", jira_design_key: null, jira_impl_key: null, jira: [], jira_history: [],
-    jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: null,
+    jira_error: null, jira_qa_epic_key: null, jira_qa_epic_effective: "PQ-495",
     working_revision: { id: "r1", status: revStatus } as TlRevision, published_revision: null,
     ...o,
   } as TlFeatureDetail;
@@ -99,5 +99,33 @@ describe("JiraLinks", () => {
     await userEvent.click(screen.getByRole("button", { name: "Aggiorna da Jira" }));
     expect(mocks.refresh).toHaveBeenCalledWith({ featureId: "f1" });
     expect(await screen.findByRole("alert")).toHaveTextContent("Aggiornamento da Jira non riuscito.");
+  });
+
+  it("does not ask for an Epic when the feature or its scope already has one", () => {
+    render(<JiraLinks feature={feature()} />);
+    expect(screen.queryByLabelText("Epic QA (obbligatoria)")).toBeNull();
+  });
+
+  it("requires the Epic QA before creating a task when there is none, and sends it", async () => {
+    mocks.create.mockResolvedValue({ jira_warning: null });
+    render(<JiraLinks feature={feature({ jira_qa_epic_effective: null })} />);
+    const create = screen.getByRole("button", { name: "Crea task Progettazione" });
+    expect(screen.getByText(/collegato a un.Epic QA/i)).toBeInTheDocument();
+    expect(create).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Epic QA (obbligatoria)"), " pq-495 ");
+    expect(create).toBeEnabled();
+    await userEvent.click(create);
+    expect(mocks.create).toHaveBeenCalledWith({ featureId: "f1", kind: "design", epicKey: "PQ-495" });
+  });
+
+  it("also asks for the Epic when retrying the implementation task", async () => {
+    mocks.create.mockResolvedValue({ jira_warning: null });
+    const approved = { status: "designed" as const, working_revision: null, jira_qa_epic_effective: null,
+      jira_error: "Serve l'Epic QA", published_revision: { id: "r1", status: "approved" } as TlRevision };
+    render(<JiraLinks feature={feature(approved)} />);
+    expect(screen.getByRole("button", { name: "Riprova task Implementazione" })).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Epic QA (obbligatoria)"), "PQ-495");
+    await userEvent.click(screen.getByRole("button", { name: "Riprova task Implementazione" }));
+    expect(mocks.create).toHaveBeenCalledWith({ featureId: "f1", kind: "impl", epicKey: "PQ-495" });
   });
 });

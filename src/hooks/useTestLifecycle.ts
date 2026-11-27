@@ -504,10 +504,10 @@ export function useCreateTlJiraTask() {
   const actor = useActorEmail();
   const invalidate = useInvalidateFeature();
   return useMutation({
-    mutationFn: ({ featureId, kind }: { featureId: string; kind: TlJiraTaskKind }) =>
+    mutationFn: ({ featureId, kind, epicKey }: { featureId: string; kind: TlJiraTaskKind; epicKey?: string }) =>
       apiClient<TlFeatureDetail>(`${BASE}/features/${featureId}/jira/${kind}-task`, {
         method: "POST",
-        body: JSON.stringify({ actor_email: actor }),
+        body: JSON.stringify(epicKey ? { actor_email: actor, epic_key: epicKey } : { actor_email: actor }),
       }),
     onSuccess: (_d, vars) => invalidate(vars.featureId),
   });
