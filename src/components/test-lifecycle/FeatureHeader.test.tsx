@@ -177,6 +177,22 @@ describe("FeatureHeader stale base", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Salvataggio…");
   });
 
+  it("shows a spinner on the transition being applied, not on the other buttons", async () => {
+    const ready = {
+      ...FEATURE,
+      transitions: FEATURE.transitions.map((t) => (t.action === "submit" ? { ...t, allowed: true, reasons: [] } : t)),
+    } as TlFeatureDetail;
+    const { rerender } = render(<FeatureHeader feature={ready} onTransition={vi.fn()} />);
+    const submit = screen.getByRole("button", { name: "Invia in review" });
+    expect(submit.querySelector("svg.animate-spin")).toBeNull();
+    await userEvent.click(submit);
+    rerender(<FeatureHeader feature={ready} onTransition={vi.fn()} pending />);
+    const busy = screen.getByRole("button", { name: "Invia in review" });
+    expect(busy.querySelector("svg.animate-spin")).not.toBeNull();
+    expect(busy).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Riapri" }).querySelector("svg.animate-spin")).toBeNull();
+  });
+
   it("shows the ready state when the primary transition is allowed", () => {
     const ready = {
       ...FEATURE,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { INPUT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCreateTlJiraTask, useRefreshTlJira } from "@/hooks/useTestLifecycle";
@@ -96,13 +97,15 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
 
       <div className="flex flex-wrap gap-2">
         {canCreateDesign && (
-          <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={disabled || create.isPending || missingEpic} onClick={() => void createTask("design")}>
-            Crea task Progettazione
+          <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={disabled || create.isPending || missingEpic} aria-busy={create.isPending || undefined} onClick={() => void createTask("design")}>
+            {create.isPending && <Spinner />}
+            {create.isPending ? "Creazione task Progettazione…" : "Crea task Progettazione"}
           </button>
         )}
         {canRetryImpl && (
-          <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={disabled || create.isPending || missingEpic} onClick={() => void createTask("impl")}>
-            Riprova task Implementazione
+          <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={disabled || create.isPending || missingEpic} aria-busy={create.isPending || undefined} onClick={() => void createTask("impl")}>
+            {create.isPending && <Spinner />}
+            {create.isPending ? "Creazione task Implementazione…" : "Riprova task Implementazione"}
           </button>
         )}
         {(feature.jira.length > 0 || feature.jira_history.length > 0) && (

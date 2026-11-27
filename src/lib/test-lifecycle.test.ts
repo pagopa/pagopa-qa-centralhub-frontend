@@ -69,7 +69,7 @@ describe("transitionBlockReasons", () => {
 describe("labels", () => {
   it("uses italian labels", () => {
     expect(FEATURE_STATUS_LABEL.draft).toBe("Bozza");
-    expect(FEATURE_STATUS_LABEL.running).toBe("In esecuzione");
+    expect(FEATURE_STATUS_LABEL.running).toBe("In esecuzione NRT");
     expect(TRANSITION_LABEL.request_changes).toBe("Richiedi modifiche");
   });
 });

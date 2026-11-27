@@ -8,10 +8,11 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   refresh: vi.fn(),
   perms: new Set<string>(["edit:tl_feature"]),
+  pending: false,
 }));
 
 vi.mock("@/hooks/useTestLifecycle", () => ({
-  useCreateTlJiraTask: () => ({ mutateAsync: mocks.create, isPending: false }),
+  useCreateTlJiraTask: () => ({ mutateAsync: mocks.create, isPending: mocks.pending }),
   useRefreshTlJira: () => ({ mutateAsync: mocks.refresh, isPending: false }),
 }));
 vi.mock("@/hooks/usePermissions", () => ({
@@ -39,6 +40,7 @@ describe("JiraLinks", () => {
     mocks.create.mockReset();
     mocks.refresh.mockReset();
     mocks.perms = new Set(["edit:tl_feature"]);
+    mocks.pending = false;
   });
 
   it("shows the history per revision and the product Epic/Story, linking only http(s) urls", () => {
@@ -127,5 +129,14 @@ describe("JiraLinks", () => {
     await userEvent.type(screen.getByLabelText("Epic QA (obbligatoria)"), "PQ-495");
     await userEvent.click(screen.getByRole("button", { name: "Riprova task Implementazione" }));
     expect(mocks.create).toHaveBeenCalledWith({ featureId: "f1", kind: "impl", epicKey: "PQ-495" });
+  });
+
+  it("shows a spinner and a progress label while the task is being created", () => {
+    mocks.pending = true;
+    render(<JiraLinks feature={feature()} />);
+    const button = screen.getByRole("button", { name: "Creazione task Progettazione…" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("svg.animate-spin")).not.toBeNull();
   });
 });

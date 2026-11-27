@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/Spinner";
 import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS, SELECT_CLASS } from "@/components/ui/formStyles";
 import { useMoveTlFeatures, useTlScopes } from "@/hooks/useTestLifecycle";
 import { apiErrorBlocked, apiErrorMessage } from "@/lib/test-lifecycle";
@@ -138,9 +139,11 @@ function MoveDialog({ open, features, currentScopeIds, onClose, onMoved }: Props
                 type="button"
                 className={PRIMARY_BUTTON_CLASS}
                 disabled={!targetId || move.isPending}
+                aria-busy={move.isPending || undefined}
                 onClick={() => void run()}
               >
-                Sposta
+                {move.isPending && <Spinner />}
+                {move.isPending ? "Spostamento…" : "Sposta"}
               </button>
             </DialogFooter>
           </>
