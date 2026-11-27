@@ -15,7 +15,7 @@ vi.mock("@/lib/permissions", () => ({
 afterEach(() => gate.denied.clear());
 
 const FEATURE = {
-  id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3",
+  id: "f1", code: "FEAT_001_FdR3", number: 1, status: "draft", scope_id: "s1", scope_code: "FdR3", scope_name: null,
   design_owner_id: null, reviewer_id: null, impl_owner_id: null, test_type: null, jira_design_key: null,
   jira_impl_key: null, created_by: "a@x.it", created_at: "", updated_at: "",
   working_revision: {
@@ -69,6 +69,15 @@ describe("FeatureHeader", () => {
     await userEvent.type(screen.getByLabelText("Nota per l'autore"), "Manca il caso negativo");
     await userEvent.click(confirm);
     expect(onTransition).toHaveBeenCalledWith("request_changes", "Manca il caso negativo");
+  });
+
+  it("offers Sposta only when the page provides it, and calls it", async () => {
+    const onMove = vi.fn();
+    const { rerender } = render(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Sposta" })).toBeNull();
+    rerender(<FeatureHeader feature={FEATURE} onTransition={vi.fn()} onMove={onMove} />);
+    await userEvent.click(screen.getByRole("button", { name: "Sposta" }));
+    expect(onMove).toHaveBeenCalledTimes(1);
   });
 
   describe("Riapri", () => {

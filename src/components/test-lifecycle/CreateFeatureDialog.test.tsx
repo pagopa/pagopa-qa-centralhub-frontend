@@ -49,6 +49,12 @@ describe("CreateFeatureDialog", () => {
     expect(screen.getByLabelText("Test type")).toHaveValue("");
   });
 
+  it("labels the scopes by name first, with the code in brackets", () => {
+    render(<CreateFeatureDialog open onOpenChange={() => {}} />);
+    const options = within(screen.getByLabelText("Ambito")).getAllByRole("option").map((o) => o.textContent);
+    expect(options).toEqual(["Seleziona un ambito…", "Fondo rischi (FdR3)", "POS (POS)"]);
+  });
+
   it("offers the three test types", () => {
     render(<CreateFeatureDialog open onOpenChange={() => {}} />);
     const options = within(screen.getByLabelText("Test type")).getAllByRole("option");

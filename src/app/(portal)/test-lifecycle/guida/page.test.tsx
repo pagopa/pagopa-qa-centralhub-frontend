@@ -7,7 +7,7 @@ const TABS = ["Panoramica", "Progettazione", "Git", "Jira", "NRT", "Migrazione",
 
 const SECTIONS: [string, string[]][] = [
   ["Panoramica", ["Il processo in breve", "Chi fa cosa"]],
-  ["Progettazione", ["1. Preparare l'ambito", "2. Progettare la feature", "Importa da Git", "3. Review"]],
+  ["Progettazione", ["1. Preparare l'ambito", "2. Progettare la feature", "Importa da Git", "Rinominare ambiti e spostare feature", "3. Review"]],
   ["Git", ["4. PR e merge su GitHub", "5. Modifiche fatte direttamente su Git", "6. Riaprire e riallineare", "Anomalie"]],
   ["Jira", ["Jira"]],
   ["NRT", ["Come una feature si collega agli NRT"]],
@@ -74,6 +74,16 @@ describe("test lifecycle guide", () => {
     expect(section).toHaveTextContent(/Accetta la versione del repo/);
     expect(section).toHaveTextContent(/Sovrascrivi il repo/);
     expect(section).toHaveTextContent(/nome del branch/i);
+  });
+
+  it("explains renaming scopes, moving features and the adaptation limit", async () => {
+    render(<Page />);
+    await userEvent.click(screen.getByRole("tab", { name: "Progettazione" }));
+    const section = screen.getByRole("heading", { level: 2, name: "Rinominare ambiti e spostare feature" }).closest("section") ?? document.body;
+    expect(section).toHaveTextContent(/Sposta in/);
+    expect(section).toHaveTextContent(/codice, il numero e i tag/);
+    expect(section).toHaveTextContent(/già su main/);
+    expect(section).toHaveTextContent(/PR di allineamento/);
   });
 
   it("explains the NRT link with an example flow and updates the address", async () => {

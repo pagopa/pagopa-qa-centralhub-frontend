@@ -32,6 +32,7 @@ import { HistoryPanel } from "@/components/test-lifecycle/HistoryPanel";
 import { FilePreview } from "@/components/test-lifecycle/FilePreview";
 import { ReviewPanel } from "@/components/test-lifecycle/ReviewPanel";
 import { BranchSyncBar } from "@/components/test-lifecycle/BranchSyncBar";
+import { MoveFeaturesDialog } from "@/components/test-lifecycle/MoveFeaturesDialog";
 import { ScenarioCard, type ScenarioCopy } from "@/components/test-lifecycle/ScenarioCard";
 import { TagCleanupNotice } from "@/components/test-lifecycle/TagCleanupNotice";
 import { ScenarioIndex } from "@/components/test-lifecycle/ScenarioIndex";
@@ -79,6 +80,7 @@ function BackLink() {
 function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch: () => Promise<unknown> }) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const { status: sessionStatus } = useSession();
   const { can } = usePermissions();
   const transition = useTlTransition();
@@ -253,11 +255,22 @@ function FeatureDetail({ feature, refetch }: { feature: TlFeatureDetail; refetch
         onTransition={runTransition}
         onRebase={() => setRebaseOpen(true)}
         onDelete={() => setDeleteOpen(true)}
+        onMove={() => setMoveOpen(true)}
         saveState={writer.saveState}
         deletable={!feature.git_path && !feature.published_revision}
         disabled={!sessionReady}
         pending={transition.isPending}
         error={transitionError}
+      />
+      <MoveFeaturesDialog
+        open={moveOpen}
+        features={[{ id: feature.id, code: feature.code }]}
+        currentScopeIds={[feature.scope_id]}
+        onClose={() => setMoveOpen(false)}
+        onMoved={() => {
+          setMoveOpen(false);
+          void refetch();
+        }}
       />
       <LifecycleProgress feature={feature} />
       <MigrationInfo key={`migration-${feature.id}-${reloadKey}`} feature={feature} />

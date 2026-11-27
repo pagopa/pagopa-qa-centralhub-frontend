@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ScopeOverview } from "./ScopeOverview";
@@ -29,10 +29,18 @@ describe("ScopeOverview", () => {
     expect(screen.getAllByText(/^NRT /)).toHaveLength(1);
   });
 
+  it("shows the name as the title of the card and the code as a label next to it", () => {
+    render(<ScopeOverview />);
+    const card = screen.getByRole("button", { name: /^Fondo/ });
+    expect(card).toHaveTextContent("Fondo");
+    expect(within(card).getByText("FdR3")).toHaveClass("font-mono");
+    expect(within(card).getByText("Fondo")).toHaveClass("font-semibold");
+  });
+
   it("selects a scope card with the keyboard", async () => {
     const onSelect = vi.fn();
     render(<ScopeOverview onSelect={onSelect} />);
-    screen.getByRole("button", { name: /^FdR3/ }).focus();
+    screen.getByRole("button", { name: /^Fondo/ }).focus();
     await userEvent.keyboard("{Enter}");
     expect(onSelect).toHaveBeenCalledWith("s1");
   });

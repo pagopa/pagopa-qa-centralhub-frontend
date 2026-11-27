@@ -83,12 +83,15 @@ export function FeatureHeader({
   error = null,
   onRebase,
   onDelete,
+  onMove,
   deletable = true,
   saveState,
 }: {
   feature: TlFeatureDetail;
   /** Opens the delete confirmation; the button is shown only when provided (and gated by permission). */
   onDelete?: () => void;
+  /** Opens the move dialog; the button is shown only when provided (and gated by permission). */
+  onMove?: () => void;
   /** Save status of the drafts, shown next to the actions. */
   saveState?: TlSaveState;
   /** False when the feature cannot be deleted (published on Git or open PR). */
@@ -205,6 +208,13 @@ export function FeatureHeader({
               <TransitionButton check={check} disabled={disabled || pending} onClick={() => run(check.action)} />
             </Gate>
           ))}
+          {onMove && (
+            <Gate action="edit:tl_feature">
+              <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={disabled} onClick={onMove}>
+                Sposta
+              </button>
+            </Gate>
+          )}
           {onDelete && (
             <Gate action="edit:tl_feature">
               <span title={deletable ? undefined : "Feature pubblicata su Git o con PR aperta: non eliminabile"}>

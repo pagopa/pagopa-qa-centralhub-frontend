@@ -67,12 +67,12 @@ export function ScopeOverview({
                     }`}
                   >
                     <div className={`flex items-baseline justify-between gap-2 ${canManage ? "pr-14" : ""}`}>
-                      <span className="font-mono font-semibold text-[13px]">{s.code}</span>
+                      <span className="font-semibold text-[13px]">{s.name}</span>
                       <span className="font-mono text-[12px] text-text-muted">
                         {s.feature_count} feature
                       </span>
                     </div>
-                    <span className="text-[13px] text-text-dim">{s.name}</span>
+                    <span className="font-mono text-[12px] text-text-dim">{s.code}</span>
                     {formatRate(s.nrt_pass_rate) && (
                       <span className="font-mono text-[12px] text-text-muted" title="Pass rate NRT sulle ultime run degli scenari">
                         NRT {formatRate(s.nrt_pass_rate)}
