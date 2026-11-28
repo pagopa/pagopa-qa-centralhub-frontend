@@ -41,6 +41,9 @@ export const QG_REVISION_RESULT_OPTIONS = [
   { value: "PENDING", label: "PENDING" },
 ] as const;
 
+// Jira statuses offered by the ticket status filter of the lists.
+export const NRT_TICKET_STATUS_FILTER_OPTIONS = ["Backlog", "In Progress", "In Review", "Done"] as const;
+
 // Columns of the Quality Gate list, in display order.
 export const QG_TABLE_HEADERS = [
   { id: "suite", label: "Suite", description: "Suite di test" },
