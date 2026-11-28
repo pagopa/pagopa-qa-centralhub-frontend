@@ -83,14 +83,59 @@ describe("JiraLinks", () => {
     expect(screen.queryByRole("button", { name: "Crea task Progettazione" })).toBeNull();
   });
 
-  it("offers the implementation retry only after a failed creation", async () => {
+  it("offers the implementation task as soon as the revision is approved, without waiting for an error", async () => {
     mocks.create.mockResolvedValue({ jira_warning: null });
     const approved = { status: "designed" as const, working_revision: null,
       published_revision: { id: "r1", status: "approved" } as TlRevision };
-    const { rerender } = render(<JiraLinks feature={feature(approved)} />);
-    expect(screen.queryByRole("button", { name: "Riprova task Implementazione" })).toBeNull();
-    rerender(<JiraLinks feature={feature({ ...approved, jira_error: "Jira giù" })} />);
+    render(<JiraLinks feature={feature(approved)} />);
+    await userEvent.click(screen.getByRole("button", { name: "Crea task Implementazione" }));
+    expect(mocks.create).toHaveBeenCalledWith({ featureId: "f1", kind: "impl" });
+  });
+
+  it("offers the implementation task on a reopened feature whose new revision is approved", async () => {
+    render(
+      <JiraLinks
+        feature={feature({
+          status: "implemented",
+          working_revision: { id: "r2", status: "approved" } as TlRevision,
+          published_revision: { id: "r1", status: "merged" } as TlRevision,
+        })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Crea task Implementazione" })).toBeInTheDocument();
+  });
+
+  it("does not offer the implementation task while the revision is still being designed", () => {
+    const base = { status: "implemented" as const, published_revision: { id: "r1", status: "merged" } as TlRevision };
+    const { rerender } = render(
+      <JiraLinks feature={feature({ ...base, working_revision: { id: "r2", status: "draft" } as TlRevision })} />,
+    );
+    expect(screen.queryByRole("button", { name: /task Implementazione/ })).toBeNull();
+    rerender(
+      <JiraLinks feature={feature({ ...base, working_revision: { id: "r2", status: "in_review" } as TlRevision })} />,
+    );
+    expect(screen.queryByRole("button", { name: /task Implementazione/ })).toBeNull();
+    rerender(<JiraLinks feature={feature({ status: "draft" })} />);
+    expect(screen.queryByRole("button", { name: /task Implementazione/ })).toBeNull();
+  });
+
+  it("does not offer the implementation task when it exists or without permission", () => {
+    const approved = { status: "designed" as const, working_revision: null,
+      published_revision: { id: "r1", status: "approved" } as TlRevision };
+    const { rerender } = render(<JiraLinks feature={feature({ ...approved, jira_impl_key: "PQ-9" })} />);
+    expect(screen.queryByRole("button", { name: /task Implementazione/ })).toBeNull();
+    mocks.perms = new Set();
+    rerender(<JiraLinks feature={feature(approved)} />);
+    expect(screen.queryByRole("button", { name: /task Implementazione/ })).toBeNull();
+  });
+
+  it("calls the implementation task a retry after a failed creation", async () => {
+    mocks.create.mockResolvedValue({ jira_warning: null });
+    const approved = { status: "designed" as const, working_revision: null,
+      published_revision: { id: "r1", status: "approved" } as TlRevision };
+    render(<JiraLinks feature={feature({ ...approved, jira_error: "Jira giù" })} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Jira giù");
+    expect(screen.queryByRole("button", { name: "Crea task Implementazione" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Riprova task Implementazione" }));
     expect(mocks.create).toHaveBeenCalledWith({ featureId: "f1", kind: "impl" });
   });
