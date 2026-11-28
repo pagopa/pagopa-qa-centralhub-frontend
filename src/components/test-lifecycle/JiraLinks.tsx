@@ -25,8 +25,11 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
   const working = feature.working_revision;
   const published = feature.published_revision;
   const canCreateDesign = canEdit && working?.status === "draft" && !feature.jira_design_key;
-  const canRetryImpl =
-    canEdit && published?.status === "approved" && !feature.jira_impl_key && !!feature.jira_error;
+  // "Progettata": the revision being worked on (or the published one) is approved. The hub tries
+  // the implementation task on approval; whoever designs or implements can also create it here.
+  const current = working ?? published;
+  const canCreateImpl = canEdit && current?.status === "approved" && !feature.jira_impl_key;
+  const implLabel = feature.jira_error ? "Riprova task Implementazione" : "Crea task Implementazione";
   const product = feature.jira.find((l) => l.role === "product") ?? null;
   const productHref = safeHttpUrl(product?.url);
 
@@ -77,7 +80,7 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
         <p role="status" className="text-[13px]" style={{ color: "var(--warning)" }}>{warning}</p>
       )}
 
-      {needsEpic && (canCreateDesign || canRetryImpl) && (
+      {needsEpic && (canCreateDesign || canCreateImpl) && (
         <div className="flex flex-col gap-1">
           <label className="flex flex-col gap-1 text-xs text-text-dim">
             Epic QA (obbligatoria)
@@ -102,10 +105,10 @@ export function JiraLinks({ feature, disabled = false }: { feature: TlFeatureDet
             {create.isPending ? "Creazione task Progettazione…" : "Crea task Progettazione"}
           </button>
         )}
-        {canRetryImpl && (
+        {canCreateImpl && (
           <button type="button" className={SECONDARY_BUTTON_CLASS} disabled={disabled || create.isPending || missingEpic} aria-busy={create.isPending || undefined} onClick={() => void createTask("impl")}>
             {create.isPending && <Spinner />}
-            {create.isPending ? "Creazione task Implementazione…" : "Riprova task Implementazione"}
+            {create.isPending ? "Creazione task Implementazione…" : implLabel}
           </button>
         )}
         {(feature.jira.length > 0 || feature.jira_history.length > 0) && (

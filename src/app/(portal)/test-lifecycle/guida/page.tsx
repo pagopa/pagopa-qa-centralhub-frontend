@@ -283,7 +283,7 @@ function JiraTab() {
       />
       <ul className="list-disc pl-5 flex flex-col gap-1">
         <li><strong>Progettazione</strong> (&quot;Progettazione Scenari e casi di test&quot;): si crea dal tab Jira mentre la feature è in bozza; serve per inviare in review.</li>
-        <li><strong>Implementazione</strong> (&quot;Implementazione suite di TA&quot;): la crea l&apos;hub all&apos;approvazione. Se Jira non risponde compare l&apos;errore e il pulsante <strong>Riprova task Implementazione</strong>.</li>
+        <li><strong>Implementazione</strong> (&quot;Implementazione suite di TA&quot;): la prova a creare l&apos;hub all&apos;approvazione. Quando la feature è <strong>Progettata</strong> (anche dopo una riapertura) e il task non c&apos;è, chi ha il permesso di modifica può crearlo dal pulsante <strong>Crea task Implementazione</strong>; se Jira non risponde compare l&apos;errore e il pulsante diventa <strong>Riprova task Implementazione</strong>.</li>
         <li>Ogni task ha etichetta <Code>testing</Code>, sta sempre sotto un&apos;Epic QA (quella della feature o dell&apos;ambito: se mancano entrambe l&apos;Epic va indicata prima di creare il task, e viene salvata sulla feature), ha il componente dell&apos;ambito ed è collegato (&quot;relates to&quot;) all&apos;Epic/Story di prodotto.</li>
         <li>Se un task con lo stesso titolo esiste già, l&apos;hub lo ricollega invece di crearne un doppione. Le chiavi scritte a mano vengono verificate su Jira.</li>
       </ul>
