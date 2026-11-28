@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -112,6 +112,42 @@ describe("OriginNrtsPage", () => {
     expect(mocks.refetchSuites).toHaveBeenCalledTimes(1);
   });
 
+  it("filters the list by outcome and resets the page", async () => {
+    renderPage("NRT");
+    act(() => (mocks.tableProps.mock.calls.at(-1)![0] as { setPage: (page: number) => void }).setPage(3));
+    expect(mocks.useNrts).toHaveBeenLastCalledWith(expect.objectContaining({ page: 3 }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Filtra per esito" }), "KO");
+    expect(mocks.useNrts).toHaveBeenLastCalledWith(expect.objectContaining({ revision_result: "KO", page: 1 }));
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Filtra per esito" }), "");
+    expect(mocks.useNrts).toHaveBeenLastCalledWith(expect.objectContaining({ revision_result: undefined }));
+  });
+
+  it("filters the list by ticket status", async () => {
+    renderPage("NRT");
+    const select = screen.getByRole("combobox", { name: "Filtra per stato ticket" });
+    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Tutti gli stati ticket", "Backlog", "In Progress", "In Review", "Done",
+    ]);
+    await userEvent.selectOptions(select, "Done");
+    expect(mocks.useNrts).toHaveBeenLastCalledWith(expect.objectContaining({ ticket_status: "Done", page: 1 }));
+  });
+
+  it("labels the outcomes GO / NOGO on the Quality Gate list and hides the ticket filter there", () => {
+    renderPage("QG");
+    const outcome = screen.getByRole("combobox", { name: "Filtra per esito" });
+    expect(within(outcome).getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Tutti gli esiti", "GO", "NOGO", "PENDING",
+    ]);
+    expect(screen.queryByRole("combobox", { name: "Filtra per stato ticket" })).not.toBeInTheDocument();
+  });
+
+  it("goes back to the first page when the current page becomes empty", () => {
+    setup(new ApiError(404, null));
+    renderPage("NRT");
+    act(() => (mocks.tableProps.mock.calls.at(-1)![0] as { setPage: (page: number) => void }).setPage(2));
+    expect(mocks.useNrts).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }));
+  });
+
   it("treats a 404 (no runs) as an empty list and any other error as a failure", () => {
     setup(new ApiError(404, null));
     renderPage("NRT");
@@ -144,14 +180,14 @@ describe("OriginNrtsPage", () => {
   it("puts the suite filter and the refresh button in the toolbar of the list", () => {
     renderPage("NRT");
     const table = screen.getByTestId("table");
-    expect(within(table).getByRole("combobox")).toHaveValue("");
+    expect(within(table).getByRole("combobox", { name: "Filtra per suite" })).toHaveValue("");
     expect(within(table).getByRole("button", { name: "Aggiorna elenco" })).toBeInTheDocument();
   });
 
   it("keeps the filter and the refresh button available when the list fails to load", async () => {
     setup(new ApiError(500, null));
     renderPage("NRT");
-    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Filtra per suite" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Aggiorna elenco" }));
     await waitFor(() => expect(mocks.refetchNrts).toHaveBeenCalledTimes(1));
   });

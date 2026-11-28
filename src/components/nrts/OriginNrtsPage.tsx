@@ -6,7 +6,12 @@ import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
 import type { NrtsListObject } from "@/types";
 import { SuiteCard } from "@/components/nrts/SuiteCard";
-import { NRT_PAGE_SIZE } from "@/utils/nrtsCostants";
+import {
+  NRT_PAGE_SIZE,
+  NRT_REVISION_RESULT_OPTIONS,
+  NRT_TICKET_STATUS_FILTER_OPTIONS,
+  QG_REVISION_RESULT_OPTIONS,
+} from "@/utils/nrtsCostants";
 import type { RunOrigin } from "@/utils/nrtUtils";
 import { ApiError } from "@/lib/api";
 import { SELECT_CLASS, SECONDARY_BUTTON_CLASS } from "@/components/ui/formStyles";
@@ -36,9 +41,16 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
     isError: hasDetailsError,
   } = useNrtDetailsScenarios(selectedNrtId);
   const [selectedSuite, setSelectedSuite] = useState<string | undefined>("");
+  const [selectedOutcome, setSelectedOutcome] = useState("");
+  const [selectedTicketStatus, setSelectedTicketStatus] = useState("");
+  // The Quality Gate list has no ticket columns, so the ticket status filter is not offered there.
+  const isQualityGate = origin === "QG";
+  const outcomeOptions = isQualityGate ? QG_REVISION_RESULT_OPTIONS : NRT_REVISION_RESULT_OPTIONS;
   const { data: nrtsData, isLoading, error, refetch: refetchNrts, isFetching: isFetchingNrts } = useNrts({
         origin: queryOrigin,
         test_object: selectedSuite,
+        revision_result: selectedOutcome || undefined,
+        ticket_status: selectedTicketStatus || undefined,
         page: page
     });
   const { data: suitesList, isLoading: isLoadingSuites } = useSuites(
@@ -49,6 +61,9 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
   // The backend answers 404 for an empty list, and React Query keeps the previous data when a
   // refetch fails: without this a deleted last run would stay on screen.
   const isEmpty = isEmptyResult(error);
+  // A page past the end (e.g. the last run of a filtered page was just moved out of the filter) is
+  // empty although earlier pages match: go back to the first page instead of showing an empty list.
+  if (isEmpty && page > 1) setPage(1);
   const total = isEmpty ? 0 : nrtsData?.total ?? 0;
   const totalPages = Math.ceil(total / NRT_PAGE_SIZE);
   const [modified, setIsModified] = useState(false);
@@ -74,12 +89,26 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
   
     }
   
-  function handleSuiteCardClick(testObject: string) {
-      setSelectedSuite((prev) => prev !== testObject ? testObject : undefined);
+  function resetListSelection() {
       setPage(1);
       setSelectedNrtId(undefined);
       setIsModified(false);
       setNrtsWithSelectedDetails([]);
+  }
+
+  function handleSuiteCardClick(testObject: string) {
+      setSelectedSuite((prev) => prev !== testObject ? testObject : undefined);
+      resetListSelection();
+  }
+
+  function handleOutcomeChange(value: string) {
+      setSelectedOutcome(value);
+      resetListSelection();
+  }
+
+  function handleTicketStatusChange(value: string) {
+      setSelectedTicketStatus(value);
+      resetListSelection();
   }
     
     let nrtsToUse =  nrtsWithSelectedDetails.length === 0 ? (isEmpty ? [] : nrtsData?.items ?? []) : nrtsWithSelectedDetails;
@@ -116,6 +145,30 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
           <option key={s} value={s}>{s.toUpperCase()}</option>
         ))}
       </select>
+      <select
+        aria-label="Filtra per esito"
+        className={`${SELECT_CLASS} w-44`}
+        value={selectedOutcome}
+        onChange={(e) => handleOutcomeChange(e.target.value)}
+      >
+        <option value="">Tutti gli esiti</option>
+        {outcomeOptions.map(({ value, label }) => (
+          <option key={value} value={value}>{label}</option>
+        ))}
+      </select>
+      {!isQualityGate && (
+        <select
+          aria-label="Filtra per stato ticket"
+          className={`${SELECT_CLASS} w-52`}
+          value={selectedTicketStatus}
+          onChange={(e) => handleTicketStatusChange(e.target.value)}
+        >
+          <option value="">Tutti gli stati ticket</option>
+          {NRT_TICKET_STATUS_FILTER_OPTIONS.map((status) => (
+            <option key={status} value={status}>{status}</option>
+          ))}
+        </select>
+      )}
       <button
         type="button"
         onClick={() => void handleRefresh()}

@@ -1,26 +1,34 @@
 import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api";
 import type { FlakyScenario, NrtsListObject, NRTSuiteWithLatestRun, PaginatedResponse, TestExecution, UpdateNrtsObject } from "@/types/index";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface UseNrtsParams {
   test_object?: string;
   origin?: string;
   page?: number;
   pageSize?: number;
+  /** Persisted outcome: OK, KO or PENDING. */
+  revision_result?: string;
+  /** Jira status shown by at least one of the two tickets of the run. */
+  ticket_status?: string;
 }
 
 
-export function useNrts({test_object, origin, page = 1, pageSize = 20}: UseNrtsParams = {}) {
+export function useNrts({test_object, origin, page = 1, pageSize = 20, revision_result, ticket_status}: UseNrtsParams = {}) {
     const params = new URLSearchParams({
         page: String(page),
         page_size: String(pageSize),
     });
     if (test_object) params.set("test_object", test_object);
     if (origin) params.set("origin", origin);
+    if (revision_result) params.set("revision_result", revision_result);
+    if (ticket_status) params.set("ticket_status", ticket_status);
     
     return useQuery({
-        queryKey: ["nrts", {test_object, origin, page, pageSize}],
+        queryKey: ["nrts", {test_object, origin, page, pageSize, revision_result, ticket_status}],
+        // Keep the current rows on screen while a new filter or page loads, so the controls do not unmount.
+        placeholderData: keepPreviousData,
         staleTime: 1000 * 60 * 60, // 60 minute
         queryFn: () => apiClient<PaginatedResponse<NrtsListObject>>(`/api/v1/test-metrics/nrts?${params}`),
     });
