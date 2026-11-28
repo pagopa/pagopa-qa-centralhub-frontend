@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useNrts, useNrtDetailsScenarios, useNrtsSuites, useFlakyScenarios } from "@/hooks/useNrts";
+import { useNrts, useNrtDetailsScenarios, useNrtsSuites, useFlakyScenarios, useRefreshTicketStatuses } from "@/hooks/useNrts";
 import { useSuites } from "@/hooks/useSuites";
 import NrtsTable from "@/components/nrts/NrtsTable";
 import type { NrtsListObject } from "@/types";
@@ -57,13 +57,16 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
   });
   const [nrtsWithSelectedDetails, setNrtsWithSelectedDetails] = useState<NrtsListObject[]>([]);
     
-  const isRefreshing = isFetchingNrts || isFetchingSuites;
+  const refreshTicketStatuses = useRefreshTicketStatuses();
+  const isRefreshing = isFetchingNrts || isFetchingSuites || refreshTicketStatuses.isPending;
 
-  function handleRefresh() {
+  async function handleRefresh() {
     // Drop locally cached row edits so the refreshed rows are shown as returned by the backend.
     setNrtsWithSelectedDetails([]);
     setIsModified(false);
-    void Promise.all([refetchNrts(), refetchSuites()]);
+    // Align the ticket statuses with Jira first; a failure (e.g. Jira unavailable) must not block the reload.
+    await refreshTicketStatuses.mutateAsync().catch(() => undefined);
+    await Promise.all([refetchNrts(), refetchSuites()]);
   }
 
   function handleNrtsChange(nrts: NrtsListObject[]) {
@@ -115,7 +118,7 @@ export default function OriginNrtsPage({ origin, title, children }: OriginNrtsPa
       </select>
       <button
         type="button"
-        onClick={handleRefresh}
+        onClick={() => void handleRefresh()}
         disabled={isRefreshing}
         aria-label="Aggiorna elenco"
         title="Aggiorna elenco"

@@ -40,6 +40,14 @@ export function useNrtDetailsScenarios(id?: string) {
 }
 
 
+export function useRefreshTicketStatuses() {
+    return useMutation({
+        mutationFn: () => apiClient<{ checked: number; updated: number }>(`/api/v1/test-metrics/nrts/ticket-status/refresh`, {
+            method: "POST",
+        }),
+    });
+}
+
 export function useUpdateNrt() {
     const queryClient = useQueryClient();
     return useMutation({
