@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   useNrtsSuites: vi.fn(),
   useSuites: vi.fn(),
   useFlakyScenarios: vi.fn(),
+  refreshStatuses: vi.fn(),
   refetchNrts: vi.fn(),
   refetchSuites: vi.fn(),
   tableProps: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/hooks/useNrts", () => ({
   useNrtsSuites: (...a: unknown[]) => mocks.useNrtsSuites(...a),
   useFlakyScenarios: (...a: unknown[]) => mocks.useFlakyScenarios(...a),
   useNrtDetailsScenarios: () => ({ data: undefined, isLoading: false, isError: false }),
+  useRefreshTicketStatuses: () => ({ mutateAsync: mocks.refreshStatuses, isPending: false }),
 }));
 vi.mock("@/hooks/useSuites", () => ({ useSuites: (...a: unknown[]) => mocks.useSuites(...a) }));
 vi.mock("@/components/nrts/NrtsTable", () => ({
@@ -52,6 +54,7 @@ function setup(error: unknown = null) {
   });
   mocks.useSuites.mockReturnValue({ data: ["wisp"], isLoading: false });
   mocks.useFlakyScenarios.mockReturnValue({ data: FLAKY });
+  mocks.refreshStatuses.mockResolvedValue({ checked: 0, updated: 0 });
 }
 
 function renderPage(origin: "TAS" | "QG" | "NRT", children?: ReactNode) {
@@ -88,7 +91,24 @@ describe("OriginNrtsPage", () => {
   it("refreshes the list and the suite cards from the refresh button", async () => {
     renderPage("NRT");
     await userEvent.click(screen.getByRole("button", { name: "Aggiorna elenco" }));
-    expect(mocks.refetchNrts).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.refetchNrts).toHaveBeenCalledTimes(1));
+    expect(mocks.refetchSuites).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes the Jira ticket statuses before reloading the list", async () => {
+    const order: string[] = [];
+    mocks.refreshStatuses.mockImplementation(async () => { order.push("statuses"); });
+    mocks.refetchNrts.mockImplementation(async () => { order.push("list"); });
+    renderPage("NRT");
+    await userEvent.click(screen.getByRole("button", { name: "Aggiorna elenco" }));
+    await waitFor(() => expect(order).toEqual(["statuses", "list"]));
+  });
+
+  it("still reloads the list when the ticket status refresh fails", async () => {
+    mocks.refreshStatuses.mockRejectedValue(new Error("Jira not configured"));
+    renderPage("NRT");
+    await userEvent.click(screen.getByRole("button", { name: "Aggiorna elenco" }));
+    await waitFor(() => expect(mocks.refetchNrts).toHaveBeenCalledTimes(1));
     expect(mocks.refetchSuites).toHaveBeenCalledTimes(1);
   });
 
@@ -133,7 +153,7 @@ describe("OriginNrtsPage", () => {
     renderPage("NRT");
     expect(screen.getByRole("combobox")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Aggiorna elenco" }));
-    expect(mocks.refetchNrts).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.refetchNrts).toHaveBeenCalledTimes(1));
   });
 
   it("shows an empty list, not the deleted rows, when the refetch after a delete answers 404", () => {
